@@ -30,13 +30,13 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="h-12 bg-dark-900 border-b border-dark-800 flex items-center justify-between px-4 sticky top-0 z-50">
+    <nav className="h-12 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-4 sticky top-0 z-50">
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded bg-forest-600 flex items-center justify-center">
-          <Zap size={14} className="text-white" />
+      <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <div className="w-5 h-5 rounded bg-[#238636] flex items-center justify-center">
+          <Zap size={11} className="text-white" strokeWidth={2.5} />
         </div>
-        <span className="text-sm font-semibold text-dark-100">CircuitCo</span>
+        <span className="text-sm font-semibold text-[#c9d1d9]">CircuitCo</span>
       </Link>
 
       {/* Nav Links */}
@@ -49,13 +49,13 @@ const Navbar: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors duration-150 ${
                 isActive
-                  ? 'text-dark-100 bg-dark-800'
-                  : 'text-dark-400 hover:text-dark-200 hover:bg-dark-800'
+                  ? 'text-[#c9d1d9] bg-[#21262d]'
+                  : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#1c2128]'
               }`}
             >
-              <Icon size={14} />
+              <Icon size={14} strokeWidth={2} />
               {item.label}
             </Link>
           );
@@ -65,8 +65,8 @@ const Navbar: React.FC = () => {
       {/* Right Section */}
       <div className="flex items-center gap-2">
         {/* Collaboration Button */}
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-dark-800 rounded-md text-sm text-dark-400 hover:text-dark-200 transition-colors">
-          <Users size={14} />
+        <button className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-[#1c2128] rounded text-sm text-[#8b949e] hover:text-[#c9d1d9] transition-colors duration-150">
+          <Users size={14} strokeWidth={2} />
           <span>Share</span>
         </button>
 
@@ -75,36 +75,36 @@ const Navbar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-dark-800 rounded-md transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1 hover:bg-[#1c2128] rounded transition-colors duration-150"
             >
-              <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center text-dark-300 text-xs font-medium">
+              <div className="w-6 h-6 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#c9d1d9] text-xs font-medium">
                 {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <ChevronDown size={12} className="text-dark-500" />
+              <ChevronDown size={12} className="text-[#8b949e]" strokeWidth={2} />
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-dark-850 border border-dark-700 rounded-lg shadow-lg overflow-hidden animate-fade-in">
-                <div className="px-3 py-2 border-b border-dark-700">
-                  <p className="text-sm font-medium text-dark-200 truncate">
+              <div className="absolute right-0 top-full mt-2 w-52 bg-[#161b22] border border-[#30363d] rounded shadow-2xl overflow-hidden animate-fade-in">
+                <div className="px-3 py-2 border-b border-[#30363d]">
+                  <p className="text-sm font-medium text-[#c9d1d9] truncate">
                     {user?.displayName || 'User'}
                   </p>
-                  <p className="text-xs text-dark-500 truncate">{user?.email}</p>
+                  <p className="text-xs text-[#8b949e] truncate mt-0.5">{user?.email}</p>
                 </div>
                 <div className="py-1">
                   <Link
                     to="/settings"
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 hover:bg-dark-800 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#c9d1d9] hover:bg-[#1c2128] transition-colors duration-150"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <Settings size={14} />
+                    <Settings size={14} strokeWidth={2} />
                     Settings
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 hover:bg-dark-800 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-[#c9d1d9] hover:bg-[#1c2128] transition-colors duration-150"
                   >
-                    <LogOut size={14} />
+                    <LogOut size={14} strokeWidth={2} />
                     Log out
                   </button>
                 </div>
@@ -112,16 +112,16 @@ const Navbar: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Link
               to="/login"
-              className="px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 transition-colors"
+              className="px-3 py-1.5 text-sm text-[#8b949e] hover:text-[#c9d1d9] transition-colors duration-150 font-medium"
             >
               Log in
             </Link>
             <Link
               to="/signup"
-              className="btn-primary"
+              className="btn-primary text-sm"
             >
               Sign up
             </Link>

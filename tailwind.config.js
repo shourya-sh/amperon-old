@@ -1,65 +1,65 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Dark grey palette - Linear inspired
+        // GitHub dark theme palette
         dark: {
-          50: '#f7f7f8',
-          100: '#e8e8eb',
-          200: '#d1d1d8',
-          300: '#a9a9b8',
-          400: '#7c7c8d',
-          500: '#5c5c6d',
-          600: '#4a4a58',
-          700: '#3d3d47',
-          800: '#1f1f25',
-          850: '#1a1a1f',
-          900: '#0f0f13',
-          950: '#080809',
+          bg: "#0d1117",
+          bgSecondary: "#161b22",
+          bgTertiary: "#21262d",
+          bgOverlay: "#1c2128",
+          border: "#30363d",
+          borderMuted: "#21262d",
+          text: "#c9d1d9",
+          textSecondary: "#8b949e",
+          textMuted: "#6e7681",
+          textSubtle: "#484f58",
         },
-        // Forest green palette - darker
-        forest: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#16a34a',
-          600: '#15803d',
-          700: '#166534',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
+        // GitHub accent colors
+        github: {
+          green: "#238636",
+          greenLight: "#2ea043",
+          blue: "#1f6feb",
+          blueLight: "#58a6ff",
+          red: "#da3633",
+          redLight: "#f85149",
+          yellow: "#d29922",
+          yellowLight: "#e3b341",
+          purple: "#8957e5",
+          purpleLight: "#a371f7",
         },
-        // Accent colors for components
+        // Component accent colors
         accent: {
-          resistor: '#a78bfa',
-          capacitor: '#60a5fa',
-          led: '#fbbf24',
-          battery: '#f87171',
-          wire: '#16a34a',
-          switch: '#c084fc',
-        }
+          resistor: "#a371f7",
+          capacitor: "#58a6ff",
+          led: "#e3b341",
+          battery: "#f85149",
+          wire: "#2ea043",
+          switch: "#bc8cff",
+        },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        mono: ['JetBrains Mono', 'SF Mono', 'Monaco', 'monospace'],
+        sans: [
+          "Geist",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        mono: ["Geist Mono", "Menlo", "Monaco", "Courier New", "monospace"],
       },
       animation: {
-        'fade-in': 'fadeIn 0.15s ease-out',
+        "fade-in": "fadeIn 0.15s ease-out",
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
       },
     },
   },
   plugins: [],
-}
+};

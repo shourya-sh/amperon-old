@@ -97,7 +97,7 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className={`relative group ${selected ? 'z-10' : ''}`}
+      className={`relative group w-24 h-24 flex items-center justify-center ${selected ? 'z-10' : ''}`}
       style={{ transform: `rotate(${rotation}deg)` }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
@@ -123,61 +123,63 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         </div>
       </div>
 
-      {/* Connection Handles */}
+      {/* Primary left-right handles for series circuits */}
       <Handle
         type="target"
         position={Position.Left}
         id="target"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
+      {/* Alternative handles for different routing, only when needed */}
       <Handle
         type="source"
         position={Position.Left}
         id="sourceLeft"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       <Handle
         type="target"
         position={Position.Right}
         id="targetRight"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
+      {/* Vertical handles - visible but smaller for cleaner look */}
       <Handle
         type="target"
         position={Position.Top}
         id="targetTop"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="sourceBottom"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       <Handle
         type="source"
         position={Position.Top}
         id="sourceTop"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       <Handle
         type="target"
         position={Position.Bottom}
         id="targetBottom"
-        className="!w-3.5 !h-3.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
+        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
         style={{ backgroundColor: componentColor }}
       />
       {component.type === 'transistor' && (
@@ -194,7 +196,7 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
       <div className="w-20 h-20 flex items-center justify-center relative">
         {!loading && svgContent && (
           <div
-            className="w-14 h-14 flex items-center justify-center"
+            className="w-12 h-12 flex items-center justify-center"
             dangerouslySetInnerHTML={{ __html: svgContent }}
             style={{ filter: isActive ? 'drop-shadow(0 0 4px rgba(255,255,255,0.2))' : 'none' }}
           />
@@ -225,8 +227,8 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         )}
       </div>
 
-      {/* Label */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2">
+      {/* Label - only visible on hover */}
+      <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 transition-opacity duration-200 ${hovering ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="bg-dark-900/90 border border-dark-700 rounded-md px-2 py-0.5 shadow"
              style={{ borderColor: componentColor }}>
           <p className="text-[11px] text-dark-200 whitespace-nowrap">{data.label || component.name}</p>

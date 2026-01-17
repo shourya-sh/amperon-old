@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Send, 
   X, 
@@ -12,6 +12,7 @@ import { useChatStore, useCircuitStore } from '../../stores';
 import { circuitComponents } from '../../data/components';
 import { sendMessageToAI } from '../../services/aiService';
 import type { ChatMessage, CanvasEdge } from '../../types';
+import type { CurrentCircuitState } from '../../services/aiService';
 
 const quickActions = [
   { id: 'led-circuit', label: 'Build LED circuit', prompt: 'Build me a simple LED circuit' },
@@ -22,11 +23,31 @@ const quickActions = [
 
 const ChatPanel: React.FC = () => {
   const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages, lastCircuitAction, setLastCircuitAction } = useChatStore();
-  const { addNode, addEdge, clearCanvas } = useCircuitStore();
+  const { nodes, edges, addNode, addEdge, clearCanvas } = useCircuitStore();
   const [input, setInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Build current circuit state from canvas nodes/edges for AI context
+  const getCurrentCircuitState = useCallback((): CurrentCircuitState => {
+    const components = nodes.map(node => ({
+      type: node.data.component?.type || 'unknown',
+      id: node.id,
+      label: node.data.label,
+    }));
+    
+    const connections = edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      return {
+        fromType: sourceNode?.data.component?.type || 'unknown',
+        toType: targetNode?.data.component?.type || 'unknown',
+      };
+    });
+    
+    return { components, connections };
+  }, [nodes, edges]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,94 +78,108 @@ const ChatPanel: React.FC = () => {
     }
   };
 
+  // Layout components in a clean series arrangement:
+  // Battery on left, components flow right, ground below last component far right
+  // Return path goes along bottom back to battery (avoiding component overlap)
   const computeLayout = (
     components: Array<{ type: string }>,
-    connections: Array<{ from: number; to: number }>
+    _connections: Array<{ from: number; to: number }>
   ) => {
-    const baseX = 140;
-    const baseY = 140;
-    const xSpacing = 200;
-    const ySpacing = 120;
+    const baseX = 160;
+    const baseY = 160;
+    const xSpacing = 220;  // Increased spacing to prevent wire overlap
+    const ySpacing = 220;  // Increased vertical spacing for return path
+    const snap = (value: number) => Math.round(value / 20) * 20;
 
     const nodeCount = components.length;
-    const adjacency = new Map<number, Set<number>>();
-    for (let i = 0; i < nodeCount; i++) adjacency.set(i, new Set());
-    connections.forEach((c) => {
-      adjacency.get(c.from)?.add(c.to);
-      adjacency.get(c.to)?.add(c.from);
-    });
+    const batteryIdx = components.findIndex((c) => c.type === 'battery');
+    const groundIdx = components.findIndex((c) => c.type === 'ground');
 
-    const batteryIndex = components.findIndex((c) => c.type === 'battery');
-    const root = batteryIndex >= 0 ? batteryIndex : 0;
-    const depth = new Map<number, number>();
-    const visited = new Set<number>();
-    const queue: number[] = [root];
-    depth.set(root, 0);
-    visited.add(root);
-
-    while (queue.length > 0) {
-      const current = queue.shift() as number;
-      const neighbors = adjacency.get(current) || new Set();
-      neighbors.forEach((n) => {
-        if (!visited.has(n)) {
-          visited.add(n);
-          depth.set(n, (depth.get(current) || 0) + 1);
-          queue.push(n);
-        }
-      });
-    }
-
-    // Any disconnected nodes go to the last column
-    const maxDepth = Math.max(...Array.from(depth.values())) || 0;
-    for (let i = 0; i < nodeCount; i++) {
-      if (!depth.has(i)) depth.set(i, maxDepth + 1);
-    }
-
-    // Group by depth
-    const levels = new Map<number, number[]>();
-    for (let i = 0; i < nodeCount; i++) {
-      const d = depth.get(i) || 0;
-      if (!levels.has(d)) levels.set(d, []);
-      levels.get(d)?.push(i);
-    }
+    // Get intermediate components (not battery, not ground) in order
+    const intermediates = components
+      .map((_, idx) => idx)
+      .filter((idx) => idx !== batteryIdx && idx !== groundIdx);
 
     const positions: Array<{ x: number; y: number }> = new Array(nodeCount).fill({ x: 0, y: 0 });
-    Array.from(levels.entries()).sort((a, b) => a[0] - b[0]).forEach(([d, nodes]) => {
-      nodes.sort((a, b) => a - b);
-      nodes.forEach((idx, row) => {
-        positions[idx] = {
-          x: baseX + d * xSpacing,
-          y: baseY + row * ySpacing,
-        };
-      });
+
+    // Battery goes at far left, top row
+    if (batteryIdx >= 0) {
+      positions[batteryIdx] = { x: snap(baseX), y: snap(baseY) };
+    }
+
+    // Intermediate components flow left-to-right on top row with sufficient spacing
+    intermediates.forEach((idx, i) => {
+      positions[idx] = {
+        x: snap(baseX + (i + 1) * xSpacing),
+        y: snap(baseY),
+      };
     });
 
-    const groundIndex = components.findIndex((c) => c.type === 'ground');
-    if (groundIndex >= 0) {
-      const groundDepth = Math.max(...Array.from(depth.values())) + 1;
-      positions[groundIndex] = {
-        x: baseX + groundDepth * xSpacing,
-        y: baseY + (levels.get(depth.get(root) || 0)?.length || 1) * ySpacing,
+    // Ground goes to the FAR RIGHT below the last component for clean wire routing
+    // This ensures the return wire has room to come back along the bottom
+    if (groundIdx >= 0) {
+      const lastComponentX = intermediates.length > 0
+        ? baseX + (intermediates.length + 1) * xSpacing
+        : baseX + xSpacing;
+      positions[groundIdx] = {
+        x: snap(lastComponentX),
+        y: snap(baseY + ySpacing),
       };
     }
 
     return positions;
   };
 
-  const getHandleIds = (
-    sourcePos: { x: number; y: number },
-    targetPos: { x: number; y: number }
+  // Determine which handles to use based on component positions and circuit role
+  // Key rules:
+  // - Battery: output from RIGHT, return input to LEFT
+  // - Series components: input on LEFT, output on RIGHT
+  // - Ground: input from TOP (since it's below), output from LEFT back to battery
+  const getHandleIdsForConnection = (
+    fromIdx: number,
+    toIdx: number,
+    positions: Array<{ x: number; y: number }>,
+    components: Array<{ type: string }>,
+    batteryIdx: number
   ) => {
-    const dx = targetPos.x - sourcePos.x;
-    const dy = targetPos.y - sourcePos.y;
-    if (Math.abs(dy) > Math.abs(dx)) {
-      return dy >= 0
-        ? { sourceHandle: 'sourceBottom', targetHandle: 'targetTop' }
-        : { sourceHandle: 'sourceTop', targetHandle: 'targetBottom' };
+    const sourcePos = positions[fromIdx];
+    const targetPos = positions[toIdx];
+    const fromType = components[fromIdx]?.type;
+    const toType = components[toIdx]?.type;
+    
+    // Connection returning TO battery (the loop-closing wire)
+    if (toIdx === batteryIdx) {
+      // Return path enters battery from the LEFT
+      if (fromType === 'ground') {
+        // Ground is below and to the right, so exit from ground's LEFT, enter battery's LEFT
+        return { sourceHandle: 'sourceLeft', targetHandle: 'target' };
+      }
+      // Other component returning to battery
+      return { sourceHandle: 'sourceLeft', targetHandle: 'target' };
     }
-    return dx >= 0
-      ? { sourceHandle: 'source', targetHandle: 'target' }
-      : { sourceHandle: 'sourceLeft', targetHandle: 'targetRight' };
+    
+    // Connection FROM battery (outgoing power)
+    if (fromIdx === batteryIdx) {
+      // Battery outputs from RIGHT to next component's LEFT
+      return { sourceHandle: 'source', targetHandle: 'target' };
+    }
+    
+    // Connection TO ground (downward)
+    if (toType === 'ground') {
+      // Last component connects down to ground
+      // Exit from source's BOTTOM, enter ground's TOP
+      return { sourceHandle: 'sourceBottom', targetHandle: 'targetTop' };
+    }
+    
+    // Standard series connection: component to component (left to right)
+    const dx = targetPos.x - sourcePos.x;
+    if (dx >= 0) {
+      // Target is to the right: exit RIGHT, enter LEFT
+      return { sourceHandle: 'source', targetHandle: 'target' };
+    } else {
+      // Target is to the left: exit LEFT, enter RIGHT
+      return { sourceHandle: 'sourceLeft', targetHandle: 'targetRight' };
+    }
   };
 
   const repairConnections = (
@@ -153,105 +188,45 @@ const ChatPanel: React.FC = () => {
   ): Array<{ from: number; to: number; label?: string }> => {
     if (components.length === 0) return [];
 
-    const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
-    const dedup = new Map<string, { from: number; to: number; label?: string }>();
-
-    const addEdge = (from: number, to: number, label?: string) => {
-      if (from === to) return;
-      const nodesCount = components.length;
-      if (from < 0 || to < 0 || from >= nodesCount || to >= nodesCount) return;
-      const key = pairKey(from, to);
-      if (!dedup.has(key)) {
-        dedup.set(key, { from, to, label });
-      }
-    };
-
-    connections.forEach((c) => addEdge(c.from, c.to, c.label));
-
-    const nodesCount = components.length;
-    const adjacency = Array.from({ length: nodesCount }, () => new Set<number>());
-    dedup.forEach((c) => {
-      adjacency[c.from].add(c.to);
-      adjacency[c.to].add(c.from);
-    });
-
-    const batteryIdx = components.findIndex((c) => c.type === 'battery');
-    const groundIdx = components.findIndex((c) => c.type === 'ground');
+    const batteryIdx = components.findIndex((comp) => comp.type === 'battery');
+    const groundIdx = components.findIndex((comp) => comp.type === 'ground');
 
     if (batteryIdx === -1) {
-      return Array.from(dedup.values());
+      return connections;
     }
 
-    // Connect all nodes to the battery component
+    // Build proper series circuit: battery → components → back to battery
+    // Ground (if present) acts as a return path node
+    const result: Array<{ from: number; to: number; label?: string }> = [];
     const visited = new Set<number>();
-    const queue: number[] = [batteryIdx];
     visited.add(batteryIdx);
-    while (queue.length) {
-      const n = queue.shift() as number;
-      adjacency[n].forEach((nbr) => {
-        if (!visited.has(nbr)) {
-          visited.add(nbr);
-          queue.push(nbr);
-        }
-      });
+
+    // Collect non-battery, non-ground components in order
+    const intermediates = components
+      .map((_, idx) => idx)
+      .filter((idx) => idx !== batteryIdx && idx !== groundIdx);
+
+    // Build chain: battery → intermediate[0] → intermediate[1] → ... → ground (if exists) → back to battery
+    let current = batteryIdx;
+    for (const next of intermediates) {
+      result.push({ from: current, to: next });
+      visited.add(next);
+      current = next;
     }
 
-    let lastAttach = batteryIdx;
-    for (let i = 0; i < nodesCount; i++) {
-      if (!visited.has(i)) {
-        addEdge(lastAttach, i);
-        visited.add(i);
-        lastAttach = i;
-      }
+    // If ground exists, route the last component TO ground, then ground BACK to battery
+    if (groundIdx >= 0) {
+      result.push({ from: current, to: groundIdx, label: 'GND' });
+      result.push({ from: groundIdx, to: batteryIdx });
+      visited.add(groundIdx);
+    } else if (intermediates.length > 0) {
+      // No ground, close loop directly back to battery from the last component
+      result.push({ from: current, to: batteryIdx });
     }
 
-    // Ensure ground has a path
-    if (groundIdx >= 0 && adjacency[groundIdx].size === 0) {
-      addEdge(lastAttach, groundIdx, 'GND');
-    }
+    console.log('Repaired connections:', result.map((c) => `${c.from}→${c.to}${c.label ? ` (${c.label})` : ''}`).join(', '));
 
-    // Ensure two-terminal parts are connected on both ends and avoid dangling parts
-    const twoTerminal = new Set([
-      'resistor', 'capacitor', 'inductor', 'led', 'diode', 'buzzer', 'motor', 'lightbulb', 'switch', 'wire'
-    ]);
-    for (let i = 0; i < nodesCount; i++) {
-      const type = components[i].type;
-      if (!twoTerminal.has(type)) continue;
-
-      let degree = adjacency[i].size || 0;
-
-      // Attempt to attach to battery first (if present and not self)
-      if (degree < 2 && batteryIdx >= 0 && batteryIdx !== i && !adjacency[i].has(batteryIdx)) {
-        addEdge(i, batteryIdx);
-        degree = adjacency[i].size || 0;
-      }
-
-      // If still dangling, attach to nearest non-self node (simple heuristic)
-      if (degree < 2) {
-        // find a candidate neighbor index
-        let candidate = -1;
-        for (let j = 0; j < nodesCount; j++) {
-          if (j === i) continue;
-          if (!adjacency[i].has(j)) { candidate = j; break; }
-        }
-        if (candidate >= 0) {
-          addEdge(i, candidate);
-          degree = adjacency[i].size || 0;
-        }
-      }
-
-      // Final fallback: attach to ground if present
-      if (degree < 2 && groundIdx >= 0 && !adjacency[i].has(groundIdx)) {
-        addEdge(i, groundIdx, 'GND');
-        degree = adjacency[i].size || 0;
-      }
-
-      if (degree < 2) {
-        console.warn(`Component ${i} (${type}) remains with degree ${degree} — attached to battery/nearest/ground where possible.`);
-      }
-    }
-
-    return Array.from(dedup.values());
+    return result;
   };
 
   // Add components to canvas based on AI response
@@ -272,18 +247,8 @@ const ChatPanel: React.FC = () => {
       clearCanvas();
     }
 
-    const safeConnections = connections ? [...connections] : [];
-    const groundIndex = components.findIndex((c) => c.type === 'ground');
-    if (groundIndex >= 0) {
-      const hasGroundConnection = safeConnections.some((c) => c.from === groundIndex || c.to === groundIndex);
-      if (!hasGroundConnection) {
-        const batteryIndex = components.findIndex((c) => c.type === 'battery');
-        const attachIndex = batteryIndex >= 0 ? batteryIndex : 0;
-        safeConnections.push({ from: attachIndex, to: groundIndex, label: 'GND' });
-      }
-    }
-
-    const repairedConnections = repairConnections(components, safeConnections);
+    // Repair connections to ensure proper series circuit with battery loop closure
+    const repairedConnections = repairConnections(components, connections || []);
 
     // Store node IDs so we can reference them for connections
     const nodeIds: string[] = [];
@@ -326,11 +291,18 @@ const ChatPanel: React.FC = () => {
 
     // Add connections/edges
     if (repairedConnections && repairedConnections.length > 0) {
-      repairedConnections.forEach((conn) => {
+      const batteryIdx = components.findIndex((c) => c.type === 'battery');
+      console.log('Creating edges from', repairedConnections.length, 'connections');
+      repairedConnections.forEach((conn, idx) => {
+        console.log(`Processing connection ${idx}: ${conn.from} → ${conn.to}`);
         if (conn.from < nodeIds.length && conn.to < nodeIds.length) {
-          const sourcePos = positions[conn.from];
-          const targetPos = positions[conn.to];
-          const { sourceHandle, targetHandle } = getHandleIds(sourcePos, targetPos);
+          const { sourceHandle, targetHandle } = getHandleIdsForConnection(
+            conn.from,
+            conn.to,
+            positions,
+            components,
+            batteryIdx
+          );
           const edgeId = `e${nodeIds[conn.from]}-${nodeIds[conn.to]}`;
           const newEdge: CanvasEdge = {
             id: edgeId,
@@ -340,18 +312,16 @@ const ChatPanel: React.FC = () => {
             targetHandle,
             type: 'smoothstep',
             animated: false,
-            style: { stroke: '#22c55e', strokeWidth: 4 },
-            markerEnd: {
-              type: 'arrowclosed',
-              color: '#22c55e',
-            },
+            style: { stroke: '#94a3b8', strokeWidth: 2 },
             label: conn.label,
             labelStyle: { fill: '#a7f3d0', fontSize: 11 },
             labelBgStyle: { fill: 'rgba(17, 24, 39, 0.9)', rx: 4, ry: 4 },
             labelBgPadding: [6, 4],
           };
-          console.log('Adding edge:', edgeId, 'from', nodeIds[conn.from], 'to', nodeIds[conn.to]);
+          console.log('✓ Adding edge:', edgeId, `[${sourceHandle}→${targetHandle}]`);
           addEdge(newEdge);
+        } else {
+          console.warn(`✗ Skipping edge: indices out of range (${conn.from}, ${conn.to}) for nodeIds.length=${nodeIds.length}`);
         }
       });
     }
@@ -375,12 +345,17 @@ const ChatPanel: React.FC = () => {
     try {
       console.log('Sending message to AI:', userInput);
       
-      // Call real AI service
+      // Get current circuit state from canvas for modification context
+      const currentCircuitState = getCurrentCircuitState();
+      console.log('Current circuit state:', currentCircuitState);
+      
+      // Call real AI service with current circuit context
       const aiResponse = await sendMessageToAI(userInput, {
         history: messages
           .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
           .map((m) => ({ role: m.role, content: m.content })),
         lastCircuit: lastCircuitAction,
+        currentCircuitState: currentCircuitState.components.length > 0 ? currentCircuitState : null,
       });
       
       console.log('AI Response received:', aiResponse);
