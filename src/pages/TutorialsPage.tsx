@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   BookOpen, 
   Clock, 
@@ -10,9 +12,11 @@ import {
   Star,
   Zap,
   Search,
-  Filter
+  Filter,
+  Trophy
 } from 'lucide-react';
 import { tutorials, getTutorialsByDifficulty } from '../data/tutorials';
+import { useTutorialStore } from '../stores';
 import type { Tutorial } from '../types';
 
 const TutorialsPage: React.FC = () => {
@@ -20,6 +24,34 @@ const TutorialsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTutorial, setActiveTutorial] = useState<Tutorial | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  
+  const { 
+    totalCircuitPoints, 
+    completedTutorials, 
+    isTutorialComplete, 
+    getTutorialProgress 
+  } = useTutorialStore();
+
+  // Calculate Circuit Points rewards based on difficulty
+  const getCircuitPointsReward = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner': return 50;
+      case 'intermediate': return 100;
+      case 'advanced': return 200;
+      default: return 50;
+    }
+  };
+
+  // Add Circuit Points rewards to tutorials
+  const tutorialsWithRewards = useMemo(() => 
+    tutorials.map(t => ({
+      ...t,
+      circuitPointsReward: getCircuitPointsReward(t.difficulty),
+      completed: isTutorialComplete(t.id),
+      progress: getTutorialProgress(t.id),
+    })),
+    [isTutorialComplete, getTutorialProgress]
+  );
 
   const difficulties = [
     { id: 'all', label: 'All Levels', color: 'bg-dark-700' },
@@ -28,13 +60,15 @@ const TutorialsPage: React.FC = () => {
     { id: 'advanced', label: '🌳 Advanced', color: 'bg-red-600' },
   ];
 
-  const filteredTutorials = tutorials.filter((tutorial) => {
+  const filteredTutorials = tutorialsWithRewards.filter((tutorial) => {
     const matchesDifficulty = selectedDifficulty === 'all' || tutorial.difficulty === selectedDifficulty;
     const matchesSearch = 
       tutorial.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tutorial.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesDifficulty && matchesSearch;
   });
+
+  const completedCount = completedTutorials.size;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -124,10 +158,10 @@ const TutorialsPage: React.FC = () => {
           <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
-                <Zap className="text-green-400" size={20} />
+                <CheckCircle2 className="text-green-400" size={20} />
               </div>
               <div>
-                <p className="text-2xl font-bold text-dark-100">0</p>
+                <p className="text-2xl font-bold text-dark-100">{completedCount}</p>
                 <p className="text-sm text-dark-500">Completed</p>
               </div>
             </div>
@@ -146,11 +180,11 @@ const TutorialsPage: React.FC = () => {
           <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-forest-600/20 flex items-center justify-center">
-                <Star className="text-forest-400" size={20} />
+                <Trophy className="text-forest-400" size={20} />
               </div>
               <div>
-                <p className="text-2xl font-bold text-dark-100">0</p>
-                <p className="text-sm text-dark-500">XP Earned</p>
+                <p className="text-2xl font-bold text-dark-100">{totalCircuitPoints}</p>
+                <p className="text-sm text-dark-500">Circuit Points Earned</p>
               </div>
             </div>
           </div>
@@ -211,13 +245,26 @@ const TutorialCard: React.FC<TutorialCardProps> = ({ tutorial, onClick }) => {
     }
   };
 
+  const isCompleted = tutorial.completed || false;
+  const progress = tutorial.progress || 0;
+
   return (
     <motion.button
       onClick={onClick}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
-      className="w-full text-left bg-dark-900 border border-dark-800 rounded-xl p-5 hover:border-forest-700/50 transition-all group"
+      className={`relative w-full text-left bg-dark-900 border rounded-xl p-5 hover:border-forest-700/50 transition-all group ${
+        isCompleted ? 'border-forest-600/50' : 'border-dark-800'
+      }`}
     >
+      {/* Completion Badge */}
+      {isCompleted && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-forest-600/20 border border-forest-600/30 rounded-full">
+          <CheckCircle2 size={12} className="text-forest-400" />
+          <span className="text-xs font-medium text-forest-400">+{tutorial.circuitPointsReward} CP</span>
+        </div>
+      )}
+
       {/* Icon */}
       <div className="text-4xl mb-4">{tutorial.icon}</div>
 
@@ -242,21 +289,25 @@ const TutorialCard: React.FC<TutorialCardProps> = ({ tutorial, onClick }) => {
         </div>
         
         <div className="w-8 h-8 rounded-full bg-forest-600/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <Play size={14} className="text-forest-400 ml-0.5" />
+          {isCompleted ? (
+            <CheckCircle2 size={14} className="text-forest-400" />
+          ) : (
+            <Play size={14} className="text-forest-400 ml-0.5" />
+          )}
         </div>
       </div>
 
       {/* Progress Bar */}
-      {tutorial.progress !== undefined && tutorial.progress > 0 && (
+      {progress > 0 && !isCompleted && (
         <div className="mt-4 pt-4 border-t border-dark-800">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-dark-500">Progress</span>
-            <span className="text-forest-400">{tutorial.progress}%</span>
+            <span className="text-forest-400">{Math.round(progress)}%</span>
           </div>
           <div className="h-1.5 bg-dark-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-forest-500 rounded-full transition-all"
-              style={{ width: `${tutorial.progress}%` }}
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
@@ -280,6 +331,20 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
 }) => {
   const step = tutorial.steps[currentStep];
   const progress = ((currentStep + 1) / tutorial.steps.length) * 100;
+  const { markTutorialComplete, updateTutorialProgress, isTutorialComplete } = useTutorialStore();
+  const isCompleted = isTutorialComplete(tutorial.id);
+  
+  const handleComplete = () => {
+    const circuitPointsReward = tutorial.circuitPointsReward || 50;
+    markTutorialComplete(tutorial.id, circuitPointsReward);
+    onClose();
+  };
+
+  const handleStepChange = (newStep: number) => {
+    onStepChange(newStep);
+    const newProgress = ((newStep + 1) / tutorial.steps.length) * 100;
+    updateTutorialProgress(tutorial.id, newProgress);
+  };
 
   return (
     <div className="h-full flex">
@@ -295,6 +360,12 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
           <div className="text-3xl mb-2">{tutorial.icon}</div>
           <h2 className="font-semibold text-dark-100">{tutorial.title}</h2>
           <p className="text-xs text-dark-500 mt-1">{tutorial.duration}</p>
+          {tutorial.circuitPointsReward && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-forest-400">
+              <Trophy size={12} />
+              <span>{tutorial.circuitPointsReward} CP</span>
+            </div>
+          )}
         </div>
 
         {/* Progress */}
@@ -317,7 +388,7 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
           {tutorial.steps.map((s, index) => (
             <button
               key={s.id}
-              onClick={() => onStepChange(index)}
+              onClick={() => handleStepChange(index)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                 index === currentStep
                   ? 'bg-forest-600/20 text-forest-400'
@@ -365,28 +436,28 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
               
               <h2 className="text-2xl font-bold text-dark-100 mb-6">{step.title}</h2>
               
-              <div className="prose prose-invert prose-lg max-w-none">
-                {step.content.split('\n').map((line, i) => {
-                  if (line.startsWith('# ')) {
-                    return <h1 key={i} className="text-3xl font-bold text-dark-100 mt-6 mb-4">{line.slice(2)}</h1>;
-                  }
-                  if (line.startsWith('## ')) {
-                    return <h2 key={i} className="text-xl font-bold text-dark-100 mt-6 mb-3">{line.slice(3)}</h2>;
-                  }
-                  if (line.startsWith('### ')) {
-                    return <h3 key={i} className="text-lg font-semibold text-forest-400 mt-4 mb-2">{line.slice(4)}</h3>;
-                  }
-                  if (line.startsWith('- ')) {
-                    return <li key={i} className="text-dark-300 ml-4">{line.slice(2)}</li>;
-                  }
-                  if (line.startsWith('**') && line.endsWith('**')) {
-                    return <p key={i} className="font-bold text-dark-200 my-2">{line.slice(2, -2)}</p>;
-                  }
-                  if (line.trim() === '') {
-                    return <div key={i} className="h-4" />;
-                  }
-                  return <p key={i} className="text-dark-300 my-2">{line}</p>;
-                })}
+              <div className="prose prose-invert prose-lg max-w-none markdown-content">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ node, ...props }) => <h1 className="text-3xl font-bold text-dark-100 mt-6 mb-4" {...props} />,
+                    h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-dark-100 mt-6 mb-3" {...props} />,
+                    h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-forest-400 mt-4 mb-2" {...props} />,
+                    p: ({ node, ...props }) => <p className="text-dark-300 my-2 leading-relaxed" {...props} />,
+                    ul: ({ node, ...props }) => <ul className="list-disc ml-6 my-3 space-y-1" {...props} />,
+                    li: ({ node, ...props }) => <li className="text-dark-300" {...props} />,
+                    strong: ({ node, ...props }) => <strong className="font-bold text-dark-100" {...props} />,
+                    em: ({ node, ...props }) => <em className="italic text-dark-200" {...props} />,
+                    code: ({ node, inline, ...props }: any) => 
+                      inline ? (
+                        <code className="px-1.5 py-0.5 bg-dark-800 text-forest-400 rounded text-sm" {...props} />
+                      ) : (
+                        <code className="block p-3 bg-dark-800 text-dark-200 rounded-lg my-3 overflow-x-auto" {...props} />
+                      ),
+                  }}
+                >
+                  {step.content}
+                </ReactMarkdown>
               </div>
 
               {step.type === 'interactive' && (
@@ -409,7 +480,7 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
         <div className="border-t border-dark-800 p-4">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <button
-              onClick={() => onStepChange(Math.max(0, currentStep - 1))}
+              onClick={() => handleStepChange(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0}
               className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -421,12 +492,25 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
             </span>
 
             {currentStep === tutorial.steps.length - 1 ? (
-              <button onClick={onClose} className="btn-primary">
-                Complete Tutorial 🎉
+              <button 
+                onClick={handleComplete} 
+                className="btn-primary flex items-center gap-2"
+              >
+                {isCompleted ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    Completed
+                  </>
+                ) : (
+                  <>
+                    Complete Tutorial 🎉
+                    <span className="text-xs opacity-75">+{tutorial.circuitPointsReward} CP</span>
+                  </>
+                )}
               </button>
             ) : (
               <button
-                onClick={() => onStepChange(Math.min(tutorial.steps.length - 1, currentStep + 1))}
+                onClick={() => handleStepChange(Math.min(tutorial.steps.length - 1, currentStep + 1))}
                 className="btn-primary"
               >
                 Next →

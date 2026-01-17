@@ -130,6 +130,7 @@ export interface Tutorial {
   icon: string;
   completed?: boolean;
   progress?: number;
+  circuitPointsReward?: number;
 }
 
 export interface TutorialStep {

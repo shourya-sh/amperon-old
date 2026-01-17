@@ -203,41 +203,72 @@ export const useCollaborationStore = create<CollaborationState>((set) => ({
 
 // Tutorial Store
 interface TutorialState {
-  tutorials: Tutorial[];
-  currentTutorial: Tutorial | null;
-  currentStep: number;
+  completedTutorials: Set<string>;
+  tutorialProgress: Record<string, number>;
+  totalCircuitPoints: number;
   
-  setCurrentTutorial: (tutorial: Tutorial | null) => void;
-  setCurrentStep: (step: number) => void;
-  completeStep: (tutorialId: string, stepIndex: number) => void;
-  completeTutorial: (tutorialId: string) => void;
+  markTutorialComplete: (tutorialId: string, circuitPointsReward: number) => void;
+  updateTutorialProgress: (tutorialId: string, progress: number) => void;
+  getTutorialProgress: (tutorialId: string) => number;
+  isTutorialComplete: (tutorialId: string) => boolean;
+  resetProgress: () => void;
 }
 
-export const useTutorialStore = create<TutorialState>((set) => ({
-  tutorials: [],
-  currentTutorial: null,
-  currentStep: 0,
+export const useTutorialStore = create<TutorialState>()(  
+  persist(
+    (set, get) => ({
+      completedTutorials: new Set<string>(),
+      tutorialProgress: {},
+      totalCircuitPoints: 0,
 
-  setCurrentTutorial: (tutorial) => set({ currentTutorial: tutorial, currentStep: 0 }),
-  setCurrentStep: (step) => set({ currentStep: step }),
-  completeStep: (tutorialId, stepIndex) => set((state) => ({
-    tutorials: state.tutorials.map((t) =>
-      t.id === tutorialId
-        ? {
-            ...t,
-            steps: t.steps.map((s, i) =>
-              i === stepIndex ? { ...s, completed: true } : s
-            ),
-          }
-        : t
-    ),
-  })),
-  completeTutorial: (tutorialId) => set((state) => ({
-    tutorials: state.tutorials.map((t) =>
-      t.id === tutorialId ? { ...t, completed: true, progress: 100 } : t
-    ),
-  })),
-}));
+      markTutorialComplete: (tutorialId, circuitPointsReward) => set((state) => {
+        const newCompleted = new Set(state.completedTutorials);
+        const wasAlreadyComplete = newCompleted.has(tutorialId);
+        newCompleted.add(tutorialId);
+        
+        return {
+          completedTutorials: newCompleted,
+          tutorialProgress: { ...state.tutorialProgress, [tutorialId]: 100 },
+          totalCircuitPoints: wasAlreadyComplete ? state.totalCircuitPoints : state.totalCircuitPoints + circuitPointsReward,
+        };
+      }),
+      
+      updateTutorialProgress: (tutorialId, progress) => set((state) => ({
+        tutorialProgress: { ...state.tutorialProgress, [tutorialId]: progress },
+      })),
+      
+      getTutorialProgress: (tutorialId) => {
+        const state = get();
+        return state.tutorialProgress[tutorialId] || 0;
+      },
+      
+      isTutorialComplete: (tutorialId) => {
+        const state = get();
+        return state.completedTutorials.has(tutorialId);
+      },
+      
+      resetProgress: () => set({
+        completedTutorials: new Set<string>(),
+        tutorialProgress: {},
+        totalCircuitPoints: 0,
+      }),
+    }),
+    {
+      name: 'circuitco-tutorials',
+      partialize: (state) => ({
+        completedTutorials: Array.from(state.completedTutorials),
+        tutorialProgress: state.tutorialProgress,
+        totalCircuitPoints: state.totalCircuitPoints,
+      }),
+      merge: (persistedState: any, currentState) => ({
+        ...currentState,
+        completedTutorials: new Set(persistedState?.completedTutorials || []),
+        tutorialProgress: persistedState?.tutorialProgress || {},
+        totalCircuitPoints: persistedState?.totalCircuitPoints || 0,
+      }),
+    }
+  )
+);
 
 // UI Store
 interface UIState {
