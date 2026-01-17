@@ -1,0 +1,74 @@
+mutation SeedDatabase @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  user_insertMany(data: [
+    {
+      id: "68eb4907-8563-4636-b738-157c80843973",
+      displayName: "demouser1",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "1456942c-78a1-41e0-b08f-1d0664c78114",
+      displayName: "demouser2",
+      createdAt: "2024-04-27T12:00:00Z"
+    }
+  ])
+  circuitProject_insertMany(data: [
+    {
+      id: "32a8b3f7-9429-4482-952a-a2ff62032902",
+      name: "Demo Project 1",
+      ownerId: "68eb4907-8563-4636-b738-157c80843973",
+      createdAt: "2024-04-26T12:30:00Z",
+      isPublic: true
+    },
+    {
+      id: "7e0568a4-75b9-4497-b4a8-548493e33456",
+      name: "Demo Project 2",
+      ownerId: "1456942c-78a1-41e0-b08f-1d0664c78114",
+      createdAt: "2024-04-27T13:00:00Z",
+      isPublic: false
+    }
+  ])
+  circuitComponent_insertMany(data: [
+    {
+      id: "999c7b11-7d94-49d4-803c-b058246d70bb",
+      circuitProjectId: "32a8b3f7-9429-4482-952a-a2ff62032902",
+      componentType: "Resistor",
+      xPosition: 100.0,
+      yPosition: 50.0
+    },
+    {
+      id: "555a6f4b-0f1d-476e-80f3-0a6956363f1a",
+      circuitProjectId: "7e0568a4-75b9-4497-b4a8-548493e33456",
+      componentType: "Capacitor",
+      xPosition: 150.0,
+      yPosition: 75.0
+    }
+  ])
+  componentConnection_insertMany(data: [
+    {
+      id: "c9d0d948-c7ae-4a32-b79c-f1f9958ef8c2",
+      circuitProjectId: "32a8b3f7-9429-4482-952a-a2ff62032902",
+      startComponentId: "999c7b11-7d94-49d4-803c-b058246d70bb",
+      endComponentId: "999c7b11-7d94-49d4-803c-b058246d70bb",
+      createdAt: "2024-04-26T13:00:00Z"
+    },
+    {
+      id: "c8d0d948-c7ae-4a32-b79c-f1f9958ef8c1",
+      circuitProjectId: "7e0568a4-75b9-4497-b4a8-548493e33456",
+      startComponentId: "555a6f4b-0f1d-476e-80f3-0a6956363f1a",
+      endComponentId: "555a6f4b-0f1d-476e-80f3-0a6956363f1a",
+      createdAt: "2024-04-27T13:00:00Z"
+    }
+  ])
+  collaborationSession_insertMany(data: [
+    {
+      circuitProjectId: "32a8b3f7-9429-4482-952a-a2ff62032902",
+      userId: "68eb4907-8563-4636-b738-157c80843973",
+      joinedAt: "2024-04-26T13:00:00Z"
+    },
+    {
+      circuitProjectId: "7e0568a4-75b9-4497-b4a8-548493e33456",
+      userId: "1456942c-78a1-41e0-b08f-1d0664c78114",
+      joinedAt: "2024-04-27T13:00:00Z"
+    }
+  ])
+}

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -11,7 +11,7 @@ import ReactFlow, {
   Panel,
   BackgroundVariant,
 } from 'reactflow';
-import type { Connection, Edge } from 'reactflow';
+import type { Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -21,12 +21,14 @@ import {
   Grid3X3, 
   RotateCcw,
   Trash2,
-  Copy,
-  Download,
-  Upload
+  Play,
+  Pause,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import CircuitNode from './CircuitNode';
 import { useCircuitStore, useCollaborationStore } from '../../stores';
+import { simulateCircuit } from '../../services/circuitSimulator';
 import type { CircuitComponent, CanvasNode } from '../../types';
 
 const nodeTypes = {
@@ -47,7 +49,12 @@ const CircuitCanvasInner: React.FC = () => {
     setSelectedNode,
     viewMode,
     setViewMode,
-    clearCanvas
+    clearCanvas,
+    isSimulating,
+    setIsSimulating,
+    simulationResult,
+    setSimulationResult,
+    setAllEdgesAnimated
   } = useCircuitStore();
 
   const { collaborators, sessionId } = useCollaborationStore();
@@ -55,17 +62,48 @@ const CircuitCanvasInner: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
 
+  // Sync Zustand store nodes with React Flow nodes
+  useEffect(() => {
+    setNodes(storeNodes);
+  }, [storeNodes, setNodes]);
+
+  // Sync Zustand store edges with React Flow edges
+  useEffect(() => {
+    setEdges(storeEdges);
+  }, [storeEdges, setEdges]);
+
+  // Handle simulation play/pause
+  const handleSimulation = useCallback(() => {
+    if (isSimulating) {
+      // Stop simulation
+      setIsSimulating(false);
+      setAllEdgesAnimated(false);
+      setSimulationResult(null);
+    } else {
+      // Start simulation
+      const result = simulateCircuit(storeNodes, storeEdges);
+      setSimulationResult(result);
+      setIsSimulating(true);
+      if (result.isValid) {
+        setAllEdgesAnimated(true);
+      }
+    }
+  }, [isSimulating, storeNodes, storeEdges, setIsSimulating, setAllEdgesAnimated, setSimulationResult]);
+
   const onConnect = useCallback(
     (params: Connection) => {
       const newEdge = {
-        ...params,
         id: `e${params.source}-${params.target}`,
+        source: params.source || '',
+        target: params.target || '',
+        sourceHandle: params.sourceHandle || undefined,
+        targetHandle: params.targetHandle || undefined,
         type: 'smoothstep',
-        animated: true,
-        style: { stroke: '#22c55e', strokeWidth: 2 },
+        animated: false,
+        style: { stroke: '#22c55e', strokeWidth: 3 },
       };
       setEdges((eds) => addEdge(newEdge, eds));
-      addStoreEdge(newEdge as Edge);
+      addStoreEdge(newEdge);
     },
     [setEdges, addStoreEdge]
   );
@@ -108,7 +146,7 @@ const CircuitCanvasInner: React.FC = () => {
     [project, setNodes, addNode]
   );
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: CanvasNode) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
     setSelectedNode(node.id);
   }, [setSelectedNode]);
 
@@ -148,7 +186,8 @@ const CircuitCanvasInner: React.FC = () => {
         snapGrid={[20, 20]}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          style: { stroke: '#22c55e', strokeWidth: 2 },
+          style: { stroke: '#22c55e', strokeWidth: 4 },
+          animated: false,
         }}
         proOptions={{ hideAttribution: true }}
         className="circuit-canvas"
@@ -252,8 +291,88 @@ const CircuitCanvasInner: React.FC = () => {
             >
               <RotateCcw size={18} />
             </button>
+
+            <div className="w-px h-6 bg-dark-700 mx-1" />
+
+            {/* Simulation Play/Pause Button */}
+            <button
+              onClick={handleSimulation}
+              disabled={nodes.length === 0}
+              className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isSimulating 
+                  ? 'bg-red-600 text-white hover:bg-red-700' 
+                  : 'bg-forest-600 text-white hover:bg-forest-700'
+              }`}
+              title={isSimulating ? 'Stop Simulation' : 'Start Simulation'}
+            >
+              {isSimulating ? <Pause size={18} /> : <Play size={18} />}
+            </button>
           </motion.div>
         </Panel>
+
+        {/* Simulation Status Panel */}
+        <AnimatePresence>
+          {simulationResult && (
+            <Panel position="top-right" className="!mt-4 !mr-4">
+              <motion.div
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 20, opacity: 0 }}
+                className={`p-4 rounded-xl backdrop-blur-xl border shadow-xl max-w-sm ${
+                  simulationResult.isValid 
+                    ? 'bg-forest-900/90 border-forest-600/50' 
+                    : 'bg-red-900/90 border-red-600/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  {simulationResult.isValid ? (
+                    <CheckCircle size={20} className="text-forest-400" />
+                  ) : (
+                    <AlertTriangle size={20} className="text-red-400" />
+                  )}
+                  <span className={`font-semibold ${simulationResult.isValid ? 'text-forest-300' : 'text-red-300'}`}>
+                    {simulationResult.isValid ? 'Circuit Valid' : 'Circuit Error'}
+                  </span>
+                </div>
+
+                {simulationResult.isValid && simulationResult.totalCurrent !== undefined && (
+                  <div className="text-sm text-forest-200 space-y-1">
+                    <div>Voltage: {simulationResult.voltage}V</div>
+                    <div>Current: {(simulationResult.totalCurrent * 1000).toFixed(1)} mA</div>
+                    <div>Resistance: {simulationResult.totalResistance} Ω</div>
+                  </div>
+                )}
+
+                {simulationResult.errors && simulationResult.errors.length > 0 && (
+                  <div className="space-y-1">
+                    {simulationResult.errors.map((error, idx) => (
+                      <div key={idx} className="text-sm text-red-200">
+                        {error.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {simulationResult.warnings && simulationResult.warnings.length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    {simulationResult.warnings.map((warning, idx) => (
+                      <div key={idx} className="text-sm text-yellow-300">
+                        Warning: {warning}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {isSimulating && simulationResult.isValid && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-forest-300">
+                    <div className="w-2 h-2 bg-forest-400 rounded-full animate-pulse" />
+                    Simulating current flow...
+                  </div>
+                )}
+              </motion.div>
+            </Panel>
+          )}
+        </AnimatePresence>
 
         {/* View Mode Indicator */}
         <Panel position="top-center" className="!mt-4">
@@ -266,7 +385,7 @@ const CircuitCanvasInner: React.FC = () => {
                 className="px-4 py-2 bg-forest-600/20 border border-forest-600/50 rounded-lg backdrop-blur-sm"
               >
                 <p className="text-sm text-forest-300 font-medium">
-                  🔧 Breadboard View Mode
+                  Breadboard View Mode
                 </p>
               </motion.div>
             )}
@@ -310,7 +429,11 @@ const CircuitCanvasInner: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center"
           >
-            <div className="text-6xl mb-4">⚡</div>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-dark-800 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-8 h-8 text-forest-500" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
             <h3 className="text-xl font-semibold text-dark-300 mb-2">
               Start Building Your Circuit!
             </h3>

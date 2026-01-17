@@ -1,32 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, 
-  Sparkles, 
   X, 
-  ChevronRight, 
-  Lightbulb,
-  Zap,
-  HelpCircle,
-  Wand2,
+  MessageSquare,
   Trash2,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Loader2
 } from 'lucide-react';
 import { useChatStore, useCircuitStore } from '../../stores';
 import { circuitComponents } from '../../data/components';
-import type { ChatMessage } from '../../types';
+import { sendMessageToAI } from '../../services/aiService';
+import type { ChatMessage, CanvasEdge } from '../../types';
 
 const quickActions = [
-  { id: 'led-circuit', label: '💡 Build an LED circuit', prompt: 'Help me build a simple LED circuit with a battery and resistor' },
-  { id: 'explain', label: '🤔 What is a resistor?', prompt: 'Explain what a resistor is and how it works' },
-  { id: 'series-parallel', label: '🔀 Series vs Parallel?', prompt: 'What is the difference between series and parallel circuits?' },
-  { id: 'ohms-law', label: '📐 Ohm\'s Law', prompt: 'Teach me about Ohm\'s Law with examples' },
+  { id: 'led-circuit', label: 'Build LED circuit', prompt: 'Build me a simple LED circuit' },
+  { id: 'motor-circuit', label: 'Motor with switch', prompt: 'Build a motor circuit with a switch to control it' },
+  { id: 'explain', label: 'What is a capacitor?', prompt: 'Explain what a capacitor is and how it works' },
+  { id: 'ohms-law', label: "Ohm's Law", prompt: 'Teach me about Ohm\'s Law with an example' },
 ];
 
 const ChatPanel: React.FC = () => {
-  const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages } = useChatStore();
-  const { addNode } = useCircuitStore();
+  const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages, lastCircuitAction, setLastCircuitAction } = useChatStore();
+  const { addNode, addEdge, clearCanvas } = useCircuitStore();
   const [input, setInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,55 +36,299 @@ const ChatPanel: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const generateResponse = async (userMessage: string): Promise<string> => {
-    // Simulate AI response - In production, this would call your AI API
-    const lowerMessage = userMessage.toLowerCase();
-    
-    // Component explanations
-    for (const component of circuitComponents) {
-      if (lowerMessage.includes(component.name.toLowerCase())) {
-        return `## ${component.name} ${component.symbol}\n\n${component.description}\n\n### Key Properties:\n${component.properties.map(p => `- **${p.name}**: ${p.value} ${p.unit}`).join('\n')}\n\n### Connections:\nThis component has ${component.connections} connection point${component.connections > 1 ? 's' : ''}.\n\nWould you like me to add one to your circuit? Just say "add ${component.name.toLowerCase()}"!`;
+  // Label mapping for clarity
+  const getLabelPrefix = (type: string) => {
+    switch (type) {
+      case 'battery': return 'B';
+      case 'resistor': return 'R';
+      case 'capacitor': return 'C';
+      case 'inductor': return 'L';
+      case 'led': return 'LED';
+      case 'diode': return 'D';
+      case 'transistor': return 'Q';
+      case 'switch': return 'SW';
+      case 'motor': return 'M';
+      case 'lightbulb': return 'LAMP';
+      case 'buzzer': return 'BZ';
+      case 'voltmeter': return 'V';
+      case 'ammeter': return 'A';
+      case 'ground': return 'GND';
+      default: return type.toUpperCase();
+    }
+  };
+
+  const computeLayout = (
+    components: Array<{ type: string }>,
+    connections: Array<{ from: number; to: number }>
+  ) => {
+    const baseX = 140;
+    const baseY = 140;
+    const xSpacing = 200;
+    const ySpacing = 120;
+
+    const nodeCount = components.length;
+    const adjacency = new Map<number, Set<number>>();
+    for (let i = 0; i < nodeCount; i++) adjacency.set(i, new Set());
+    connections.forEach((c) => {
+      adjacency.get(c.from)?.add(c.to);
+      adjacency.get(c.to)?.add(c.from);
+    });
+
+    const batteryIndex = components.findIndex((c) => c.type === 'battery');
+    const root = batteryIndex >= 0 ? batteryIndex : 0;
+    const depth = new Map<number, number>();
+    const visited = new Set<number>();
+    const queue: number[] = [root];
+    depth.set(root, 0);
+    visited.add(root);
+
+    while (queue.length > 0) {
+      const current = queue.shift() as number;
+      const neighbors = adjacency.get(current) || new Set();
+      neighbors.forEach((n) => {
+        if (!visited.has(n)) {
+          visited.add(n);
+          depth.set(n, (depth.get(current) || 0) + 1);
+          queue.push(n);
+        }
+      });
+    }
+
+    // Any disconnected nodes go to the last column
+    const maxDepth = Math.max(...Array.from(depth.values())) || 0;
+    for (let i = 0; i < nodeCount; i++) {
+      if (!depth.has(i)) depth.set(i, maxDepth + 1);
+    }
+
+    // Group by depth
+    const levels = new Map<number, number[]>();
+    for (let i = 0; i < nodeCount; i++) {
+      const d = depth.get(i) || 0;
+      if (!levels.has(d)) levels.set(d, []);
+      levels.get(d)?.push(i);
+    }
+
+    const positions: Array<{ x: number; y: number }> = new Array(nodeCount).fill({ x: 0, y: 0 });
+    Array.from(levels.entries()).sort((a, b) => a[0] - b[0]).forEach(([d, nodes]) => {
+      nodes.sort((a, b) => a - b);
+      nodes.forEach((idx, row) => {
+        positions[idx] = {
+          x: baseX + d * xSpacing,
+          y: baseY + row * ySpacing,
+        };
+      });
+    });
+
+    const groundIndex = components.findIndex((c) => c.type === 'ground');
+    if (groundIndex >= 0) {
+      const groundDepth = Math.max(...Array.from(depth.values())) + 1;
+      positions[groundIndex] = {
+        x: baseX + groundDepth * xSpacing,
+        y: baseY + (levels.get(depth.get(root) || 0)?.length || 1) * ySpacing,
+      };
+    }
+
+    return positions;
+  };
+
+  const getHandleIds = (
+    sourcePos: { x: number; y: number },
+    targetPos: { x: number; y: number }
+  ) => {
+    const dx = targetPos.x - sourcePos.x;
+    const dy = targetPos.y - sourcePos.y;
+    if (Math.abs(dy) > Math.abs(dx)) {
+      return dy >= 0
+        ? { sourceHandle: 'sourceBottom', targetHandle: 'targetTop' }
+        : { sourceHandle: 'sourceTop', targetHandle: 'targetBottom' };
+    }
+    return dx >= 0
+      ? { sourceHandle: 'source', targetHandle: 'target' }
+      : { sourceHandle: 'sourceLeft', targetHandle: 'targetRight' };
+  };
+
+  const repairConnections = (
+    components: Array<{ type: string }>,
+    connections: Array<{ from: number; to: number; label?: string }>
+  ): Array<{ from: number; to: number; label?: string }> => {
+    if (components.length === 0) return [];
+
+    const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+    const dedup = new Map<string, { from: number; to: number; label?: string }>();
+
+    const addEdge = (from: number, to: number, label?: string) => {
+      if (from === to) return;
+      const nodesCount = components.length;
+      if (from < 0 || to < 0 || from >= nodesCount || to >= nodesCount) return;
+      const key = pairKey(from, to);
+      if (!dedup.has(key)) {
+        dedup.set(key, { from, to, label });
+      }
+    };
+
+    connections.forEach((c) => addEdge(c.from, c.to, c.label));
+
+    const nodesCount = components.length;
+    const adjacency = Array.from({ length: nodesCount }, () => new Set<number>());
+    dedup.forEach((c) => {
+      adjacency[c.from].add(c.to);
+      adjacency[c.to].add(c.from);
+    });
+
+    const batteryIdx = components.findIndex((c) => c.type === 'battery');
+    const groundIdx = components.findIndex((c) => c.type === 'ground');
+
+    if (batteryIdx === -1) {
+      return Array.from(dedup.values());
+    }
+
+    // Connect all nodes to the battery component
+    const visited = new Set<number>();
+    const queue: number[] = [batteryIdx];
+    visited.add(batteryIdx);
+    while (queue.length) {
+      const n = queue.shift() as number;
+      adjacency[n].forEach((nbr) => {
+        if (!visited.has(nbr)) {
+          visited.add(nbr);
+          queue.push(nbr);
+        }
+      });
+    }
+
+    let lastAttach = batteryIdx;
+    for (let i = 0; i < nodesCount; i++) {
+      if (!visited.has(i)) {
+        addEdge(lastAttach, i);
+        visited.add(i);
+        lastAttach = i;
       }
     }
 
-    // Add component commands
-    if (lowerMessage.includes('add')) {
-      for (const component of circuitComponents) {
-        if (lowerMessage.includes(component.name.toLowerCase())) {
-          // Add the component to the canvas
-          const newNode = {
-            id: `${component.type}-${Date.now()}`,
-            type: 'circuit',
-            position: { x: 250 + Math.random() * 200, y: 150 + Math.random() * 200 },
-            data: { 
-              component,
-              rotation: 0,
-              label: component.name,
-            },
-          };
-          addNode(newNode);
-          return `✅ Added a **${component.name}** to your circuit!\n\nI placed it on the canvas for you. You can drag it to position it where you want, and connect it to other components by dragging from the green handles.`;
+    // Ensure ground has a path
+    if (groundIdx >= 0 && adjacency[groundIdx].size === 0) {
+      addEdge(lastAttach, groundIdx, 'GND');
+    }
+
+    // Ensure two-terminal parts are connected on both ends
+    const twoTerminal = new Set([
+      'resistor', 'capacitor', 'inductor', 'led', 'diode', 'buzzer', 'motor', 'lightbulb', 'switch', 'wire'
+    ]);
+    for (let i = 0; i < nodesCount; i++) {
+      const type = components[i].type;
+      if (twoTerminal.has(type)) {
+        const degree = (adjacency[i].size || 0) + (dedup.has(pairKey(i, groundIdx)) ? 0 : 0);
+        if (degree < 2) {
+          addEdge(i, batteryIdx);
+          if (groundIdx >= 0) addEdge(i, groundIdx, 'GND');
         }
       }
     }
 
-    // LED circuit help
-    if (lowerMessage.includes('led') && (lowerMessage.includes('circuit') || lowerMessage.includes('build'))) {
-      return `## Building an LED Circuit! 💡\n\nGreat choice! Here's how to build a simple LED circuit:\n\n### Components Needed:\n1. **Battery** (9V) - Power source\n2. **Resistor** (330Ω) - Protects the LED\n3. **LED** - The light!\n\n### Steps:\n1. Drag a **Battery** to the canvas\n2. Add a **Resistor** next to it\n3. Add an **LED** after the resistor\n4. Connect them: Battery (+) → Resistor → LED → Battery (-)\n\n### Why the Resistor?\nLEDs can only handle about 20mA of current. The resistor limits the current so the LED doesn't burn out!\n\nWant me to add these components for you? Just say "add the LED circuit components"!`;
+    return Array.from(dedup.values());
+  };
+
+  // Add components to canvas based on AI response
+  const addComponentsToCanvas = (
+    components: Array<{ type: string }>,
+    connections?: Array<{ from: number; to: number; label?: string }>,
+    mode?: 'replace' | 'merge'
+  ) => {
+    if (!components || components.length === 0) {
+      console.log('No components to add');
+      return;
     }
 
-    // Ohm's Law
-    if (lowerMessage.includes('ohm')) {
-      return `## Ohm's Law ⚡\n\nThe most important formula in electronics!\n\n# V = I × R\n\n### What it means:\n- **V** (Voltage) = Electrical pressure (Volts)\n- **I** (Current) = Flow of electrons (Amps)\n- **R** (Resistance) = Opposition to flow (Ohms)\n\n### The Triangle Trick:\n\`\`\`\n    V\n   ───\n  I × R\n\`\`\`\nCover what you want to find!\n\n### Example:\nWith a 9V battery and 1000Ω resistor:\nI = V ÷ R = 9 ÷ 1000 = 0.009A = **9mA**\n\nTry calculating: What resistor do you need for an LED that uses 20mA with a 9V battery?`;
+    console.log('Adding components to canvas:', components);
+    console.log('Adding connections:', connections);
+    
+    if (mode === 'replace') {
+      clearCanvas();
     }
 
-    // Series vs Parallel
-    if (lowerMessage.includes('series') || lowerMessage.includes('parallel')) {
-      return `## Series vs Parallel Circuits 🔀\n\n### Series Circuit ➡️\nComponents connected in a **single path**\n- Current is the **SAME** everywhere\n- Voltage is **SPLIT** between components\n- If one breaks, circuit stops!\n\n### Parallel Circuit 🔀\nComponents have **multiple paths**\n- Voltage is the **SAME** for each\n- Current is **SPLIT** between paths\n- If one breaks, others work!\n\n### Real World:\n- Christmas lights (old): Series 🎄\n- Your house wiring: Parallel 🏠\n\nWant to try building both? Start with "build a series circuit with 2 LEDs"!`;
+    const safeConnections = connections ? [...connections] : [];
+    const groundIndex = components.findIndex((c) => c.type === 'ground');
+    if (groundIndex >= 0) {
+      const hasGroundConnection = safeConnections.some((c) => c.from === groundIndex || c.to === groundIndex);
+      if (!hasGroundConnection) {
+        const batteryIndex = components.findIndex((c) => c.type === 'battery');
+        const attachIndex = batteryIndex >= 0 ? batteryIndex : 0;
+        safeConnections.push({ from: attachIndex, to: groundIndex, label: 'GND' });
+      }
     }
 
-    // Default response
-    return `I'd love to help you with that! 🔧\n\nHere are some things I can do:\n\n- **Explain components** - Ask about resistors, LEDs, capacitors, etc.\n- **Build circuits** - Say "add a battery" or "build an LED circuit"\n- **Teach concepts** - Ask about Ohm's Law, series/parallel, etc.\n- **Debug problems** - Describe what's not working!\n\nWhat would you like to explore?`;
+    const repairedConnections = repairConnections(components, safeConnections);
+
+    // Store node IDs so we can reference them for connections
+    const nodeIds: string[] = [];
+    const labelCounters = new Map<string, number>();
+
+    const positions = computeLayout(components, repairedConnections);
+
+    components.forEach((comp, idx) => {
+      const componentData = circuitComponents.find(c => c.type === comp.type);
+      if (!componentData) {
+        console.error(`Component type not found: ${comp.type}`);
+        return;
+      }
+
+      console.log(`Adding component: ${componentData.name} (${componentData.type})`);
+
+      const count = (labelCounters.get(componentData.type) || 0) + 1;
+      labelCounters.set(componentData.type, count);
+      const labelPrefix = getLabelPrefix(componentData.type);
+      const nodeLabel = componentData.type === 'ground' ? 'GND' : `${labelPrefix}${count}`;
+
+      const nodeId = `${componentData.type}-${Date.now()}-${Math.random()}`;
+      nodeIds.push(nodeId);
+      
+      const newNode = {
+        id: nodeId,
+        type: 'circuit',
+        position: positions[idx],
+        data: { 
+          component: componentData,
+          rotation: 0,
+          label: `${nodeLabel} • ${componentData.name}`,
+        },
+      };
+      
+      // Add immediately
+      console.log('Adding node:', newNode.id);
+      addNode(newNode);
+    });
+
+    // Add connections/edges
+    if (repairedConnections && repairedConnections.length > 0) {
+      repairedConnections.forEach((conn) => {
+        if (conn.from < nodeIds.length && conn.to < nodeIds.length) {
+          const sourcePos = positions[conn.from];
+          const targetPos = positions[conn.to];
+          const { sourceHandle, targetHandle } = getHandleIds(sourcePos, targetPos);
+          const edgeId = `e${nodeIds[conn.from]}-${nodeIds[conn.to]}`;
+          const newEdge: CanvasEdge = {
+            id: edgeId,
+            source: nodeIds[conn.from],
+            target: nodeIds[conn.to],
+            sourceHandle,
+            targetHandle,
+            type: 'smoothstep',
+            animated: false,
+            style: { stroke: '#22c55e', strokeWidth: 4 },
+            markerEnd: {
+              type: 'arrowclosed',
+              color: '#22c55e',
+            },
+            label: conn.label,
+            labelStyle: { fill: '#a7f3d0', fontSize: 11 },
+            labelBgStyle: { fill: 'rgba(17, 24, 39, 0.9)', rx: 4, ry: 4 },
+            labelBgPadding: [6, 4],
+          };
+          console.log('Adding edge:', edgeId, 'from', nodeIds[conn.from], 'to', nodeIds[conn.to]);
+          addEdge(newEdge);
+        }
+      });
+    }
   };
 
   const handleSend = async () => {
@@ -102,23 +342,58 @@ const ChatPanel: React.FC = () => {
     };
 
     addMessage(userMessage);
+    const userInput = input.trim();
     setInput('');
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      console.log('Sending message to AI:', userInput);
+      
+      // Call real AI service
+      const aiResponse = await sendMessageToAI(userInput, {
+        history: messages
+          .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({ role: m.role, content: m.content })),
+        lastCircuit: lastCircuitAction,
+      });
+      
+      console.log('AI Response received:', aiResponse);
 
-    const response = await generateResponse(userMessage.content);
+      // If AI returned components to add, add them to canvas
+      if (aiResponse.components && aiResponse.components.length > 0) {
+        console.log('Processing components:', aiResponse.components);
+        console.log('Processing connections:', aiResponse.connections);
+        const mode = aiResponse.mode || (aiResponse.type === 'build_circuit' ? 'replace' : 'merge');
+        addComponentsToCanvas(aiResponse.components, aiResponse.connections, mode);
+        if (aiResponse.type === 'build_circuit' || aiResponse.type === 'add_component') {
+          setLastCircuitAction(aiResponse);
+        }
+      } else {
+        console.log('No components in response');
+      }
 
-    const assistantMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: aiResponse.message,
+        timestamp: new Date(),
+      };
 
-    addMessage(assistantMessage);
-    setIsLoading(false);
+      addMessage(assistantMessage);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      
+      addMessage(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -135,144 +410,102 @@ const ChatPanel: React.FC = () => {
 
   if (!isOpen) {
     return (
-      <motion.button
-        initial={{ x: 100 }}
-        animate={{ x: 0 }}
+      <button
         onClick={() => setIsOpen(true)}
-        className="fixed right-4 bottom-4 p-4 bg-forest-600 hover:bg-forest-500 text-white rounded-full shadow-lg shadow-forest-600/30 z-50"
+        className="fixed right-4 bottom-4 p-3 bg-dark-850 hover:bg-dark-800 border border-dark-700 text-dark-300 rounded-lg z-50 transition-colors"
       >
-        <Sparkles size={24} />
-      </motion.button>
+        <MessageSquare size={20} />
+      </button>
     );
   }
 
   return (
-    <motion.div
-      initial={{ x: 100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 100, opacity: 0 }}
-      className={`h-full bg-dark-900 border-l border-dark-800 flex flex-col ${
-        isExpanded ? 'w-[480px]' : 'w-80'
-      } transition-all duration-300`}
+    <div
+      className={`h-full bg-dark-900/80 border-l border-dark-700 flex flex-col ${
+        isExpanded ? 'w-96' : 'w-72'
+      } transition-all duration-150 backdrop-blur-sm`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-dark-800">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-forest-500 to-forest-700 flex items-center justify-center">
-            <Sparkles size={16} className="text-white" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-dark-100">CircuitBot</h2>
-            <p className="text-xs text-dark-500">Your circuit assistant</p>
-          </div>
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-dark-700">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={14} className="text-forest-500" />
+          <span className="text-sm font-medium text-dark-200">AI Assistant</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 hover:bg-dark-800 rounded-lg text-dark-400 hover:text-dark-200 transition-colors"
+            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
           >
-            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
           <button
             onClick={clearMessages}
-            className="p-2 hover:bg-dark-800 rounded-lg text-dark-400 hover:text-dark-200 transition-colors"
+            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-dark-800 rounded-lg text-dark-400 hover:text-dark-200 transition-colors"
+            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence>
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                  message.role === 'user'
-                    ? 'bg-forest-600 text-white rounded-br-md'
-                    : 'bg-dark-800 text-dark-100 rounded-bl-md'
-                }`}
-              >
-                <div className="text-sm whitespace-pre-wrap prose prose-invert prose-sm max-w-none">
-                  {message.content.split('\n').map((line, i) => {
-                    // Simple markdown-like rendering
-                    if (line.startsWith('## ')) {
-                      return <h3 key={i} className="text-base font-semibold mt-2 mb-1">{line.slice(3)}</h3>;
-                    }
-                    if (line.startsWith('### ')) {
-                      return <h4 key={i} className="text-sm font-semibold mt-2 mb-1 text-forest-400">{line.slice(4)}</h4>;
-                    }
-                    if (line.startsWith('# ')) {
-                      return <h2 key={i} className="text-lg font-bold mt-2 mb-1 text-forest-300">{line.slice(2)}</h2>;
-                    }
-                    if (line.startsWith('- ')) {
-                      return <li key={i} className="ml-4">{line.slice(2)}</li>;
-                    }
-                    if (line.startsWith('```')) {
-                      return null;
-                    }
-                    return <p key={i} className={line ? 'mb-1' : 'mb-2'}>{line || '\u00A0'}</p>;
-                  })}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <MessageSquare size={32} className="mx-auto text-dark-600 mb-3" />
+            <p className="text-dark-400 text-sm mb-1">AI Circuit Assistant</p>
+            <p className="text-dark-500 text-xs">Ask me to build circuits or explain concepts</p>
+          </div>
+        )}
 
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-start"
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className="bg-dark-800 rounded-2xl rounded-bl-md px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 bg-forest-500 rounded-full"
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 0.6,
-                        delay: i * 0.1,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-dark-400">Thinking...</span>
+            <div
+              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                message.role === 'user'
+                  ? 'bg-forest-600 text-white'
+                  : 'bg-dark-850 text-dark-200 border border-dark-700'
+              }`}
+            >
+              <div className="whitespace-pre-wrap leading-relaxed">
+                {message.content}
               </div>
             </div>
-          </motion.div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-dark-850 rounded-lg px-3 py-2 border border-dark-700">
+              <div className="flex items-center gap-2 text-dark-400">
+                <Loader2 size={14} className="animate-spin" />
+                <span className="text-xs">Thinking...</span>
+              </div>
+            </div>
+          </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
       {/* Quick Actions */}
-      {messages.length <= 2 && (
-        <div className="px-4 pb-2">
-          <p className="text-xs text-dark-500 mb-2">Quick actions:</p>
-          <div className="flex flex-wrap gap-2">
+      {messages.length === 0 && (
+        <div className="px-3 pb-2">
+          <p className="text-xs text-dark-500 mb-2">Try asking:</p>
+          <div className="flex flex-wrap gap-1.5">
             {quickActions.map((action) => (
               <button
                 key={action.id}
                 onClick={() => handleQuickAction(action.prompt)}
-                className="px-3 py-1.5 text-xs bg-dark-800 hover:bg-dark-700 border border-dark-700 hover:border-dark-600 rounded-full text-dark-300 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-850 hover:bg-dark-800 border border-dark-700 rounded text-dark-400 hover:text-dark-200 transition-colors"
               >
                 {action.label}
               </button>
@@ -282,30 +515,31 @@ const ChatPanel: React.FC = () => {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-dark-800">
+      <div className="p-3 border-t border-dark-700">
         <div className="relative">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about circuits..."
-            rows={1}
-            className="w-full px-4 py-3 pr-12 bg-dark-800 border border-dark-700 rounded-xl text-sm text-dark-100 placeholder-dark-500 focus:outline-none focus:border-forest-600 resize-none transition-colors"
+            placeholder="Ask to build a circuit..."
+            rows={2}
+            disabled={isLoading}
+            className="w-full px-3 py-2 pr-10 bg-dark-850 border border-dark-700 rounded-lg text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-forest-600 focus:ring-1 focus:ring-forest-600/50 resize-none transition-colors disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-forest-600 hover:bg-forest-500 disabled:bg-dark-700 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+            className="absolute right-2 bottom-2 p-1.5 bg-forest-600 hover:bg-forest-500 disabled:bg-dark-700 disabled:text-dark-500 rounded text-white transition-colors"
           >
-            <Send size={16} />
+            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
-        <p className="text-[10px] text-dark-600 mt-2 text-center">
-          CircuitBot can make mistakes. Always verify your circuits!
+        <p className="text-[10px] text-dark-500 mt-1.5 text-center">
+          Powered by Gemini AI
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

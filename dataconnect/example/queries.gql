@@ -1,0 +1,43 @@
+mutation CreateNewCircuitProject($name: String!, $description: String, $isPublic: Boolean!, $ownerId: UUID!) @auth(level: USER) {
+  circuitProject_insert(data: {
+    name: $name,
+    description: $description,
+    isPublic: $isPublic,
+    ownerId: $ownerId,
+    createdAt_expr: "request.time"
+  })
+}
+
+query GetCircuitProjectById($id: UUID!) @auth(level: USER) {
+  circuitProject(id: $id) {
+    id
+    name
+    description
+    isPublic
+    owner {
+      id
+      displayName
+      email
+    }
+    createdAt
+  }
+}
+
+mutation UpdateComponentPosition($id: UUID!, $xPosition: Float!, $yPosition: Float!) @auth(level: USER) {
+  circuitComponent_update(id: $id, data: {
+    xPosition: $xPosition,
+    yPosition: $yPosition
+  })
+}
+
+query ListPublicCircuitProjects @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  circuitProjects(where: { isPublic: { eq: true } }) {
+    id
+    name
+    description
+    owner {
+      id
+      displayName
+    }
+  }
+}

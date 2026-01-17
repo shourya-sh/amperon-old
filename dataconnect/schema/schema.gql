@@ -1,0 +1,40 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  lastActive: Timestamp
+}
+
+type CircuitProject @table {
+  name: String!
+  createdAt: Timestamp!
+  owner: User!
+  description: String
+  isPublic: Boolean
+}
+
+type CircuitComponent @table {
+  circuitProject: CircuitProject!
+  componentType: String!
+  xPosition: Float!
+  yPosition: Float!
+  value: String
+  rotation: Int
+}
+
+type ComponentConnection @table {
+  circuitProject: CircuitProject!
+  startComponent: CircuitComponent!
+  endComponent: CircuitComponent!
+  createdAt: Timestamp!
+  color: String
+}
+
+type CollaborationSession @table(key: ["circuitProject", "user"]) {
+  circuitProject: CircuitProject!
+  user: User!
+  joinedAt: Timestamp!
+  cursorX: Float
+  cursorY: Float
+}

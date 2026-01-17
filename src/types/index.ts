@@ -63,6 +63,12 @@ export interface CanvasEdge {
   targetHandle?: string;
   type?: string;
   animated?: boolean;
+  style?: { stroke?: string; strokeWidth?: number };
+  label?: string;
+  markerEnd?: { type?: string; color?: string };
+  labelStyle?: { fill?: string; fontSize?: number };
+  labelBgStyle?: { fill?: string; rx?: number; ry?: number };
+  labelBgPadding?: number[];
 }
 
 // User & Auth types

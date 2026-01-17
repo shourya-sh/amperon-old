@@ -8,6 +8,9 @@ import type {
   Collaborator,
   Tutorial
 } from '../types';
+import type { ExtractedSymbol } from '../services/symbolsService';
+import type { SimulationResult } from '../services/circuitSimulator';
+import type { CircuitAction } from '../services/aiService';
 
 // Circuit Store
 interface CircuitState {
@@ -17,6 +20,8 @@ interface CircuitState {
   selectedEdge: string | null;
   zoom: number;
   viewMode: 'schematic' | 'breadboard';
+  isSimulating: boolean;
+  simulationResult: SimulationResult | null;
   
   // Actions
   addNode: (node: CanvasNode) => void;
@@ -30,6 +35,9 @@ interface CircuitState {
   setViewMode: (mode: 'schematic' | 'breadboard') => void;
   clearCanvas: () => void;
   loadProject: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
+  setIsSimulating: (isSimulating: boolean) => void;
+  setSimulationResult: (result: SimulationResult | null) => void;
+  setAllEdgesAnimated: (animated: boolean) => void;
 }
 
 export const useCircuitStore = create<CircuitState>((set) => ({
@@ -39,6 +47,8 @@ export const useCircuitStore = create<CircuitState>((set) => ({
   selectedEdge: null,
   zoom: 1,
   viewMode: 'schematic',
+  isSimulating: false,
+  simulationResult: null,
 
   addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
   
@@ -65,8 +75,13 @@ export const useCircuitStore = create<CircuitState>((set) => ({
   setSelectedEdge: (id) => set({ selectedEdge: id, selectedNode: null }),
   setZoom: (zoom) => set({ zoom }),
   setViewMode: (mode) => set({ viewMode: mode }),
-  clearCanvas: () => set({ nodes: [], edges: [], selectedNode: null, selectedEdge: null }),
+  clearCanvas: () => set({ nodes: [], edges: [], selectedNode: null, selectedEdge: null, isSimulating: false, simulationResult: null }),
   loadProject: (nodes, edges) => set({ nodes, edges }),
+  setIsSimulating: (isSimulating) => set({ isSimulating }),
+  setSimulationResult: (result) => set({ simulationResult: result }),
+  setAllEdgesAnimated: (animated) => set((state) => ({
+    edges: state.edges.map((edge) => ({ ...edge, animated })),
+  })),
 }));
 
 // Chat Store
@@ -74,10 +89,12 @@ interface ChatState {
   messages: ChatMessage[];
   isOpen: boolean;
   isLoading: boolean;
+  lastCircuitAction: CircuitAction | null;
   
   addMessage: (message: ChatMessage) => void;
   setIsOpen: (isOpen: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setLastCircuitAction: (action: CircuitAction | null) => void;
   clearMessages: () => void;
 }
 
@@ -86,27 +103,66 @@ export const useChatStore = create<ChatState>((set) => ({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! 👋 I'm CircuitBot, your friendly circuit design helper! I can help you:\n\n• **Build circuits** - Just tell me what you want to create!\n• **Explain components** - Ask me about any component\n• **Debug problems** - I'll help find what's wrong\n• **Learn concepts** - I'll teach you electronics!\n\nWhat would you like to build today?",
+      content: "Welcome to CircuitCo. I can help you build circuits, explain components, and teach you electronics concepts.\n\nTry asking me to:\n• Build an LED circuit\n• Explain how resistors work\n• Teach you Ohm's Law\n\nWhat would you like to learn?",
       timestamp: new Date(),
     },
   ],
   isOpen: true,
   isLoading: false,
+  lastCircuitAction: null,
 
   addMessage: (message) => set((state) => ({ 
     messages: [...state.messages, message] 
   })),
   setIsOpen: (isOpen) => set({ isOpen }),
   setIsLoading: (isLoading) => set({ isLoading }),
+  setLastCircuitAction: (action) => set({ lastCircuitAction: action }),
   clearMessages: () => set({ 
     messages: [{
       id: '1',
       role: 'assistant',
-      content: "Hi! 👋 I'm CircuitBot! What would you like to build today?",
+      content: "Hi! I'm CircuitBot! What would you like to build today?",
       timestamp: new Date(),
-    }] 
+    }],
+    lastCircuitAction: null,
   }),
 }));
+
+// Symbols Store
+interface SymbolsState {
+  symbols: ExtractedSymbol[];
+  isLoading: boolean;
+  error: string | null;
+  lastUpdated: number | null;
+  
+  setSymbols: (symbols: ExtractedSymbol[]) => void;
+  setIsLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  addSymbol: (symbol: ExtractedSymbol) => void;
+  updateLastUpdated: () => void;
+}
+
+export const useSymbolsStore = create<SymbolsState>()(
+  persist(
+    (set) => ({
+      symbols: [],
+      isLoading: false,
+      error: null,
+      lastUpdated: null,
+
+      setSymbols: (symbols) => set({ symbols }),
+      setIsLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+      addSymbol: (symbol) => set((state) => ({
+        symbols: [...state.symbols, symbol],
+      })),
+      updateLastUpdated: () => set({ lastUpdated: Date.now() }),
+    }),
+    {
+      name: 'circuitco-symbols',
+    }
+  )
+);
 
 // Collaboration Store
 interface CollaborationState {

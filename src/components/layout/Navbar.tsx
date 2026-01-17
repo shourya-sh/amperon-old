@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
   Zap, 
   LayoutDashboard, 
@@ -9,8 +8,7 @@ import {
   Settings,
   Users,
   LogOut,
-  ChevronDown,
-  User
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,7 +20,7 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Designer', icon: LayoutDashboard },
-    { path: '/tutorials', label: 'Tutorials', icon: BookOpen },
+    { path: '/tutorials', label: 'Learn', icon: BookOpen },
     { path: '/projects', label: 'Projects', icon: FolderOpen },
   ];
 
@@ -32,19 +30,17 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="h-14 bg-dark-900/80 backdrop-blur-xl border-b border-dark-800 flex items-center justify-between px-4 sticky top-0 z-50">
+    <nav className="h-12 bg-dark-900 border-b border-dark-800 flex items-center justify-between px-4 sticky top-0 z-50">
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2 group">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-forest-500 to-forest-700 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-forest-600/30 transition-shadow">
-          <Zap size={18} className="text-white" />
+      <Link to="/" className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded bg-forest-600 flex items-center justify-center">
+          <Zap size={14} className="text-white" />
         </div>
-        <span className="text-lg font-bold text-dark-100">
-          Circuit<span className="text-forest-500">Co</span>
-        </span>
+        <span className="text-sm font-semibold text-dark-100">CircuitCo</span>
       </Link>
 
       {/* Nav Links */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -53,31 +49,25 @@ const Navbar: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? 'text-forest-400'
+                  ? 'text-dark-100 bg-dark-800'
                   : 'text-dark-400 hover:text-dark-200 hover:bg-dark-800'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={14} />
               {item.label}
-              {isActive && (
-                <motion.div
-                  layoutId="nav-indicator"
-                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-forest-500 rounded-full"
-                />
-              )}
             </Link>
           );
         })}
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Collaboration Button */}
-        <button className="flex items-center gap-2 px-3 py-1.5 bg-dark-800 hover:bg-dark-700 border border-dark-700 rounded-lg text-sm text-dark-300 hover:text-dark-100 transition-colors">
+        <button className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-dark-800 rounded-md text-sm text-dark-400 hover:text-dark-200 transition-colors">
           <Users size={14} />
-          <span>Collaborate</span>
+          <span>Share</span>
         </button>
 
         {/* User Menu */}
@@ -85,31 +75,26 @@ const Navbar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-dark-800 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-dark-800 rounded-md transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-forest-500 to-forest-700 flex items-center justify-center text-white text-xs font-medium">
-                {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              <div className="w-6 h-6 rounded-full bg-dark-700 flex items-center justify-center text-dark-300 text-xs font-medium">
+                {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <ChevronDown size={14} className="text-dark-400" />
+              <ChevronDown size={12} className="text-dark-500" />
             </button>
 
             {showUserMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-2 w-56 bg-dark-800 border border-dark-700 rounded-xl shadow-xl overflow-hidden"
-              >
-                <div className="p-3 border-b border-dark-700">
-                  <p className="font-medium text-dark-100 truncate">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-dark-850 border border-dark-700 rounded-lg shadow-lg overflow-hidden animate-fade-in">
+                <div className="px-3 py-2 border-b border-dark-700">
+                  <p className="text-sm font-medium text-dark-200 truncate">
                     {user?.displayName || 'User'}
                   </p>
                   <p className="text-xs text-dark-500 truncate">{user?.email}</p>
                 </div>
-                <div className="p-1">
+                <div className="py-1">
                   <Link
                     to="/settings"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-dark-300 hover:text-dark-100 hover:bg-dark-700 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 hover:bg-dark-800 transition-colors"
                     onClick={() => setShowUserMenu(false)}
                   >
                     <Settings size={14} />
@@ -117,26 +102,26 @@ const Navbar: React.FC = () => {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 hover:bg-dark-800 transition-colors"
                   >
                     <LogOut size={14} />
                     Log out
                   </button>
                 </div>
-              </motion.div>
+              </div>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link
               to="/login"
-              className="px-4 py-1.5 text-sm text-dark-300 hover:text-dark-100 transition-colors"
+              className="px-3 py-1.5 text-sm text-dark-400 hover:text-dark-200 transition-colors"
             >
               Log in
             </Link>
             <Link
               to="/signup"
-              className="btn-primary text-sm"
+              className="btn-primary"
             >
               Sign up
             </Link>
