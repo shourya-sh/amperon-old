@@ -4,8 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // GitHub dark theme palette
+        // Custom dark color scale for utilities
         dark: {
+          100: "#e8eef2",
+          200: "#c9d1d9",
+          300: "#8b949e",
+          400: "#6e7681",
+          500: "#484f58",
+          600: "#30363d",
+          700: "#21262d",
+          800: "#161b22",
+          850: "#13171c",
+          900: "#0d1117",
+          // GitHub dark theme palette
           bg: "#0d1117",
           bgSecondary: "#161b22",
           bgTertiary: "#21262d",
@@ -16,6 +27,13 @@ export default {
           textSecondary: "#8b949e",
           textMuted: "#6e7681",
           textSubtle: "#484f58",
+        },
+        // Forest green color scale
+        forest: {
+          300: "#56d364",
+          400: "#3fb950",
+          500: "#2ea043",
+          600: "#238636",
         },
         // GitHub accent colors
         github: {
