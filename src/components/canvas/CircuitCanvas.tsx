@@ -10,6 +10,7 @@ import ReactFlow, {
   useReactFlow,
   Panel,
   BackgroundVariant,
+  ConnectionLineType,
 } from 'reactflow';
 import type { Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -54,7 +55,8 @@ const CircuitCanvasInner: React.FC = () => {
     setIsSimulating,
     simulationResult,
     setSimulationResult,
-    setAllEdgesAnimated
+    updateEdges,
+    updateNodes
   } = useCircuitStore();
 
   const { collaborators, sessionId } = useCollaborationStore();
@@ -75,9 +77,21 @@ const CircuitCanvasInner: React.FC = () => {
   // Handle simulation play/pause
   const handleSimulation = useCallback(() => {
     if (isSimulating) {
-      // Stop simulation
+      // Stop simulation: reset edges and nodes visuals
       setIsSimulating(false);
-      setAllEdgesAnimated(false);
+      const resetEdgesStore = storeEdges.map((e) => ({
+        ...e,
+        animated: false,
+        style: { ...(e.style || {}), stroke: '#94a3b8', strokeWidth: 2 },
+      }));
+      setEdges(resetEdgesStore);
+      updateEdges(resetEdgesStore);
+      const resetNodesStore = storeNodes.map((n) => ({
+        ...n,
+        data: { ...n.data, isActive: false },
+      }));
+      setNodes(resetNodesStore);
+      updateNodes(resetNodesStore);
       setSimulationResult(null);
     } else {
       // Start simulation
@@ -85,10 +99,27 @@ const CircuitCanvasInner: React.FC = () => {
       setSimulationResult(result);
       setIsSimulating(true);
       if (result.isValid) {
-        setAllEdgesAnimated(true);
+        // Animate and color edges with current flow
+        const flowIds = new Set(result.currentFlow.map((f) => f.edgeId));
+        const styledEdges = storeEdges.map((e) => ({
+          ...e,
+          animated: flowIds.has(e.id),
+          style: { ...(e.style || {}), stroke: flowIds.has(e.id) ? '#f59e0b' : '#94a3b8', strokeWidth: flowIds.has(e.id) ? 3 : 2 },
+        }));
+        setEdges(styledEdges);
+        updateEdges(styledEdges);
+        // Mark nodes touched by flow as active
+        const activeNodeIds = new Set<string>();
+        result.currentFlow.forEach((p) => { activeNodeIds.add(p.fromNodeId); activeNodeIds.add(p.toNodeId); });
+        const energizedNodes = storeNodes.map((n) => ({
+          ...n,
+          data: { ...n.data, isActive: activeNodeIds.has(n.id) },
+        }));
+        setNodes(energizedNodes);
+        updateNodes(energizedNodes);
       }
     }
-  }, [isSimulating, storeNodes, storeEdges, setIsSimulating, setAllEdgesAnimated, setSimulationResult]);
+  }, [isSimulating, storeNodes, storeEdges, setIsSimulating, setSimulationResult, setEdges, setNodes, updateEdges, updateNodes]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -100,7 +131,7 @@ const CircuitCanvasInner: React.FC = () => {
         targetHandle: params.targetHandle || undefined,
         type: 'smoothstep',
         animated: false,
-        style: { stroke: '#22c55e', strokeWidth: 3 },
+        style: { stroke: '#94a3b8', strokeWidth: 2 },
       };
       setEdges((eds) => addEdge(newEdge, eds));
       addStoreEdge(newEdge);
@@ -186,9 +217,11 @@ const CircuitCanvasInner: React.FC = () => {
         snapGrid={[20, 20]}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          style: { stroke: '#22c55e', strokeWidth: 4 },
+          style: { stroke: '#94a3b8', strokeWidth: 2 },
           animated: false,
         }}
+        connectionLineStyle={{ stroke: '#cbd5e1', strokeWidth: 1.5 }}
+        connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
         className="circuit-canvas"
       >
@@ -196,7 +229,7 @@ const CircuitCanvasInner: React.FC = () => {
           variant={BackgroundVariant.Dots}
           gap={20} 
           size={1} 
-          color="rgba(34, 197, 94, 0.15)" 
+          color="rgba(148, 163, 184, 0.18)" 
         />
         
         <Controls 
@@ -216,7 +249,7 @@ const CircuitCanvasInner: React.FC = () => {
               case 'active': return '#3b82f6';
               case 'output': return '#f59e0b';
               case 'measurement': return '#06b6d4';
-              case 'connection': return '#22c55e';
+              case 'connection': return '#94a3b8';
               default: return '#374151';
             }
           }}
@@ -265,7 +298,7 @@ const CircuitCanvasInner: React.FC = () => {
               onClick={() => setViewMode(viewMode === 'schematic' ? 'breadboard' : 'schematic')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'breadboard' 
-                  ? 'bg-forest-600 text-white' 
+                  ? 'bg-blue-600 text-white' 
                   : 'hover:bg-dark-700 text-dark-300 hover:text-white'
               }`}
               title="Toggle Breadboard View"
@@ -301,7 +334,7 @@ const CircuitCanvasInner: React.FC = () => {
               className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isSimulating 
                   ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-forest-600 text-white hover:bg-forest-700'
+                  : 'bg-amber-600 text-white hover:bg-amber-700'
               }`}
               title={isSimulating ? 'Stop Simulation' : 'Start Simulation'}
             >
@@ -320,23 +353,23 @@ const CircuitCanvasInner: React.FC = () => {
                 exit={{ x: 20, opacity: 0 }}
                 className={`p-4 rounded-xl backdrop-blur-xl border shadow-xl max-w-sm ${
                   simulationResult.isValid 
-                    ? 'bg-forest-900/90 border-forest-600/50' 
+                    ? 'bg-amber-900/90 border-amber-600/50' 
                     : 'bg-red-900/90 border-red-600/50'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   {simulationResult.isValid ? (
-                    <CheckCircle size={20} className="text-forest-400" />
+                    <CheckCircle size={20} className="text-amber-400" />
                   ) : (
                     <AlertTriangle size={20} className="text-red-400" />
                   )}
-                  <span className={`font-semibold ${simulationResult.isValid ? 'text-forest-300' : 'text-red-300'}`}>
+                  <span className={`font-semibold ${simulationResult.isValid ? 'text-amber-300' : 'text-red-300'}`}>
                     {simulationResult.isValid ? 'Circuit Valid' : 'Circuit Error'}
                   </span>
                 </div>
 
                 {simulationResult.isValid && simulationResult.totalCurrent !== undefined && (
-                  <div className="text-sm text-forest-200 space-y-1">
+                  <div className="text-sm text-amber-200 space-y-1">
                     <div>Voltage: {simulationResult.voltage}V</div>
                     <div>Current: {(simulationResult.totalCurrent * 1000).toFixed(1)} mA</div>
                     <div>Resistance: {simulationResult.totalResistance} Ω</div>
@@ -364,8 +397,8 @@ const CircuitCanvasInner: React.FC = () => {
                 )}
 
                 {isSimulating && simulationResult.isValid && (
-                  <div className="mt-3 flex items-center gap-2 text-sm text-forest-300">
-                    <div className="w-2 h-2 bg-forest-400 rounded-full animate-pulse" />
+                  <div className="mt-3 flex items-center gap-2 text-sm text-amber-300">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
                     Simulating current flow...
                   </div>
                 )}
@@ -382,9 +415,9 @@ const CircuitCanvasInner: React.FC = () => {
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -20, opacity: 0 }}
-                className="px-4 py-2 bg-forest-600/20 border border-forest-600/50 rounded-lg backdrop-blur-sm"
+                className="px-4 py-2 bg-blue-600/20 border border-blue-600/50 rounded-lg backdrop-blur-sm"
               >
-                <p className="text-sm text-forest-300 font-medium">
+                <p className="text-sm text-blue-300 font-medium">
                   Breadboard View Mode
                 </p>
               </motion.div>

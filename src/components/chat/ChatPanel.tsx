@@ -210,18 +210,44 @@ const ChatPanel: React.FC = () => {
       addEdge(lastAttach, groundIdx, 'GND');
     }
 
-    // Ensure two-terminal parts are connected on both ends
+    // Ensure two-terminal parts are connected on both ends and avoid dangling parts
     const twoTerminal = new Set([
       'resistor', 'capacitor', 'inductor', 'led', 'diode', 'buzzer', 'motor', 'lightbulb', 'switch', 'wire'
     ]);
     for (let i = 0; i < nodesCount; i++) {
       const type = components[i].type;
-      if (twoTerminal.has(type)) {
-        const degree = (adjacency[i].size || 0) + (dedup.has(pairKey(i, groundIdx)) ? 0 : 0);
-        if (degree < 2) {
-          addEdge(i, batteryIdx);
-          if (groundIdx >= 0) addEdge(i, groundIdx, 'GND');
+      if (!twoTerminal.has(type)) continue;
+
+      let degree = adjacency[i].size || 0;
+
+      // Attempt to attach to battery first (if present and not self)
+      if (degree < 2 && batteryIdx >= 0 && batteryIdx !== i && !adjacency[i].has(batteryIdx)) {
+        addEdge(i, batteryIdx);
+        degree = adjacency[i].size || 0;
+      }
+
+      // If still dangling, attach to nearest non-self node (simple heuristic)
+      if (degree < 2) {
+        // find a candidate neighbor index
+        let candidate = -1;
+        for (let j = 0; j < nodesCount; j++) {
+          if (j === i) continue;
+          if (!adjacency[i].has(j)) { candidate = j; break; }
         }
+        if (candidate >= 0) {
+          addEdge(i, candidate);
+          degree = adjacency[i].size || 0;
+        }
+      }
+
+      // Final fallback: attach to ground if present
+      if (degree < 2 && groundIdx >= 0 && !adjacency[i].has(groundIdx)) {
+        addEdge(i, groundIdx, 'GND');
+        degree = adjacency[i].size || 0;
+      }
+
+      if (degree < 2) {
+        console.warn(`Component ${i} (${type}) remains with degree ${degree} — attached to battery/nearest/ground where possible.`);
       }
     }
 

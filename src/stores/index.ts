@@ -26,9 +26,11 @@ interface CircuitState {
   // Actions
   addNode: (node: CanvasNode) => void;
   updateNode: (id: string, data: Partial<CanvasNode>) => void;
+  updateNodes: (nodes: CanvasNode[]) => void;
   removeNode: (id: string) => void;
   addEdge: (edge: CanvasEdge) => void;
   removeEdge: (id: string) => void;
+  updateEdges: (edges: CanvasEdge[]) => void;
   setSelectedNode: (id: string | null) => void;
   setSelectedEdge: (id: string | null) => void;
   setZoom: (zoom: number) => void;
@@ -57,6 +59,7 @@ export const useCircuitStore = create<CircuitState>((set) => ({
       node.id === id ? { ...node, ...data } : node
     ),
   })),
+  updateNodes: (nodes) => set({ nodes }),
   
   removeNode: (id) => set((state) => ({
     nodes: state.nodes.filter((node) => node.id !== id),
@@ -70,6 +73,7 @@ export const useCircuitStore = create<CircuitState>((set) => ({
     edges: state.edges.filter((edge) => edge.id !== id),
     selectedEdge: state.selectedEdge === id ? null : state.selectedEdge,
   })),
+  updateEdges: (edges) => set({ edges }),
   
   setSelectedNode: (id) => set({ selectedNode: id, selectedEdge: null }),
   setSelectedEdge: (id) => set({ selectedEdge: id, selectedNode: null }),

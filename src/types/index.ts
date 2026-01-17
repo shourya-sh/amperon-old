@@ -26,7 +26,15 @@ export type ComponentType =
   | 'diode'
   | 'buzzer'
   | 'motor'
-  | 'lightbulb';
+  | 'lightbulb'
+  // Added analog + logic components
+  | 'opamp'
+  | 'and-gate'
+  | 'or-gate'
+  | 'not-gate'
+  | 'nand-gate'
+  | 'nor-gate'
+  | 'xor-gate';
 
 export type ComponentCategory = 
   | 'passive' 
@@ -52,6 +60,8 @@ export interface CanvasNode {
     component: CircuitComponent;
     rotation: number;
     label?: string;
+    // Visual state driven by simulation
+    isActive?: boolean;
   };
 }
 
@@ -65,10 +75,11 @@ export interface CanvasEdge {
   animated?: boolean;
   style?: { stroke?: string; strokeWidth?: number };
   label?: string;
-  markerEnd?: { type?: string; color?: string };
+  // Use a permissive type here to avoid React Flow TS incompatibilities
+  markerEnd?: any;
   labelStyle?: { fill?: string; fontSize?: number };
   labelBgStyle?: { fill?: string; rx?: number; ry?: number };
-  labelBgPadding?: number[];
+  labelBgPadding?: [number, number];
 }
 
 // User & Auth types

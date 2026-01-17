@@ -1,7 +1,10 @@
 // AI Service using OpenRouter API for circuit design assistance
+import type { CircuitComponent } from '../types';
+import { circuitComponents } from '../data/components';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const insightCache = new Map<string, string>();
 
 export interface CircuitAction {
   type: 'add_component' | 'build_circuit' | 'explain' | 'none';
@@ -16,6 +19,7 @@ export interface CircuitAction {
     label?: string;
   }>;
   message: string;
+  componentInsights?: Record<string, string>;
 }
 
 const SYSTEM_PROMPT = `You are an expert circuit design assistant for CircuitCo, an educational circuit design application.
@@ -27,6 +31,13 @@ AVAILABLE COMPONENTS (use exact type names):
 - resistor: Limits current flow (1000Ω default)
 - capacitor: Stores electrical energy (100µF)
 - inductor: Stores energy in magnetic field (10mH)
+- opamp: Operational amplifier (LM358) for analog signal processing
+- and-gate: Logic AND gate (2 inputs, 1 output)
+- or-gate: Logic OR gate (2 inputs, 1 output)
+- not-gate: Logic NOT gate/inverter (1 input, 1 output)
+- nand-gate: Logic NAND gate (2 inputs, 1 output)
+- nor-gate: Logic NOR gate (2 inputs, 1 output)
+- xor-gate: Logic XOR gate (2 inputs, 1 output)
 - led: Light Emitting Diode (needs resistor protection)
 - diode: One-way current flow
 - transistor: Electronic switch/amplifier (NPN 2N2222)
@@ -46,7 +57,11 @@ You MUST respond with valid JSON in this exact format:
   "mode": "replace" | "merge",
   "components": [{"type": "component_type"}, ...],
   "connections": [{"from": 0, "to": 1}, {"from": 1, "to": 2}, ...],
-  "message": "Your explanation to the user"
+  "message": "Your explanation to the user",
+  "componentInsights": {
+    "battery": "Purpose: ...\nWhere it fits: ...\nConnection tips: ...",
+    "resistor": "..."
+  }
 }
 
 IMPORTANT - CONNECTION ARRAY:
@@ -122,7 +137,21 @@ IMPORTANT REMINDERS:
 1. ALWAYS include the connections array - NEVER omit it
 2. Use 0-based indexing for component positions
 3. For complete circuits, ensure all components are connected in a logical path
-4. Respond with ONLY valid JSON - no markdown, no explanation outside JSON`;
+ 4. Include componentInsights when possible for any components you add
+ 5. Respond with ONLY valid JSON - no markdown, no explanation outside JSON`;
+
+const INSIGHT_SYSTEM_PROMPT = `You are a friendly electronics tutor for CircuitCo. Explain components for beginners in <60 words.
+
+Return EXACTLY three short lines, each starting with a bold label:
+**Purpose:** ...
+**Where it fits:** ...
+**Connection tips:** ...
+
+Keep it kid-friendly, no extra markup, no code fences.`;
+
+const componentCatalog = new Map<string, CircuitComponent>(
+  circuitComponents.map((c) => [c.type, c])
+);
 
 export async function sendMessageToAI(
   userMessage: string,
@@ -131,8 +160,11 @@ export async function sendMessageToAI(
     lastCircuit?: CircuitAction | null;
   }
 ): Promise<CircuitAction> {
+  // If no API key, fall back to local intent-based builder so the app still works
   if (!OPENROUTER_API_KEY) {
-    console.error('OpenRouter API key not configured');
+    console.warn('OpenRouter API key not configured — using local fallback builder');
+    const fallback = buildCircuitFromIntent(userMessage);
+    if (fallback) return fallback;
     return {
       type: 'explain',
       message: 'AI service not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.',
@@ -223,19 +255,42 @@ export async function sendMessageToAI(
         console.log('Auto-generated connections (fallback):', connections);
       }
 
-      const result: CircuitAction = {
+      let result: CircuitAction = {
         type: parsed.type || 'explain',
         mode: parsed.mode,
         components,
         connections,
         message: parsed.message,
+        componentInsights: parsed.componentInsights,
       };
       
+      // If the AI responded with explain/no components, attempt local fallback generation
+      if ((!components || components.length === 0) || (result.type === 'explain')) {
+        const fallback = buildCircuitFromIntent(userMessage);
+        if (fallback) {
+          result = fallback;
+        }
+      }
+
+      // Seed insights cache from response and fill any gaps with a single batch call
+      const componentTypes = (result.components || []).map((c) => c.type);
+      const fromResponse = result.componentInsights || {};
+      Object.entries(fromResponse).forEach(([type, text]) => {
+        if (text) insightCache.set(type, text);
+      });
+      if (componentTypes.length > 0) {
+        const batch = await fetchComponentInsightsBatch(componentTypes);
+        result.componentInsights = { ...batch, ...fromResponse };
+      }
+
       console.log('Final result:', result);
       return result;
     } catch (parseError) {
       console.error('Failed to parse AI response:', content);
-      // If JSON parsing fails, treat it as an explanation
+      // Try local fallback builder when parsing fails
+      const fallback = buildCircuitFromIntent(userMessage);
+      if (fallback) return fallback;
+      // If fallback cannot infer, treat it as explanation
       return {
         type: 'explain',
         message: content,
@@ -243,6 +298,9 @@ export async function sendMessageToAI(
     }
   } catch (error) {
     console.error('AI service error:', error);
+    // Use local fallback builder on network errors
+    const fallback = buildCircuitFromIntent(userMessage);
+    if (fallback) return fallback;
     return {
       type: 'explain',
       message: 'I encountered an error processing your request. Please try again.',
@@ -267,4 +325,275 @@ function generateSeriesConnections(components: Array<{ type: string; properties?
   }
 
   return conns;
+}
+
+// Local intent-based circuit builder: ensures the app builds circuits even without AI
+function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
+  const text = (userMessage || '').toLowerCase();
+
+  const create = (components: Array<{ type: string }>, connections: Array<{ from: number; to: number; label?: string }>, message: string): CircuitAction => ({
+    type: 'build_circuit',
+    mode: 'replace',
+    components,
+    connections,
+    message,
+  });
+
+  // LED circuit templates
+  if (text.includes('led') || text.includes('light') || text.includes('lamp')) {
+    const comps = [ { type: 'battery' }, { type: 'resistor' }, { type: 'led' }, { type: 'ground' } ];
+    const conns = [ { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 }, { from: 3, to: 0 } ];
+    return create(comps, conns, 'Built a protected LED circuit: Battery → Resistor → LED → Ground → back to Battery.');
+  }
+
+  // Motor with switch + flyback diode
+  if (text.includes('motor')) {
+    const comps = [ { type: 'battery' }, { type: 'switch' }, { type: 'motor' }, { type: 'diode' }, { type: 'ground' } ];
+    const conns = [ { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 }, { from: 3, to: 4 }, { from: 4, to: 0 } ];
+    return create(comps, conns, 'Built a motor control circuit with flyback diode: Battery → Switch → Motor → Diode → Ground.');
+  }
+
+  // Measurement: measure voltage across a resistor
+  if (text.includes('measure') && text.includes('voltage')) {
+    const comps = [ { type: 'battery' }, { type: 'resistor' }, { type: 'voltmeter' }, { type: 'ground' } ];
+    const conns = [ { from: 0, to: 1 }, { from: 1, to: 3 }, { from: 0, to: 2 }, { from: 2, to: 3 } ];
+    return create(comps, conns, 'Setup: Battery → Resistor with voltmeter across it and ground reference.');
+  }
+
+  // Logic AND gate example with two inputs and LED output
+  if (text.includes('and gate') || (text.includes('and') && text.includes('gate'))) {
+    const comps = [ { type: 'battery' }, { type: 'switch' }, { type: 'switch' }, { type: 'and-gate' }, { type: 'resistor' }, { type: 'led' }, { type: 'ground' } ];
+    const conns = [
+      { from: 0, to: 1 }, // Battery to input A switch
+      { from: 0, to: 2 }, // Battery to input B switch
+      { from: 1, to: 3 }, // Switch A to AND gate
+      { from: 2, to: 3 }, // Switch B to AND gate
+      { from: 3, to: 4 }, // Gate to resistor
+      { from: 4, to: 5 }, // Resistor to LED
+      { from: 5, to: 6 }, // LED to ground
+      { from: 6, to: 0 }, // close loop
+    ];
+    return create(comps, conns, 'Built a 2-input AND gate with LED output; both switches must be ON to light the LED.');
+  }
+
+  // Op-amp amplifier template (non-inverting)
+  if (text.includes('op-amp') || text.includes('opamp') || text.includes('operational amplifier')) {
+    // Basic non-inverting amplifier template with feedback from output back to input
+    const comps = [ { type: 'battery' }, { type: 'resistor' }, { type: 'capacitor' }, { type: 'opamp' }, { type: 'resistor' }, { type: 'capacitor' }, { type: 'ground' } ];
+    const conns = [
+      { from: 0, to: 1 }, // battery -> input resistor
+      { from: 1, to: 3 }, // input resistor -> op-amp input
+      { from: 3, to: 4 }, // op-amp output -> output resistor
+      { from: 4, to: 6 }, // output resistor -> ground/load
+      { from: 3, to: 1 }, // feedback: op-amp output -> input node (creates feedback loop)
+      { from: 2, to: 6 }, // decoupling cap -> ground
+      { from: 5, to: 6 }, // output cap -> ground
+      { from: 6, to: 0 }, // close loop
+    ];
+    return create(comps, conns, 'Built a simple op-amp amplifier stage with feedback and decoupling capacitors.');
+  }
+
+  // OR/NOT/NAND/NOR/XOR templates map to LED outputs
+  const gateMap: Array<{ key: string; type: 'or-gate' | 'not-gate' | 'nand-gate' | 'nor-gate' | 'xor-gate'; label: string }> = [
+    { key: 'or gate', type: 'or-gate', label: 'OR' },
+    { key: 'not gate', type: 'not-gate', label: 'NOT' },
+    { key: 'nand gate', type: 'nand-gate', label: 'NAND' },
+    { key: 'nor gate', type: 'nor-gate', label: 'NOR' },
+    { key: 'xor gate', type: 'xor-gate', label: 'XOR' },
+  ];
+  for (const g of gateMap) {
+    if (text.includes(g.key)) {
+      const comps = [ { type: 'battery' }, { type: 'switch' }, { type: 'switch' }, { type: g.type }, { type: 'resistor' }, { type: 'led' }, { type: 'ground' } ];
+      const conns = [
+        { from: 0, to: 1 },
+        { from: 0, to: 2 },
+        { from: 1, to: 3 },
+        { from: 2, to: 3 },
+        { from: 3, to: 4 },
+        { from: 4, to: 5 },
+        { from: 5, to: 6 },
+        { from: 6, to: 0 },
+      ];
+      return create(comps, conns, `Built a 2-input ${g.label} gate driving an LED through a resistor.`);
+    }
+  }
+
+  // Buzzer circuit
+  if (text.includes('buzzer')) {
+    const comps = [ { type: 'battery' }, { type: 'resistor' }, { type: 'buzzer' }, { type: 'ground' } ];
+    const conns = [ { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 }, { from: 3, to: 0 } ];
+    return create(comps, conns, 'Built a buzzer circuit with current limiting resistor.');
+  }
+
+  // If intent not detected, return null to let caller use explanation
+  return null;
+}
+
+// Fetch a concise, hover-friendly explanation for a component using Gemini
+export async function fetchComponentInsight(component: CircuitComponent): Promise<string> {
+  const cached = insightCache.get(component.type);
+  if (cached) return cached;
+
+  const fallback = `**Purpose:** ${component.description}\n**Where it fits:** A fundamental part of basic circuits.\n**Connection tips:** Wire following its symbol; respect polarity if present.`;
+
+  if (!OPENROUTER_API_KEY) {
+    return fallback;
+  }
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'CircuitCo',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        temperature: 0.35,
+        max_tokens: 220,
+        messages: [
+          { role: 'system', content: INSIGHT_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: `Component: ${component.name}\nCategory: ${component.category}\nSymbol: ${component.symbol}\nDescription: ${component.description}\nConnections: ${component.connections}\nExplain it for a hover tooltip.`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter insight error:', response.status, errorText);
+      throw new Error(`Insight request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let content: string | undefined = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('No insight content returned');
+    }
+
+    content = content.trim();
+    if (content.startsWith('```')) {
+      content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
+    }
+
+    const finalContent = content.length > 0 ? content : fallback;
+    insightCache.set(component.type, finalContent);
+    return finalContent;
+  } catch (error) {
+    console.error('AI insight error:', error);
+    return fallback;
+  }
+}
+
+// Batch-fetch insights for multiple component types in one Gemini call
+async function fetchComponentInsightsBatch(componentTypes: string[]): Promise<Record<string, string>> {
+  const uniqueTypes = Array.from(new Set(componentTypes));
+  if (uniqueTypes.length === 0) return {};
+
+  const resolved = uniqueTypes
+    .map((type) => componentCatalog.get(type))
+    .filter((c): c is CircuitComponent => Boolean(c));
+
+  const cached: Record<string, string> = {};
+  const missing: CircuitComponent[] = [];
+
+  resolved.forEach((c) => {
+    const fromCache = insightCache.get(c.type);
+    if (fromCache) {
+      cached[c.type] = fromCache;
+    } else {
+      missing.push(c);
+    }
+  });
+
+  if (missing.length === 0) {
+    return cached;
+  }
+
+  const fallbackText = (comp: CircuitComponent) => `**Purpose:** ${comp.description}\n**Where it fits:** A fundamental part of basic circuits.\n**Connection tips:** Wire following its symbol; respect polarity if present.`;
+
+  if (!OPENROUTER_API_KEY) {
+    missing.forEach((comp) => {
+      const text = fallbackText(comp);
+      insightCache.set(comp.type, text);
+      cached[comp.type] = text;
+    });
+    return cached;
+  }
+
+  const list = missing
+    .map((c) => `- ${c.type}: ${c.name} — ${c.description} (category: ${c.category}, connections: ${c.connections})`)
+    .join('\n');
+
+  const prompt = `Return valid JSON mapping component type to a short hover tooltip. Each value MUST be exactly three lines with bold labels: **Purpose:**, **Where it fits:**, **Connection tips:**. Keep it friendly and under 45 words per component. Components:\n${list}`;
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'CircuitCo',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        temperature: 0.35,
+        max_tokens: 256,
+        messages: [
+          { role: 'system', content: 'You write concise component tooltips as JSON.' },
+          { role: 'user', content: prompt },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter batch insight error:', response.status, errorText);
+      throw new Error(`Batch insight request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let content: string | undefined = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('No batch insight content returned');
+
+    content = content.trim();
+    if (content.startsWith('```')) {
+      content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
+    }
+
+    const parsed = JSON.parse(content) as Record<string, string>;
+
+    Object.entries(parsed).forEach(([type, text]) => {
+      const finalText = (text || '').trim();
+      if (finalText.length > 0) {
+        insightCache.set(type, finalText);
+        cached[type] = finalText;
+      }
+    });
+
+    // Fill any remaining missing with fallback
+    missing.forEach((comp) => {
+      if (!cached[comp.type]) {
+        const text = fallbackText(comp);
+        insightCache.set(comp.type, text);
+        cached[comp.type] = text;
+      }
+    });
+
+    return cached;
+  } catch (error) {
+    console.error('Batch insight fetch failed, using fallback:', error);
+    missing.forEach((comp) => {
+      const text = fallbackText(comp);
+      insightCache.set(comp.type, text);
+      cached[comp.type] = text;
+    });
+    return cached;
+  }
 }
