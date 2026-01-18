@@ -30,9 +30,11 @@ import {
   Type
 } from 'lucide-react';
 import CircuitNode from './CircuitNode';
-import { useCircuitStore, useCollaborationStore, useProjectStore } from '../../stores';
+import LiveCursors from '../collaboration/LiveCursors';
+import { useCircuitStore, useCollaborationStore, useProjectStore, useLiveShareStore } from '../../stores';
 import { simulateCircuit } from '../../services/circuitSimulator';
 import { generateSchematicPdf } from '../../services/schematicPdfService';
+import liveShareService from '../../services/liveShareService';
 import type { CircuitComponent, CanvasNode } from '../../types';
 
 const nodeTypes = {
@@ -66,12 +68,51 @@ const CircuitCanvasInner: React.FC = () => {
 
   const { collaborators, sessionId } = useCollaborationStore();
   const { currentProject } = useProjectStore();
+  const { isLiveSession, permission } = useLiveShareStore();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const [showGrid, setShowGrid] = React.useState(true);
   const [showLabels, setShowLabels] = React.useState(false); // Start false for better initial spacing
   const [hasInitialized, setHasInitialized] = React.useState(false);
+  
+  // Track if we're currently syncing to prevent loops
+  const isSyncingRef = useRef(false);
+  
+  // Track mouse position for live cursors
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    if (!isLiveSession || !reactFlowWrapper.current) return;
+    
+    const bounds = reactFlowWrapper.current.getBoundingClientRect();
+    const position = project({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    });
+    
+    liveShareService.updateCursor(position.x, position.y);
+  }, [isLiveSession, project]);
+  
+  // Sync nodes to Firebase when they change (in live session)
+  useEffect(() => {
+    if (!isLiveSession || isSyncingRef.current || permission === 'view') return;
+    
+    const syncTimeout = setTimeout(() => {
+      liveShareService.syncNodes(storeNodes);
+    }, 100); // Debounce syncing
+    
+    return () => clearTimeout(syncTimeout);
+  }, [storeNodes, isLiveSession, permission]);
+  
+  // Sync edges to Firebase when they change (in live session)
+  useEffect(() => {
+    if (!isLiveSession || isSyncingRef.current || permission === 'view') return;
+    
+    const syncTimeout = setTimeout(() => {
+      liveShareService.syncEdges(storeEdges);
+    }, 100); // Debounce syncing
+    
+    return () => clearTimeout(syncTimeout);
+  }, [storeEdges, isLiveSession, permission]);
 
   // Sync Zustand store nodes with React Flow nodes and add showLabels prop
   useEffect(() => {
@@ -253,7 +294,14 @@ const CircuitCanvasInner: React.FC = () => {
   }, [getViewport]);
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full relative">
+    <div 
+      ref={reactFlowWrapper} 
+      className="w-full h-full relative"
+      onMouseMove={handleMouseMove}
+    >
+      {/* Live Cursors Overlay */}
+      {isLiveSession && <LiveCursors />}
+      
       <ReactFlow
         nodes={nodes}
         edges={edges}

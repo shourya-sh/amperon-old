@@ -8,6 +8,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import AuthPage from './pages/AuthPage';
 import ARTutorialPage from './pages/ARTutorialPage';
 import ARConnectPage from './pages/ARConnectPage';
+import SharedProjectPage from './pages/SharedProjectPage';
 
 function App() {
   return (
@@ -25,9 +26,17 @@ function App() {
             </ErrorBoundary>
           } />
           
+          {/* Shared Project Route (standalone, for joining via link) */}
+          <Route path="/project/:shareId" element={
+            <ErrorBoundary>
+              <SharedProjectPage />
+            </ErrorBoundary>
+          } />
+          
           {/* App Routes */}
           <Route path="/" element={<Layout />}>
             <Route index element={<DesignerPage />} />
+            <Route path="designer" element={<DesignerPage />} />
             <Route path="tutorials" element={<TutorialsPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="ar" element={<ARTutorialPage />} />

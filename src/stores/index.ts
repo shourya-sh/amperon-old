@@ -5,6 +5,8 @@ import type {
   CanvasEdge,
   Project,
   ChatMessage,
+  ChatSession,
+  ChatCheckpoint,
   Collaborator,
 } from "../types";
 import type { ExtractedSymbol } from "../services/symbolsService";
@@ -107,54 +109,368 @@ export const useCircuitStore = create<CircuitState>((set) => ({
   resetFitView: () => set({ shouldFitView: false }),
 }));
 
-// Chat Store
+// Chat Store - Enhanced with Sessions, History, and Checkpoints
+const createWelcomeMessage = (): ChatMessage => ({
+  id: "welcome-" + Date.now(),
+  role: "assistant",
+  content:
+    "Welcome to Amperon. I can help you build circuits, explain components, and teach you electronics concepts.\n\nTry asking me to:\n• Build an LED circuit\n• Explain how resistors work\n• Teach you Ohm's Law\n\nWhat would you like to learn?",
+  timestamp: new Date(),
+});
+
+const createNewSession = (name?: string): ChatSession => ({
+  id: "session-" + Date.now(),
+  name: name || `Chat ${new Date().toLocaleDateString()}`,
+  messages: [createWelcomeMessage()],
+  checkpoints: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
 interface ChatState {
-  messages: ChatMessage[];
+  // Session management
+  sessions: ChatSession[];
+  currentSessionId: string | null;
+
+  // UI state
   isOpen: boolean;
   isLoading: boolean;
+  isHistoryOpen: boolean;
   lastCircuitAction: CircuitAction | null;
 
+  // Computed getters
+  getCurrentSession: () => ChatSession | null;
+  messages: ChatMessage[];
+
+  // Session actions
+  createSession: (name?: string) => string;
+  switchSession: (sessionId: string) => void;
+  deleteSession: (sessionId: string) => void;
+  renameSession: (sessionId: string, name: string) => void;
+  archiveSession: (sessionId: string) => void;
+  duplicateSession: (sessionId: string) => string;
+
+  // Message actions
   addMessage: (message: ChatMessage) => void;
+  clearMessages: () => void;
+
+  // Checkpoint actions
+  createCheckpoint: (
+    name: string,
+    nodes: CanvasNode[],
+    edges: CanvasEdge[],
+    messageId?: string,
+    isAutoSave?: boolean,
+  ) => string;
+  deleteCheckpoint: (checkpointId: string) => void;
+  renameCheckpoint: (checkpointId: string, name: string) => void;
+  getCheckpoint: (checkpointId: string) => ChatCheckpoint | null;
+
+  // UI actions
   setIsOpen: (isOpen: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setIsHistoryOpen: (isOpen: boolean) => void;
   setLastCircuitAction: (action: CircuitAction | null) => void;
-  clearMessages: () => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
-  messages: [
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Welcome to Amperon. I can help you build circuits, explain components, and teach you electronics concepts.\n\nTry asking me to:\n• Build an LED circuit\n• Explain how resistors work\n• Teach you Ohm's Law\n\nWhat would you like to learn?",
-      timestamp: new Date(),
-    },
-  ],
-  isOpen: true,
-  isLoading: false,
-  lastCircuitAction: null,
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set, get) => {
+      const initialSession = createNewSession();
 
-  addMessage: (message) =>
-    set((state) => ({
-      messages: [...state.messages, message],
-    })),
-  setIsOpen: (isOpen) => set({ isOpen }),
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setLastCircuitAction: (action) => set({ lastCircuitAction: action }),
-  clearMessages: () =>
-    set({
-      messages: [
-        {
-          id: "1",
-          role: "assistant",
-          content: "Hi! I'm CircuitBot! What would you like to build today?",
-          timestamp: new Date(),
+      return {
+        sessions: [initialSession],
+        currentSessionId: initialSession.id,
+        isOpen: true,
+        isLoading: false,
+        isHistoryOpen: false,
+        lastCircuitAction: null,
+
+        // Computed: get current session
+        getCurrentSession: () => {
+          const state = get();
+          return (
+            state.sessions.find((s) => s.id === state.currentSessionId) || null
+          );
         },
-      ],
-      lastCircuitAction: null,
-    }),
-}));
+
+        // Computed: get messages from current session (for backward compatibility)
+        get messages() {
+          const session = get().getCurrentSession();
+          return session?.messages || [];
+        },
+
+        // Create a new chat session
+        createSession: (name) => {
+          const newSession = createNewSession(name);
+          set((state) => ({
+            sessions: [newSession, ...state.sessions],
+            currentSessionId: newSession.id,
+          }));
+          return newSession.id;
+        },
+
+        // Switch to a different session
+        switchSession: (sessionId) => {
+          const state = get();
+          if (state.sessions.some((s) => s.id === sessionId)) {
+            set({ currentSessionId: sessionId });
+          }
+        },
+
+        // Delete a session
+        deleteSession: (sessionId) => {
+          set((state) => {
+            const newSessions = state.sessions.filter(
+              (s) => s.id !== sessionId,
+            );
+
+            // If deleting current session, switch to another or create new
+            let newCurrentId = state.currentSessionId;
+            if (state.currentSessionId === sessionId) {
+              if (newSessions.length > 0) {
+                newCurrentId = newSessions[0].id;
+              } else {
+                const newSession = createNewSession();
+                newSessions.push(newSession);
+                newCurrentId = newSession.id;
+              }
+            }
+
+            return {
+              sessions: newSessions,
+              currentSessionId: newCurrentId,
+            };
+          });
+        },
+
+        // Rename a session
+        renameSession: (sessionId, name) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === sessionId ? { ...s, name, updatedAt: new Date() } : s,
+            ),
+          }));
+        },
+
+        // Archive a session
+        archiveSession: (sessionId) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === sessionId
+                ? { ...s, isArchived: true, updatedAt: new Date() }
+                : s,
+            ),
+          }));
+        },
+
+        // Duplicate a session
+        duplicateSession: (sessionId) => {
+          const state = get();
+          const original = state.sessions.find((s) => s.id === sessionId);
+          if (!original) return "";
+
+          const duplicated: ChatSession = {
+            ...original,
+            id: "session-" + Date.now(),
+            name: `${original.name} (Copy)`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            checkpoints: original.checkpoints.map((cp) => ({
+              ...cp,
+              id: "checkpoint-" + Date.now() + Math.random(),
+            })),
+          };
+
+          set((state) => ({
+            sessions: [duplicated, ...state.sessions],
+            currentSessionId: duplicated.id,
+          }));
+
+          return duplicated.id;
+        },
+
+        // Add a message to current session
+        addMessage: (message) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    messages: [...s.messages, message],
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
+          }));
+        },
+
+        // Clear messages in current session (reset to welcome)
+        clearMessages: () => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    messages: [createWelcomeMessage()],
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
+            lastCircuitAction: null,
+          }));
+        },
+
+        // Create a checkpoint (save canvas state)
+        createCheckpoint: (
+          name,
+          nodes,
+          edges,
+          messageId,
+          isAutoSave = false,
+        ) => {
+          const state = get();
+          const session = state.getCurrentSession();
+          if (!session) return "";
+
+          const checkpoint: ChatCheckpoint = {
+            id: "checkpoint-" + Date.now(),
+            sessionId: session.id,
+            messageId:
+              messageId ||
+              (session.messages.length > 0
+                ? session.messages[session.messages.length - 1].id
+                : ""),
+            name,
+            nodes: JSON.parse(JSON.stringify(nodes)), // Deep clone
+            edges: JSON.parse(JSON.stringify(edges)),
+            timestamp: new Date(),
+            isAutoSave,
+          };
+
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    checkpoints: [...s.checkpoints, checkpoint],
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
+          }));
+
+          return checkpoint.id;
+        },
+
+        // Delete a checkpoint
+        deleteCheckpoint: (checkpointId) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    checkpoints: s.checkpoints.filter(
+                      (cp) => cp.id !== checkpointId,
+                    ),
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
+          }));
+        },
+
+        // Rename a checkpoint
+        renameCheckpoint: (checkpointId, name) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    checkpoints: s.checkpoints.map((cp) =>
+                      cp.id === checkpointId ? { ...cp, name } : cp,
+                    ),
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
+          }));
+        },
+
+        // Get a checkpoint by ID
+        getCheckpoint: (checkpointId) => {
+          const session = get().getCurrentSession();
+          return (
+            session?.checkpoints.find((cp) => cp.id === checkpointId) || null
+          );
+        },
+
+        // UI actions
+        setIsOpen: (isOpen) => set({ isOpen }),
+        setIsLoading: (isLoading) => set({ isLoading }),
+        setIsHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen }),
+        setLastCircuitAction: (action) => set({ lastCircuitAction: action }),
+      };
+    },
+    {
+      name: "amperon-chat-sessions",
+      partialize: (state) => ({
+        sessions: state.sessions.map((s) => ({
+          ...s,
+          // Convert Date objects to ISO strings for storage
+          createdAt:
+            s.createdAt instanceof Date
+              ? s.createdAt.toISOString()
+              : s.createdAt,
+          updatedAt:
+            s.updatedAt instanceof Date
+              ? s.updatedAt.toISOString()
+              : s.updatedAt,
+          messages: s.messages.map((m) => ({
+            ...m,
+            timestamp:
+              m.timestamp instanceof Date
+                ? m.timestamp.toISOString()
+                : m.timestamp,
+          })),
+          checkpoints: s.checkpoints.map((cp) => ({
+            ...cp,
+            timestamp:
+              cp.timestamp instanceof Date
+                ? cp.timestamp.toISOString()
+                : cp.timestamp,
+          })),
+        })),
+        currentSessionId: state.currentSessionId,
+        isOpen: state.isOpen,
+      }),
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState || !persistedState.sessions) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          sessions: persistedState.sessions.map((s: any) => ({
+            ...s,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+            messages: s.messages.map((m: any) => ({
+              ...m,
+              timestamp: new Date(m.timestamp),
+            })),
+            checkpoints: s.checkpoints.map((cp: any) => ({
+              ...cp,
+              timestamp: new Date(cp.timestamp),
+            })),
+          })),
+          currentSessionId: persistedState.currentSessionId,
+          isOpen: persistedState.isOpen ?? true,
+        };
+      },
+    },
+  ),
+);
 
 // Symbols Store
 interface SymbolsState {
@@ -579,4 +895,81 @@ export const useShopStore = create<ShopState>((set) => ({
       selectedVendors: { ...state.selectedVendors, [componentId]: vendor },
     })),
   clearPricing: () => set({ pricing: {}, selectedVendors: {} }),
+}));
+
+// Live Share Store - For Figma-like real-time collaboration
+import type {
+  LiveUser,
+  LiveCursor,
+  SharedChatMessage,
+  SharePermission,
+} from "../types";
+
+interface LiveShareState {
+  // Session state
+  isLiveSession: boolean;
+  shareId: string | null;
+  permission: SharePermission;
+  isConnecting: boolean;
+  error: string | null;
+
+  // Active users (excluding current user)
+  activeUsers: LiveUser[];
+
+  // Live cursors from other users
+  cursors: Record<string, LiveCursor>;
+
+  // Shared chat messages
+  chatMessages: SharedChatMessage[];
+
+  // Actions
+  setIsLiveSession: (isLive: boolean) => void;
+  setShareId: (id: string | null) => void;
+  setPermission: (permission: SharePermission) => void;
+  setIsConnecting: (connecting: boolean) => void;
+  setError: (error: string | null) => void;
+  setActiveUsers: (users: LiveUser[]) => void;
+  setCursors: (cursors: Record<string, LiveCursor>) => void;
+  setChatMessages: (messages: SharedChatMessage[]) => void;
+  addChatMessage: (message: SharedChatMessage) => void;
+  clearActiveUsers: () => void;
+  clearChatMessages: () => void;
+  resetLiveShare: () => void;
+}
+
+export const useLiveShareStore = create<LiveShareState>((set) => ({
+  isLiveSession: false,
+  shareId: null,
+  permission: "view",
+  isConnecting: false,
+  error: null,
+  activeUsers: [],
+  cursors: {},
+  chatMessages: [],
+
+  setIsLiveSession: (isLive) => set({ isLiveSession: isLive }),
+  setShareId: (id) => set({ shareId: id }),
+  setPermission: (permission) => set({ permission }),
+  setIsConnecting: (connecting) => set({ isConnecting: connecting }),
+  setError: (error) => set({ error }),
+  setActiveUsers: (users) => set({ activeUsers: users }),
+  setCursors: (cursors) => set({ cursors }),
+  setChatMessages: (messages) => set({ chatMessages: messages }),
+  addChatMessage: (message) =>
+    set((state) => ({
+      chatMessages: [...state.chatMessages, message],
+    })),
+  clearActiveUsers: () => set({ activeUsers: [] }),
+  clearChatMessages: () => set({ chatMessages: [] }),
+  resetLiveShare: () =>
+    set({
+      isLiveSession: false,
+      shareId: null,
+      permission: "view",
+      isConnecting: false,
+      error: null,
+      activeUsers: [],
+      cursors: {},
+      chatMessages: [],
+    }),
 }));

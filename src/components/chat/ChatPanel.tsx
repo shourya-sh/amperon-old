@@ -4,13 +4,20 @@ import {
   X, 
   MessageSquare,
   Trash2,
-  Loader2
+  Loader2,
+  History,
+  Plus,
+  MoreVertical,
+  RotateCcw,
+  Users
 } from 'lucide-react';
-import { useChatStore, useCircuitStore } from '../../stores';
+import { useChatStore, useCircuitStore, useLiveShareStore } from '../../stores';
 import { circuitComponents } from '../../data/components';
 import { sendMessageToAI } from '../../services/aiService';
-import type { ChatMessage, CanvasEdge } from '../../types';
+import liveShareService from '../../services/liveShareService';
+import type { ChatMessage, CanvasEdge, SharedChatMessage } from '../../types';
 import type { CurrentCircuitState } from '../../services/aiService';
+import ChatHistory from './ChatHistory';
 
 const quickActions = [
   { id: 'led-circuit', label: 'Build LED circuit', prompt: 'Build me a simple LED circuit' },
@@ -20,11 +27,48 @@ const quickActions = [
 ];
 
 const ChatPanel: React.FC = () => {
-  const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages, lastCircuitAction, setLastCircuitAction } = useChatStore();
-  const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView } = useCircuitStore();
+  const { 
+    getCurrentSession,
+    addMessage, 
+    isOpen, 
+    setIsOpen, 
+    isLoading, 
+    setIsLoading, 
+    clearMessages, 
+    lastCircuitAction, 
+    setLastCircuitAction,
+    isHistoryOpen,
+    setIsHistoryOpen,
+    createSession,
+    createCheckpoint,
+    getCheckpoint
+  } = useChatStore();
+  const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView, loadProject } = useCircuitStore();
+  
+  // Live Share state
+  const { 
+    isLiveSession, 
+    chatMessages: sharedMessages, 
+    activeUsers,
+    permission 
+  } = useLiveShareStore();
+  
   const [input, setInput] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Get current session messages (for non-shared mode)
+  const session = getCurrentSession();
+  const localMessages = session?.messages || [];
+  
+  // Use shared messages when in live session, local messages otherwise
+  const isSharedMode = isLiveSession;
+  const displayMessages: (ChatMessage | SharedChatMessage)[] = isSharedMode 
+    ? sharedMessages 
+    : localMessages;
 
   // Build current circuit state from canvas nodes/edges for AI context
   const getCurrentCircuitState = useCallback((): CurrentCircuitState => {
@@ -52,7 +96,7 @@ const ChatPanel: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [displayMessages]);
 
   // Label mapping for clarity
   const getLabelPrefix = (type: string) => {
@@ -631,15 +675,70 @@ const ChatPanel: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const userInput = input.trim();
+
+    // In shared mode, send message via live share service
+    if (isSharedMode) {
+      setInput('');
+      setIsLoading(true);
+      
+      try {
+        // Send user message to shared chat
+        await liveShareService.sendChatMessage(userInput, 'user');
+        
+        // Get current circuit state from canvas for modification context
+        const currentCircuitState = getCurrentCircuitState();
+        
+        // Call real AI service with current circuit context
+        const aiResponse = await sendMessageToAI(userInput, {
+          history: sharedMessages
+            .filter((m): m is SharedChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
+            .map((m) => ({ role: m.role, content: m.content })),
+          lastCircuit: lastCircuitAction,
+          currentCircuitState: currentCircuitState.components.length > 0 ? currentCircuitState : null,
+        });
+
+        // If AI returned components to add, add them to canvas
+        if (aiResponse.components && aiResponse.components.length > 0) {
+          const mode = aiResponse.mode || (aiResponse.type === 'build_circuit' ? 'replace' : 'merge');
+          addComponentsToCanvas(aiResponse.components, aiResponse.connections, mode);
+          if (aiResponse.type === 'build_circuit' || aiResponse.type === 'add_component') {
+            setLastCircuitAction(aiResponse);
+          }
+        }
+
+        // Send AI response to shared chat
+        await liveShareService.sendChatMessage(aiResponse.message, 'assistant');
+      } catch (error) {
+        console.error('Error sending message:', error);
+        await liveShareService.sendChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Regular (non-shared) mode
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: userInput,
       timestamp: new Date(),
     };
 
     addMessage(userMessage);
-    const userInput = input.trim();
+    
+    // Auto-create checkpoint after user message (saves current canvas state)
+    if (nodes.length > 0) {
+      createCheckpoint(
+        `At: "${userInput.slice(0, 40)}${userInput.length > 40 ? '...' : ''}"`,
+        nodes,
+        edges,
+        userMessage.id,
+        true // isAutoSave
+      );
+    }
+    
     setInput('');
     setIsLoading(true);
 
@@ -652,7 +751,7 @@ const ChatPanel: React.FC = () => {
       
       // Call real AI service with current circuit context
       const aiResponse = await sendMessageToAI(userInput, {
-        history: messages
+        history: localMessages
           .filter((m): m is ChatMessage & { role: 'user' | 'assistant' } => m.role === 'user' || m.role === 'assistant')
           .map((m) => ({ role: m.role, content: m.content })),
         lastCircuit: lastCircuitAction,
@@ -726,25 +825,117 @@ const ChatPanel: React.FC = () => {
     );
   }
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
   return (
     <div
-      className={`h-full bg-dark-900/95 border-l-2 border-dark-700 flex flex-col w-80 transition-all duration-150 backdrop-blur-md`}
+      className={`h-full bg-dark-900/95 border-l-2 border-dark-700 flex flex-col w-80 transition-all duration-150 backdrop-blur-md relative`}
     >
+      {/* Chat History Overlay */}
+      {isHistoryOpen && (
+        <ChatHistory onClose={() => setIsHistoryOpen(false)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b-2 border-dark-700 bg-dark-850">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center">
             <MessageSquare size={18} className="text-duo-green" />
           </div>
-          <span className="font-display font-bold text-dark-100">AI Helper</span>
+          <div className="flex flex-col">
+            <span className="font-display font-bold text-dark-100 text-sm leading-tight">
+              {isSharedMode ? 'Shared Chat' : session?.name || 'AI Helper'}
+            </span>
+            {isSharedMode ? (
+              <div className="flex items-center gap-1.5">
+                <Users size={10} className="text-duo-green" />
+                <span className="text-[10px] text-duo-green">
+                  {activeUsers.length + 1} online
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] text-dark-500">
+                {displayMessages.length} messages
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={clearMessages}
-            className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
+          {/* New Chat - only in non-shared mode */}
+          {!isSharedMode && (
+            <button
+              onClick={() => createSession()}
+              className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-duo-green transition-colors"
+              title="New chat"
+            >
+              <Plus size={16} />
+            </button>
+          )}
+          {/* History - only in non-shared mode */}
+          {!isSharedMode && (
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
+              title="Chat history"
+            >
+              <History size={16} />
+            </button>
+          )}
+          {/* More Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
+            >
+              <MoreVertical size={16} />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border-2 border-dark-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                {!isSharedMode ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        clearMessages();
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-dark-700 text-dark-300 hover:text-dark-100 text-sm text-left transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      Clear messages
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (nodes.length > 0) {
+                          createCheckpoint(`Before clear - ${new Date().toLocaleTimeString()}`, nodes, edges);
+                        }
+                        setShowMenu(false);
+                      }}
+                      disabled={nodes.length === 0}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-dark-700 text-dark-300 hover:text-dark-100 text-sm text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <History size={14} />
+                      Save checkpoint
+                    </button>
+                  </>
+                ) : (
+                  <div className="px-3 py-2.5 text-dark-400 text-xs">
+                    Chat history disabled in shared mode
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
@@ -754,36 +945,87 @@ const ChatPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* Checkpoint Manager */}
+      {/* Removed - checkpoints are now inline with messages */}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {displayMessages.length === 0 && (
           <div className="text-center py-10">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center mb-4">
               <MessageSquare size={28} className="text-duo-green" />
             </div>
-            <p className="font-display font-bold text-dark-200 text-lg mb-1">AI Circuit Helper</p>
-            <p className="text-dark-500 text-sm">Ask me to build circuits or explain concepts!</p>
+            <p className="font-display font-bold text-dark-200 text-lg mb-1">
+              {isSharedMode ? 'Shared Circuit Chat' : 'AI Circuit Helper'}
+            </p>
+            <p className="text-dark-500 text-sm">
+              {isSharedMode 
+                ? 'Chat with collaborators in real-time!' 
+                : 'Ask me to build circuits or explain concepts!'}
+            </p>
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {displayMessages.map((message) => {
+          // Check if it's a shared message (has userName) or local message (has checkpointId)
+          const isSharedMessage = 'userName' in message;
+          const checkpoint = !isSharedMessage && message.role === 'user' && (message as ChatMessage).checkpointId 
+            ? getCheckpoint((message as ChatMessage).checkpointId!)
+            : null;
+          
+          return (
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                message.role === 'user'
-                  ? 'bg-duo-green text-white font-medium'
-                  : 'bg-dark-850 text-dark-200 border-2 border-dark-700'
-              }`}
+              key={message.id}
+              onMouseEnter={() => !isSharedMessage && message.role === 'user' && setHoveredMessageId(message.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
+              className="group relative"
             >
-              <div className="whitespace-pre-wrap leading-relaxed">
-                {message.content}
+              {/* Restore button - shown on hover for user messages (non-shared mode only) */}
+              {!isSharedMessage && message.role === 'user' && hoveredMessageId === message.id && checkpoint && (
+                <button
+                  onClick={() => {
+                    loadProject(
+                      checkpoint.nodes as any[],
+                      checkpoint.edges as any[]
+                    );
+                    triggerFitView();
+                  }}
+                  className="mb-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 hover:border-amber-500 rounded-lg text-amber-400 text-xs font-medium transition-all"
+                >
+                  <RotateCcw size={12} />
+                  Restore to this point
+                </button>
+              )}
+              
+              <div
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                    message.role === 'user'
+                      ? 'bg-duo-green text-white font-medium'
+                      : 'bg-dark-850 text-dark-200 border-2 border-dark-700'
+                  }`}
+                  style={
+                    isSharedMessage && message.role === 'user' 
+                      ? { backgroundColor: (message as SharedChatMessage).userColor }
+                      : undefined
+                  }
+                >
+                  {/* Show user name for shared messages (user messages only) */}
+                  {isSharedMessage && message.role === 'user' && (
+                    <div className="text-xs text-white/80 font-semibold mb-1">
+                      {(message as SharedChatMessage).userName}
+                    </div>
+                  )}
+                  <div className="whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && (
           <div className="flex justify-start">
@@ -799,8 +1041,8 @@ const ChatPanel: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Actions */}
-      {messages.length === 0 && (
+      {/* Quick Actions - only show in non-shared mode when empty */}
+      {!isSharedMode && displayMessages.length === 0 && (
         <div className="px-4 pb-3">
           <p className="text-sm font-display font-semibold text-dark-400 mb-2">Try asking:</p>
           <div className="flex flex-wrap gap-2">

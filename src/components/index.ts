@@ -3,6 +3,8 @@ export { default as CircuitNode } from "./canvas/CircuitNode";
 export { default as BreadboardView } from "./canvas/BreadboardView";
 export { default as ComponentLibrary } from "./sidebar/ComponentLibrary";
 export { default as ChatPanel } from "./chat/ChatPanel";
+export { default as ChatHistory } from "./chat/ChatHistory";
+export { default as CheckpointManager } from "./chat/CheckpointManager";
 export { default as ShopPanel } from "./shop/ShopPanel";
 export { default as Navbar } from "./layout/Navbar";
 export { default as Layout } from "./layout/Layout";

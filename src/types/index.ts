@@ -188,6 +188,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   actions?: ChatAction[];
+  checkpointId?: string; // Reference to checkpoint created after this message
 }
 
 export interface ChatAction {
@@ -199,6 +200,30 @@ export interface ChatAction {
     | "simulate";
   payload: Record<string, unknown>;
   label: string;
+}
+
+// Chat Checkpoint - saves canvas state at a point in conversation
+export interface ChatCheckpoint {
+  id: string;
+  sessionId: string;
+  messageId: string; // The message this checkpoint was created after
+  name: string;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  timestamp: Date;
+  isAutoSave?: boolean;
+}
+
+// Chat Session - represents a complete conversation
+export interface ChatSession {
+  id: string;
+  name: string;
+  messages: ChatMessage[];
+  checkpoints: ChatCheckpoint[];
+  createdAt: Date;
+  updatedAt: Date;
+  isArchived?: boolean;
+  projectId?: string; // Optional link to a project
 }
 
 // Tutorial types
@@ -388,4 +413,67 @@ export interface ShopState {
   isLoadingPrices: boolean;
   totalPrice: number;
   currency: string;
+}
+
+// Live Share / Real-time Collaboration types
+export type SharePermission = "view" | "edit";
+
+export interface LiveCursor {
+  oduserId: string;
+  userName: string;
+  userColor: string;
+  x: number;
+  y: number;
+  lastUpdate: number;
+}
+
+export interface LiveUser {
+  id: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  color: string;
+  cursor?: { x: number; y: number };
+  isOnline: boolean;
+  lastSeen: number;
+  permission: SharePermission;
+}
+
+export interface SharedChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  userColor: string;
+  content: string;
+  timestamp: number;
+  role: "user" | "assistant" | "system";
+}
+
+export interface SharedProject {
+  id: string;
+  shareId: string; // Short unique ID for sharing links
+  name: string;
+  description: string;
+  ownerId: string;
+  ownerName: string;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  createdAt: number;
+  updatedAt: number;
+  isPublic: boolean;
+  allowEditing: boolean;
+  activeUsers: Record<string, LiveUser>;
+  cursors: Record<string, LiveCursor>;
+  chatMessages: SharedChatMessage[];
+}
+
+export interface LiveShareState {
+  isLiveSession: boolean;
+  shareId: string | null;
+  projectId: string | null;
+  permission: SharePermission;
+  activeUsers: LiveUser[];
+  chatMessages: SharedChatMessage[];
+  isConnecting: boolean;
+  error: string | null;
 }
