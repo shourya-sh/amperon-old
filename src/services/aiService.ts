@@ -45,33 +45,103 @@ const SYSTEM_PROMPT = `You are an expert circuit design assistant for Amperon, a
 You help users build and understand electronic circuits. When a user asks you to build something, you MUST respond with actual component actions.
 
 AVAILABLE COMPONENTS (use exact type names):
+
+POWER SOURCES:
 - battery: Power source (9V DC)
+- dc-power-supply: Regulated DC power supply
+- ac-dc-converter: AC to DC converter
+- buck-converter: Step-down voltage converter
+- boost-converter: Step-up voltage converter
+- buck-boost-converter: Step up/down voltage converter
+- ldo: Low-dropout linear regulator
+- battery-charger: Battery charging circuit
+- battery-protection: Battery protection IC
+- power-path-controller: Power path controller
+
+PASSIVE COMPONENTS:
 - resistor: Limits current flow (1000Ω default)
 - capacitor: Stores electrical energy (100µF)
 - inductor: Stores energy in magnetic field (10mH)
 - potentiometer: Variable resistor (adjustable, 10kΩ)
 - fuse: Safety device, breaks on overcurrent
-- transformer: AC voltage converter
-- opamp: Operational amplifier (LM358) for analog signal processing
+- polyfuse: Resettable fuse
+
+ANALOG/MIXED-SIGNAL:
+- opamp: Operational amplifier (LM358) for signal amplification
+- instrumentation-amplifier: Precision instrumentation amplifier
+- comparator: Voltage comparator
+- analog-mux: Analog multiplexer/demultiplexer
+- rc-lpf: RC low-pass filter
+- lc-filter: LC filter network
+
+DIGITAL/LOGIC:
 - and-gate: Logic AND gate (2 inputs, 1 output)
 - or-gate: Logic OR gate (2 inputs, 1 output)
 - not-gate: Logic NOT gate/inverter (1 input, 1 output)
 - nand-gate: Logic NAND gate (2 inputs, 1 output)
 - nor-gate: Logic NOR gate (2 inputs, 1 output)
 - xor-gate: Logic XOR gate (2 inputs, 1 output)
-- led: Light Emitting Diode (needs resistor protection)
-- diode: One-way current flow (1N4007)
-- transistor: Electronic switch/amplifier (NPN 2N2222)
-- relay: Electromagnetic switch for high current loads
+- microcontroller: Embedded microcontroller
+- microprocessor: Central processor
+- fpga: Field programmable gate array
+- clock-oscillator: Timing clock source
+- reset-supervisor: Reset circuit
+- gpio-expander: GPIO port expander
+
+SWITCHES & CONTROL:
 - switch: Toggle switch (SPST)
-- pushbutton: Momentary switch
+- pushbutton: Momentary pushbutton switch
+- relay: Electromagnetic relay for high current loads
+- solid-state-relay: Electronic relay (no moving parts)
+- e-stop: Emergency stop button
+
+DRIVERS & ACTUATION:
+- h-bridge: H-Bridge motor driver (bidirectional DC motor control)
+- half-bridge: Half-bridge driver for power stages
+- low-side-switch: Low-side MOSFET switch
+- high-side-switch: High-side switch
+- solenoid-driver: Solenoid driver with flyback protection
+- stepper-driver: Stepper motor driver
+- transformer: AC voltage converter/isolation
+
+OUTPUT & LOADS:
+- led: Light Emitting Diode (needs resistor protection)
 - lightbulb: Incandescent light (5W)
 - buzzer: Produces sound (2.3kHz)
 - motor: DC motor (6V)
+- stepper-motor: Stepper motor (precise positioning)
+- servo-motor: Servo motor with feedback
 - speaker: Audio output (8Ω, 2W)
-- 7segment: 7-segment numeric display
-- voltmeter: Measures voltage
+- resistive-load: Generic resistive load
+- inductive-load: Inductive load (motor/solenoid)
+
+SENSORS & MEASUREMENT:
+- analog-sensor: Generic analog sensor
+- digital-sensor: Digital input sensor
+- temperature-sensor: Temperature sensor
+- pressure-sensor: Pressure sensor
+- current-sensor: Current measurement sensor
+- voltage-sensor: Voltage measurement sensor
 - ammeter: Measures current
+- voltmeter: Measures voltage
+- 7segment: 7-segment numeric display
+
+COMMUNICATION & INTERFACES:
+- uart: Serial UART interface
+- rs485: RS-485 interface
+- can: CAN bus interface
+- spi: SPI interface
+- i2c: I2C interface
+- ethernet: Ethernet interface
+
+PROTECTION & MISCELLANEOUS:
+- diode: One-way current flow (1N4007)
+- flyback-diode: Flyback diode for inductive loads
+- tvs-diode: Transient voltage suppression diode
+- reverse-polarity: Reverse polarity protection
+- connector: Connector/socket
+- terminal-block: Terminal block connector
+- led-indicator: LED indicator light
 - ground: Reference point (0V)
 - wire: Connects components
 
@@ -98,6 +168,44 @@ IMPORTANT - CONNECTION ARRAY:
 - Include ALL connections needed to form a complete, working circuit
 - For series circuits, connect components in order: 0→1→2→3...→back to 0
 - For parallel circuits, connect multiple components to same nodes
+
+CRITICAL - PROPER CIRCUIT TOPOLOGY:
+Follow these electrical engineering principles for realistic circuits:
+
+1. POWER DISTRIBUTION:
+   - Power source (battery) positive connects to power rails or first component in chain
+   - All loads must have a return path to ground/battery negative
+   - Use ground component as common return point
+
+2. MOTOR DRIVERS (H-Bridge):
+   - H-Bridge has: power input, ground, control inputs, and motor outputs
+   - Connect power source → H-bridge power input
+   - Each H-bridge can drive ONE motor (its output pair goes to one motor)
+   - For 4 motors: use 2 H-bridges (each controls 2 motor terminals, so 2 motors per h-bridge is typical, or 4 h-bridges for individual control)
+   - Motor connects between H-bridge outputs (NOT in series with other motors)
+   - H-bridge ground connects to circuit ground
+   
+3. VOLTAGE REGULATION:
+   - When battery voltage > component requirements, add regulator BEFORE loads
+   - Buck converter: steps DOWN voltage (12V→5V)
+   - Boost converter: steps UP voltage (5V→12V)
+   - Chain: Battery → Regulator → Loads
+
+4. SENSORS:
+   - Sensors need power (VCC) and ground (GND)
+   - Signal output goes to measurement/processing component
+   - Connect sensor power pins to power rail, ground to common ground
+
+5. PARALLEL vs SERIES:
+   - LEDs in series: Battery→R→LED1→LED2→GND (same current through all)
+   - LEDs in parallel: Battery→R→LED1→GND AND Battery→R→LED2→GND (separate current limiting)
+   - Motors are usually in PARALLEL (each has own driver/path to power)
+
+6. COMMON MISTAKES TO AVOID:
+   - DON'T chain motors in series (motor1→motor2→motor3) - they need parallel power
+   - DON'T connect motor driver output to another motor driver
+   - DON'T forget return path to ground/battery negative
+   - DON'T put regulator after the loads it should power
 
 RULES:
 1. For BUILD requests (build, create, make a circuit): Use "build_circuit" type with ALL components AND ALL connections
@@ -153,9 +261,40 @@ Response: {
 User: "Create a motor control circuit with a switch"
 Response: {
   "type": "build_circuit",
-  "components": [{"type": "battery"}, {"type": "switch"}, {"type": "motor"}, {"type": "diode"}],
-  "connections": [{"from": 0, "to": 1}, {"from": 1, "to": 2}, {"from": 2, "to": 3}, {"from": 3, "to": 0}],
-  "message": "Motor control circuit in series: Battery → Switch → Motor → Diode → back to Battery. The diode protects against back-EMF."
+  "components": [{"type": "battery"}, {"type": "switch"}, {"type": "motor"}, {"type": "diode"}, {"type": "ground"}],
+  "connections": [{"from": 0, "to": 1}, {"from": 1, "to": 2}, {"from": 2, "to": 3}, {"from": 3, "to": 4}, {"from": 4, "to": 0}],
+  "message": "Motor control circuit: Battery → Switch → Motor → Flyback Diode → Ground. The diode protects against back-EMF."
+}
+
+User: "Build a circuit with 4 DC motors and an H-bridge motor driver"
+Response: {
+  "type": "build_circuit",
+  "components": [{"type": "battery"}, {"type": "h-bridge"}, {"type": "h-bridge"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "ground"}],
+  "connections": [
+    {"from": 0, "to": 1}, {"from": 0, "to": 2},
+    {"from": 1, "to": 3}, {"from": 1, "to": 4},
+    {"from": 2, "to": 5}, {"from": 2, "to": 6},
+    {"from": 3, "to": 7}, {"from": 4, "to": 7}, {"from": 5, "to": 7}, {"from": 6, "to": 7},
+    {"from": 1, "to": 7}, {"from": 2, "to": 7},
+    {"from": 7, "to": 0}
+  ],
+  "message": "Circuit with 4 DC motors: Battery powers 2 H-bridge drivers. Each H-bridge controls 2 motors. All motors and drivers connect to common ground. H-bridges enable bidirectional motor control."
+}
+
+User: "Create a circuit with a battery, buck converter for 5V, pressure sensor, and 4 motors with 2 H-bridges"
+Response: {
+  "type": "build_circuit",
+  "components": [{"type": "battery"}, {"type": "buck-converter"}, {"type": "h-bridge"}, {"type": "h-bridge"}, {"type": "pressure-sensor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "ground"}],
+  "connections": [
+    {"from": 0, "to": 1},
+    {"from": 1, "to": 2}, {"from": 1, "to": 3}, {"from": 1, "to": 4},
+    {"from": 2, "to": 5}, {"from": 2, "to": 6},
+    {"from": 3, "to": 7}, {"from": 3, "to": 8},
+    {"from": 4, "to": 9}, {"from": 5, "to": 9}, {"from": 6, "to": 9}, {"from": 7, "to": 9}, {"from": 8, "to": 9},
+    {"from": 2, "to": 9}, {"from": 3, "to": 9},
+    {"from": 9, "to": 0}
+  ],
+  "message": "12V battery → buck converter (steps down to 5V) → powers 2 H-bridges, pressure sensor, and 4 motors (2 per H-bridge). All components share common ground."
 }
 
 HANDLING MODIFICATIONS:
@@ -400,24 +539,170 @@ If user asks to add more, change quantities, or modify the circuit, return a com
   }
 }
 
-// Helper: Generate a simple series connection across given components
+// Component categorization for intelligent connection building
+const POWER_SOURCES = new Set(['battery', 'dc-power-supply', 'ac-dc-converter']);
+const REGULATORS = new Set(['buck-converter', 'boost-converter', 'buck-boost-converter', 'ldo']);
+const MOTOR_DRIVERS = new Set(['h-bridge', 'half-bridge', 'stepper-driver', 'solenoid-driver']);
+const MOTORS = new Set(['motor', 'stepper-motor', 'servo-motor']);
+const PASSIVE_LOADS = new Set(['led', 'lightbulb', 'buzzer', 'speaker', 'resistive-load']);
+const SENSORS = new Set(['analog-sensor', 'digital-sensor', 'temperature-sensor', 'pressure-sensor', 'current-sensor', 'voltage-sensor']);
+const PROTECTION = new Set(['diode', 'flyback-diode', 'fuse', 'polyfuse', 'tvs-diode', 'reverse-polarity', 'battery-protection']);
+const CONTROL = new Set(['switch', 'pushbutton', 'relay', 'solid-state-relay', 'e-stop']);
+
+// Helper: Generate intelligent connections based on component types and proper circuit topology
 function generateSeriesConnections(
   components: Array<{ type: string; properties?: Record<string, unknown> }>,
 ): Array<{ from: number; to: number; label?: string }> {
   if (!components || components.length === 0) return [];
+  
   const conns: Array<{ from: number; to: number; label?: string }> = [];
-
-  // Build series: 0->1->2->... and close loop back to 0 if more than 2 comps
-  for (let i = 0; i < components.length - 1; i++) {
-    conns.push({ from: i, to: i + 1 });
+  
+  // Find key component indices
+  const powerIdx = components.findIndex((c) => POWER_SOURCES.has(c.type));
+  const groundIdx = components.findIndex((c) => c.type === 'ground');
+  const regulatorIdxs = components.map((c, i) => REGULATORS.has(c.type) ? i : -1).filter(i => i >= 0);
+  const motorDriverIdxs = components.map((c, i) => MOTOR_DRIVERS.has(c.type) ? i : -1).filter(i => i >= 0);
+  const motorIdxs = components.map((c, i) => MOTORS.has(c.type) ? i : -1).filter(i => i >= 0);
+  const loadIdxs = components.map((c, i) => PASSIVE_LOADS.has(c.type) ? i : -1).filter(i => i >= 0);
+  const sensorIdxs = components.map((c, i) => SENSORS.has(c.type) ? i : -1).filter(i => i >= 0);
+  const controlIdxs = components.map((c, i) => CONTROL.has(c.type) ? i : -1).filter(i => i >= 0);
+  const protectionIdxs = components.map((c, i) => PROTECTION.has(c.type) ? i : -1).filter(i => i >= 0);
+  
+  // Get resistor indices (current limiting for LEDs, etc)
+  const resistorIdxs = components.map((c, i) => c.type === 'resistor' ? i : -1).filter(i => i >= 0);
+  
+  // Track which components have been connected
+  const connected = new Set<number>();
+  
+  // Determine power distribution point (after regulator if exists)
+  let powerDistributionPoint = powerIdx >= 0 ? powerIdx : 0;
+  
+  // STEP 1: Power source to regulator (if exists)
+  if (powerIdx >= 0 && regulatorIdxs.length > 0) {
+    const regIdx = regulatorIdxs[0];
+    conns.push({ from: powerIdx, to: regIdx });
+    connected.add(powerIdx);
+    connected.add(regIdx);
+    powerDistributionPoint = regIdx; // Power now comes from regulator output
   }
-  if (components.length > 1) {
-    // Prefer closing the loop back to battery if present; else close to 0
-    const batteryIndex = components.findIndex((c) => c.type === "battery");
-    const closeTo = batteryIndex >= 0 ? batteryIndex : 0;
-    conns.push({ from: components.length - 1, to: closeTo });
+  
+  // STEP 2: Connect motor drivers to power distribution point
+  // Each motor driver gets power from the distribution point
+  motorDriverIdxs.forEach((driverIdx) => {
+    if (!connected.has(driverIdx) || driverIdx !== powerDistributionPoint) {
+      conns.push({ from: powerDistributionPoint, to: driverIdx });
+      connected.add(driverIdx);
+    }
+  });
+  
+  // STEP 3: Connect motors to motor drivers (parallel, one motor per driver or shared)
+  if (motorIdxs.length > 0 && motorDriverIdxs.length > 0) {
+    // Distribute motors among drivers
+    motorIdxs.forEach((motorIdx, i) => {
+      const driverIdx = motorDriverIdxs[i % motorDriverIdxs.length];
+      conns.push({ from: driverIdx, to: motorIdx });
+      connected.add(motorIdx);
+      // Motors need return path to ground
+      if (groundIdx >= 0) {
+        conns.push({ from: motorIdx, to: groundIdx, label: 'GND' });
+      }
+    });
+  } else if (motorIdxs.length > 0) {
+    // No motor drivers, connect motors directly (with control switch if available)
+    motorIdxs.forEach((motorIdx) => {
+      let sourcePoint = powerDistributionPoint;
+      
+      // If there's a control switch, put it in the path
+      if (controlIdxs.length > 0 && !connected.has(controlIdxs[0])) {
+        const ctrlIdx = controlIdxs[0];
+        conns.push({ from: powerDistributionPoint, to: ctrlIdx });
+        connected.add(ctrlIdx);
+        sourcePoint = ctrlIdx;
+      }
+      
+      conns.push({ from: sourcePoint, to: motorIdx });
+      connected.add(motorIdx);
+      
+      // Add flyback protection if available
+      const flybackIdx = protectionIdxs.find(idx => components[idx].type === 'flyback-diode' || components[idx].type === 'diode');
+      if (flybackIdx !== undefined && !connected.has(flybackIdx)) {
+        conns.push({ from: motorIdx, to: flybackIdx });
+        connected.add(flybackIdx);
+        if (groundIdx >= 0) {
+          conns.push({ from: flybackIdx, to: groundIdx, label: 'GND' });
+        }
+      } else if (groundIdx >= 0) {
+        conns.push({ from: motorIdx, to: groundIdx, label: 'GND' });
+      }
+    });
   }
-
+  
+  // STEP 4: Connect passive loads (LEDs, buzzers, etc.) in series chains or parallel
+  if (loadIdxs.length > 0) {
+    let resistorUsed = 0;
+    loadIdxs.forEach((loadIdx) => {
+      let sourcePoint = powerDistributionPoint;
+      
+      // Use a resistor for current limiting (especially for LEDs)
+      if (components[loadIdx].type === 'led' && resistorUsed < resistorIdxs.length) {
+        const resIdx = resistorIdxs[resistorUsed++];
+        if (!connected.has(resIdx)) {
+          conns.push({ from: powerDistributionPoint, to: resIdx });
+          connected.add(resIdx);
+          sourcePoint = resIdx;
+        }
+      }
+      
+      conns.push({ from: sourcePoint, to: loadIdx });
+      connected.add(loadIdx);
+      
+      // Return to ground
+      if (groundIdx >= 0) {
+        conns.push({ from: loadIdx, to: groundIdx, label: 'GND' });
+      }
+    });
+  }
+  
+  // STEP 5: Connect sensors (they need power and ground)
+  sensorIdxs.forEach((sensorIdx) => {
+    conns.push({ from: powerDistributionPoint, to: sensorIdx });
+    connected.add(sensorIdx);
+    if (groundIdx >= 0) {
+      conns.push({ from: sensorIdx, to: groundIdx, label: 'GND' });
+    }
+  });
+  
+  // STEP 6: Connect any remaining motor drivers to ground
+  motorDriverIdxs.forEach((driverIdx) => {
+    if (groundIdx >= 0) {
+      conns.push({ from: driverIdx, to: groundIdx, label: 'GND' });
+    }
+  });
+  
+  // STEP 7: Connect any remaining unconnected components
+  components.forEach((comp, idx) => {
+    if (!connected.has(idx) && idx !== powerIdx && idx !== groundIdx) {
+      // Connect to power distribution point
+      conns.push({ from: powerDistributionPoint, to: idx });
+      connected.add(idx);
+      // And to ground if available
+      if (groundIdx >= 0 && !POWER_SOURCES.has(comp.type)) {
+        conns.push({ from: idx, to: groundIdx, label: 'GND' });
+      }
+    }
+  });
+  
+  // STEP 8: Ensure ground connects back to power source (close the circuit)
+  if (groundIdx >= 0 && powerIdx >= 0 && groundIdx !== powerIdx) {
+    conns.push({ from: groundIdx, to: powerIdx });
+  } else if (powerIdx >= 0) {
+    // No ground, find last connected component and close loop
+    const lastConnected = Array.from(connected).pop();
+    if (lastConnected !== undefined && lastConnected !== powerIdx) {
+      conns.push({ from: lastConnected, to: powerIdx });
+    }
+  }
+  
   return conns;
 }
 
@@ -437,13 +722,60 @@ function deriveModifiedCircuitFromText(
   if (!desiredCount || desiredCount < 0) return null;
 
   const synonyms: Record<string, string> = {
+    // Motors and drivers
     "dc motor": "motor",
     motors: "motor",
     motor: "motor",
+    "h-bridge": "h-bridge",
+    "hbridge": "h-bridge",
+    "h bridge": "h-bridge",
+    "motor driver": "h-bridge",
+    "motor control": "h-bridge",
+    "stepper": "stepper-motor",
+    "stepper motor": "stepper-motor",
+    "servo": "servo-motor",
+    "servo motor": "servo-motor",
+    "stepper driver": "stepper-driver",
+    "solenoid driver": "solenoid-driver",
+    "half-bridge": "half-bridge",
+    "half bridge": "half-bridge",
+    
+    // Lights and outputs
     leds: "led",
     led: "led",
     light: "led",
     lights: "led",
+    "light bulb": "lightbulb",
+    
+    // Power supplies
+    "power supply": "battery",
+    "dc power": "dc-power-supply",
+    "ac converter": "ac-dc-converter",
+    converter: "buck-converter",
+    "buck": "buck-converter",
+    "boost": "boost-converter",
+    regulator: "ldo",
+    "charger": "battery-charger",
+    
+    // Protection
+    protection: "battery-protection",
+    diode: "diode",
+    "flyback diode": "flyback-diode",
+    
+    // Logic and control
+    "and gate": "and-gate",
+    "or gate": "or-gate",
+    "not gate": "not-gate",
+    "nand gate": "nand-gate",
+    "nor gate": "nor-gate",
+    "xor gate": "xor-gate",
+    
+    // Sensors
+    sensor: "analog-sensor",
+    temperature: "temperature-sensor",
+    pressure: "pressure-sensor",
+    current: "current-sensor",
+    voltage: "voltage-sensor",
   };
 
   const findTargetType = () => {
@@ -712,6 +1044,80 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
       comps,
       conns,
       "Built a buzzer circuit with current limiting resistor.",
+    );
+  }
+
+  // H-Bridge motor driver for DC motor control
+  if (
+    text.includes("h-bridge") ||
+    text.includes("hbridge") ||
+    (text.includes("motor") && (text.includes("driver") || text.includes("control") || text.includes("direction")))
+  ) {
+    const comps = [
+      { type: "battery" },
+      { type: "switch" },
+      { type: "switch" },
+      { type: "h-bridge" },
+      { type: "motor" },
+      { type: "ground" },
+    ];
+    const conns = [
+      { from: 0, to: 1 }, // Battery to control switch 1
+      { from: 0, to: 2 }, // Battery to control switch 2
+      { from: 1, to: 3 }, // Control switch 1 to H-bridge input
+      { from: 2, to: 3 }, // Control switch 2 to H-bridge input
+      { from: 3, to: 4 }, // H-bridge to motor
+      { from: 4, to: 5 }, // Motor to ground
+      { from: 5, to: 0 }, // close loop
+    ];
+    return create(
+      comps,
+      conns,
+      "Built an H-Bridge motor driver circuit: Battery → Control switches → H-Bridge → DC Motor. The H-Bridge allows bidirectional motor control (forward, reverse, brake).",
+    );
+  }
+
+  // Stepper motor driver
+  if (text.includes("stepper")) {
+    const comps = [
+      { type: "battery" },
+      { type: "microcontroller" },
+      { type: "stepper-driver" },
+      { type: "stepper-motor" },
+      { type: "ground" },
+    ];
+    const conns = [
+      { from: 0, to: 1 }, // Battery to microcontroller
+      { from: 1, to: 2 }, // Microcontroller to stepper driver
+      { from: 2, to: 3 }, // Stepper driver to stepper motor
+      { from: 3, to: 4 }, // Motor to ground
+      { from: 4, to: 0 }, // close loop
+    ];
+    return create(
+      comps,
+      conns,
+      "Built a stepper motor control circuit: Battery → Microcontroller → Stepper Driver → Stepper Motor. The controller sends step/direction signals to the driver.",
+    );
+  }
+
+  // Servo motor
+  if (text.includes("servo")) {
+    const comps = [
+      { type: "battery" },
+      { type: "microcontroller" },
+      { type: "servo-motor" },
+      { type: "ground" },
+    ];
+    const conns = [
+      { from: 0, to: 1 }, // Battery to microcontroller
+      { from: 1, to: 2 }, // Microcontroller PWM to servo
+      { from: 2, to: 3 }, // Servo to ground
+      { from: 3, to: 0 }, // close loop
+    ];
+    return create(
+      comps,
+      conns,
+      "Built a servo motor control circuit: Battery → Microcontroller (PWM signal) → Servo Motor. The servo positions based on the PWM duty cycle.",
     );
   }
 

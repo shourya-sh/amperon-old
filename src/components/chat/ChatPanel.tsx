@@ -78,14 +78,15 @@ const ChatPanel: React.FC = () => {
     }
   };
 
-  // Layout components in a proper circuit loop following connection topology
+  // Layout components based on circuit topology - handles parallel branches
   const computeLayout = (
     components: Array<{ type: string }>,
     connections: Array<{ from: number; to: number }>
   ) => {
     const baseX = 200;
     const baseY = 200;
-    const spacing = 320;
+    const hSpacing = 200;  // Horizontal spacing between components
+    const vSpacing = 180;  // Vertical spacing between rows
     const snap = (value: number) => Math.round(value / 20) * 20;
 
     const nodeCount = components.length;
@@ -93,69 +94,146 @@ const ChatPanel: React.FC = () => {
     
     if (nodeCount === 0) return positions;
 
-    // Find battery as starting point
-    const batteryIdx = components.findIndex((c) => c.type === 'battery');
+    // Component type classifications for layout
+    const POWER_SOURCES = new Set(['battery', 'dc-power-supply', 'ac-dc-converter']);
+    const REGULATORS = new Set(['buck-converter', 'boost-converter', 'buck-boost-converter', 'ldo']);
+    const MOTOR_DRIVERS = new Set(['h-bridge', 'half-bridge', 'stepper-driver', 'solenoid-driver']);
+    const MOTORS = new Set(['motor', 'stepper-motor', 'servo-motor']);
+    const SENSORS = new Set(['analog-sensor', 'digital-sensor', 'temperature-sensor', 'pressure-sensor', 'current-sensor', 'voltage-sensor']);
 
-    // Build adjacency list from connections to understand circuit flow
-    const adjacency = new Map<number, number[]>();
+    // Build adjacency list and reverse adjacency (to find what connects TO each node)
+    const outgoing = new Map<number, number[]>();
+    const incoming = new Map<number, number[]>();
     connections.forEach(({ from, to }) => {
-      if (!adjacency.has(from)) adjacency.set(from, []);
-      adjacency.get(from)!.push(to);
+      if (!outgoing.has(from)) outgoing.set(from, []);
+      outgoing.get(from)!.push(to);
+      if (!incoming.has(to)) incoming.set(to, []);
+      incoming.get(to)!.push(from);
     });
 
-    // Trace the circuit path starting from battery
-    const circuitPath: number[] = [];
-    const visited = new Set<number>();
+    // Find key component indices
+    const batteryIdx = components.findIndex((c) => POWER_SOURCES.has(c.type));
+    const groundIdx = components.findIndex((c) => c.type === 'ground');
+    const regulatorIdxs = components.map((c, i) => REGULATORS.has(c.type) ? i : -1).filter(i => i >= 0);
+    const motorDriverIdxs = components.map((c, i) => MOTOR_DRIVERS.has(c.type) ? i : -1).filter(i => i >= 0);
+    const motorIdxs = components.map((c, i) => MOTORS.has(c.type) ? i : -1).filter(i => i >= 0);
+    const sensorIdxs = components.map((c, i) => SENSORS.has(c.type) ? i : -1).filter(i => i >= 0);
+
+    // Organize into rows based on circuit hierarchy
+    // Row 0: Power source
+    // Row 1: Regulators (if any)
+    // Row 2: Power distribution (motor drivers, main circuit path)
+    // Row 3: Loads (motors, LEDs, sensors)
+    // Row 4: Ground
     
-    let current = batteryIdx >= 0 ? batteryIdx : 0;
-    while (current !== undefined && !visited.has(current)) {
-      circuitPath.push(current);
-      visited.add(current);
-      
-      const neighbors = adjacency.get(current) || [];
-      const nextUnvisited = neighbors.find(n => !visited.has(n));
-      current = nextUnvisited !== undefined ? nextUnvisited : -1;
-      if (current === -1) break;
+    const rows: number[][] = [[], [], [], [], []];
+    const placed = new Set<number>();
+
+    // Row 0: Power source
+    if (batteryIdx >= 0) {
+      rows[0].push(batteryIdx);
+      placed.add(batteryIdx);
     }
 
-    // Add any remaining components not in the main path
-    for (let i = 0; i < nodeCount; i++) {
-      if (!visited.has(i)) {
-        circuitPath.push(i);
+    // Row 1: Regulators
+    regulatorIdxs.forEach(idx => {
+      if (!placed.has(idx)) {
+        rows[1].push(idx);
+        placed.add(idx);
       }
+    });
+
+    // Row 2: Motor drivers and intermediate components
+    motorDriverIdxs.forEach(idx => {
+      if (!placed.has(idx)) {
+        rows[2].push(idx);
+        placed.add(idx);
+      }
+    });
+
+    // Row 3: Motors and sensors (loads)
+    motorIdxs.forEach(idx => {
+      if (!placed.has(idx)) {
+        rows[3].push(idx);
+        placed.add(idx);
+      }
+    });
+    sensorIdxs.forEach(idx => {
+      if (!placed.has(idx)) {
+        rows[3].push(idx);
+        placed.add(idx);
+      }
+    });
+
+    // Row 4: Ground
+    if (groundIdx >= 0 && !placed.has(groundIdx)) {
+      rows[4].push(groundIdx);
+      placed.add(groundIdx);
     }
 
-    // Layout components in a rectangular loop - ALWAYS use rectangle even for small circuits
-    const pathLength = circuitPath.length;
-    
-    if (pathLength === 1) {
-      positions[circuitPath[0]] = { x: snap(baseX), y: snap(baseY) };
-    } else if (pathLength === 2) {
-      // 2 components: horizontal line
-      positions[circuitPath[0]] = { x: snap(baseX), y: snap(baseY) };
-      positions[circuitPath[1]] = { x: snap(baseX + spacing), y: snap(baseY) };
-    } else {
-      // 3+ components: rectangular layout
-      // Calculate how many on each side to make it as square as possible
-      const cols = Math.ceil(pathLength / 2);
+    // Place remaining components based on connections
+    components.forEach((comp, idx) => {
+      if (placed.has(idx)) return;
       
-      circuitPath.forEach((idx, i) => {
-        let x: number, y: number;
-        
-        if (i < cols) {
-          // Top row: left to right
-          x = baseX + i * spacing;
-          y = baseY;
-        } else {
-          // Bottom row: right to left (creates the loop)
-          const bottomIdx = i - cols;
-          x = baseX + (cols - 1 - bottomIdx) * spacing;
-          y = baseY + spacing;
-        }
-        
-        positions[idx] = { x: snap(x), y: snap(y) };
-      });
-    }
+      // Determine best row based on component type
+      const type = comp.type;
+      if (['led', 'lightbulb', 'buzzer', 'speaker', 'resistive-load', 'inductive-load'].includes(type)) {
+        rows[3].push(idx);
+      } else if (['resistor', 'capacitor', 'inductor', 'switch', 'pushbutton', 'relay'].includes(type)) {
+        // Put control/passive components in row 2
+        rows[2].push(idx);
+      } else {
+        // Default to row 2
+        rows[2].push(idx);
+      }
+      placed.add(idx);
+    });
+
+    // Calculate positions for each row
+    let currentY = baseY;
+    rows.forEach((row, rowIdx) => {
+      if (row.length === 0) return;
+      
+      // Calculate total width for centering
+      const rowWidth = (row.length - 1) * hSpacing;
+      const startX = baseX - rowWidth / 2 + (rowIdx === 0 || rowIdx === 4 ? hSpacing * (row.length > 1 ? 0 : (motorDriverIdxs.length > 0 ? (motorDriverIdxs.length - 1) / 2 : 0)) : 0);
+      
+      // If this is the motor/loads row, try to align motors under their drivers
+      if (rowIdx === 3 && motorDriverIdxs.length > 0 && motorIdxs.length > 0) {
+        row.forEach((idx, i) => {
+          if (MOTORS.has(components[idx].type)) {
+            // Try to position motor under its driver
+            const driverIdx = motorDriverIdxs[i % motorDriverIdxs.length];
+            const driverPos = positions[driverIdx];
+            if (driverPos) {
+              positions[idx] = { x: snap(driverPos.x + (i >= motorDriverIdxs.length ? hSpacing / 2 : 0)), y: snap(currentY) };
+            } else {
+              positions[idx] = { x: snap(startX + i * hSpacing), y: snap(currentY) };
+            }
+          } else {
+            // Other loads: position normally
+            const offsetX = motorIdxs.length * hSpacing;
+            positions[idx] = { x: snap(startX + offsetX + (i - motorIdxs.length) * hSpacing), y: snap(currentY) };
+          }
+        });
+      } else {
+        // Normal row positioning - center the row
+        const centerOffset = (rows[2].length > 0 ? rows[2].length - 1 : rows[3].length > 0 ? rows[3].length - 1 : row.length - 1) * hSpacing / 2;
+        row.forEach((idx, i) => {
+          const x = baseX - centerOffset + i * hSpacing;
+          positions[idx] = { x: snap(x), y: snap(currentY) };
+        });
+      }
+      
+      currentY += vSpacing;
+    });
+
+    // Ensure all positions are defined
+    components.forEach((_, idx) => {
+      if (!positions[idx]) {
+        positions[idx] = { x: snap(baseX), y: snap(baseY + vSpacing * 2) };
+      }
+    });
 
     return positions;
   };
@@ -261,50 +339,181 @@ const ChatPanel: React.FC = () => {
     };
   };
 
+  // Component type classifications for intelligent connection repair
+  const POWER_SOURCES = new Set(['battery', 'dc-power-supply', 'ac-dc-converter']);
+  const REGULATORS = new Set(['buck-converter', 'boost-converter', 'buck-boost-converter', 'ldo']);
+  const MOTOR_DRIVERS = new Set(['h-bridge', 'half-bridge', 'stepper-driver', 'solenoid-driver']);
+  const MOTORS = new Set(['motor', 'stepper-motor', 'servo-motor']);
+
   const repairConnections = (
     components: Array<{ type: string }>,
     connections: Array<{ from: number; to: number; label?: string }>
   ): Array<{ from: number; to: number; label?: string }> => {
     if (components.length === 0) return [];
 
-    const batteryIdx = components.findIndex((comp) => comp.type === 'battery');
+    const batteryIdx = components.findIndex((comp) => POWER_SOURCES.has(comp.type));
     const groundIdx = components.findIndex((comp) => comp.type === 'ground');
-
-    if (batteryIdx === -1) {
-      return connections;
+    const regulatorIdxs = components.map((c, i) => REGULATORS.has(c.type) ? i : -1).filter(i => i >= 0);
+    const motorDriverIdxs = components.map((c, i) => MOTOR_DRIVERS.has(c.type) ? i : -1).filter(i => i >= 0);
+    const motorIdxs = components.map((c, i) => MOTORS.has(c.type) ? i : -1).filter(i => i >= 0);
+    
+    // If AI provided valid connections, validate and use them with minimal repair
+    if (connections && connections.length > 0) {
+      const result: Array<{ from: number; to: number; label?: string }> = [];
+      const connectedToSource = new Set<number>();
+      const connectedToGround = new Set<number>();
+      
+      // Copy valid AI connections and track connectivity
+      connections.forEach(conn => {
+        if (conn.from >= 0 && conn.from < components.length && 
+            conn.to >= 0 && conn.to < components.length &&
+            conn.from !== conn.to) {
+          result.push({ ...conn });
+          
+          // Track what's connected to power and ground
+          if (conn.from === batteryIdx || connectedToSource.has(conn.from)) {
+            connectedToSource.add(conn.to);
+          }
+          if (conn.to === groundIdx || connectedToGround.has(conn.to)) {
+            connectedToGround.add(conn.from);
+          }
+        }
+      });
+      
+      // Determine power distribution point (regulator output if present, else battery)
+      let powerPoint = batteryIdx >= 0 ? batteryIdx : 0;
+      if (regulatorIdxs.length > 0) {
+        const regConnected = result.some(c => c.from === batteryIdx && regulatorIdxs.includes(c.to));
+        if (regConnected) {
+          powerPoint = regulatorIdxs[0];
+        }
+      }
+      
+      // Ensure motor drivers are connected to power
+      motorDriverIdxs.forEach(driverIdx => {
+        const hasIncoming = result.some(c => c.to === driverIdx);
+        if (!hasIncoming && driverIdx !== powerPoint) {
+          result.push({ from: powerPoint, to: driverIdx });
+        }
+      });
+      
+      // Ensure motors are connected to drivers (or power if no drivers)
+      motorIdxs.forEach((motorIdx, i) => {
+        const hasIncoming = result.some(c => c.to === motorIdx);
+        if (!hasIncoming) {
+          if (motorDriverIdxs.length > 0) {
+            const driverIdx = motorDriverIdxs[i % motorDriverIdxs.length];
+            result.push({ from: driverIdx, to: motorIdx });
+          } else {
+            result.push({ from: powerPoint, to: motorIdx });
+          }
+        }
+      });
+      
+      // Ensure all components have path to ground
+      if (groundIdx >= 0) {
+        // Check which components need ground connections
+        const needsGround = components.map((_, i) => i).filter(i => 
+          i !== batteryIdx && 
+          i !== groundIdx && 
+          !result.some(c => c.from === i && c.to === groundIdx)
+        );
+        
+        // Only add ground connections for terminal components (motors, loads, drivers)
+        const terminals = needsGround.filter(i => 
+          MOTORS.has(components[i].type) || 
+          MOTOR_DRIVERS.has(components[i].type) ||
+          ['led', 'buzzer', 'lightbulb', 'speaker'].includes(components[i].type) ||
+          components[i].type.includes('sensor')
+        );
+        
+        terminals.forEach(idx => {
+          // Check if already has ground path
+          const hasGroundPath = result.some(c => c.from === idx && c.to === groundIdx);
+          if (!hasGroundPath) {
+            result.push({ from: idx, to: groundIdx, label: 'GND' });
+          }
+        });
+        
+        // Close the loop: ground back to battery
+        const hasReturnPath = result.some(c => c.from === groundIdx && c.to === batteryIdx);
+        if (!hasReturnPath && batteryIdx >= 0) {
+          result.push({ from: groundIdx, to: batteryIdx });
+        }
+      }
+      
+      console.log('Repaired connections:', result.map((c) => `${c.from}→${c.to}${c.label ? ` (${c.label})` : ''}`).join(', '));
+      return result;
     }
 
-    // Build proper series circuit: battery → components → back to battery
-    // Ground (if present) acts as a return path node
+    // Fallback: If no AI connections, build intelligent topology from scratch
     const result: Array<{ from: number; to: number; label?: string }> = [];
-    const visited = new Set<number>();
-    visited.add(batteryIdx);
-
-    // Collect non-battery, non-ground components in order
-    const intermediates = components
-      .map((_, idx) => idx)
-      .filter((idx) => idx !== batteryIdx && idx !== groundIdx);
-
-    // Build chain: battery → intermediate[0] → intermediate[1] → ... → ground (if exists) → back to battery
-    let current = batteryIdx;
-    for (const next of intermediates) {
-      result.push({ from: current, to: next });
-      visited.add(next);
-      current = next;
+    
+    if (batteryIdx === -1) {
+      // No power source - just chain everything
+      for (let i = 0; i < components.length - 1; i++) {
+        result.push({ from: i, to: i + 1 });
+      }
+      return result;
     }
 
-    // If ground exists, route the last component TO ground, then ground BACK to battery
+    let powerPoint = batteryIdx;
+    const connected = new Set<number>();
+    connected.add(batteryIdx);
+    
+    // Connect regulator to battery first
+    if (regulatorIdxs.length > 0) {
+      result.push({ from: batteryIdx, to: regulatorIdxs[0] });
+      connected.add(regulatorIdxs[0]);
+      powerPoint = regulatorIdxs[0];
+    }
+    
+    // Connect motor drivers to power
+    motorDriverIdxs.forEach(driverIdx => {
+      result.push({ from: powerPoint, to: driverIdx });
+      connected.add(driverIdx);
+    });
+    
+    // Connect motors to drivers
+    motorIdxs.forEach((motorIdx, i) => {
+      if (motorDriverIdxs.length > 0) {
+        const driverIdx = motorDriverIdxs[i % motorDriverIdxs.length];
+        result.push({ from: driverIdx, to: motorIdx });
+      } else {
+        result.push({ from: powerPoint, to: motorIdx });
+      }
+      connected.add(motorIdx);
+      
+      if (groundIdx >= 0) {
+        result.push({ from: motorIdx, to: groundIdx, label: 'GND' });
+      }
+    });
+    
+    // Connect motor drivers to ground
     if (groundIdx >= 0) {
-      result.push({ from: current, to: groundIdx, label: 'GND' });
+      motorDriverIdxs.forEach(driverIdx => {
+        result.push({ from: driverIdx, to: groundIdx, label: 'GND' });
+      });
+      connected.add(groundIdx);
+    }
+    
+    // Connect any remaining components
+    components.forEach((_, idx) => {
+      if (!connected.has(idx) && idx !== groundIdx) {
+        result.push({ from: powerPoint, to: idx });
+        connected.add(idx);
+        if (groundIdx >= 0) {
+          result.push({ from: idx, to: groundIdx, label: 'GND' });
+        }
+      }
+    });
+    
+    // Close the loop
+    if (groundIdx >= 0 && batteryIdx >= 0) {
       result.push({ from: groundIdx, to: batteryIdx });
-      visited.add(groundIdx);
-    } else if (intermediates.length > 0) {
-      // No ground, close loop directly back to battery from the last component
-      result.push({ from: current, to: batteryIdx });
     }
 
-    console.log('Repaired connections:', result.map((c) => `${c.from}→${c.to}${c.label ? ` (${c.label})` : ''}`).join(', '));
-
+    console.log('Built connections from scratch:', result.map((c) => `${c.from}→${c.to}${c.label ? ` (${c.label})` : ''}`).join(', '));
     return result;
   };
 
