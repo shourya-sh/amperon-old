@@ -66,8 +66,10 @@ const CircuitCanvasInner: React.FC = () => {
   } = useCircuitStore();
 
   const { collaborators, sessionId } = useCollaborationStore();
-  const { currentProject } = useProjectStore();
+  const { getCurrentProject } = useProjectStore();
   const { isLiveSession, permission } = useLiveShareStore();
+  
+  const currentProject = getCurrentProject();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);

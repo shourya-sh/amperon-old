@@ -12,19 +12,63 @@ import {
   Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCircuitStore, useProjectStore, useChatStore } from '../../stores';
+import type { Project, ChatSession } from '../../types';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const { nodes, edges } = useCircuitStore();
+  const { projects, addProject, setCurrentProjectId } = useProjectStore();
+  const { sessions, currentSessionId } = useChatStore();
+  const autosaveCounterRef = React.useRef(0);
 
   const navItems = [
     { path: '/', label: 'Designer', icon: LayoutDashboard },
+    { path: '/projects', label: 'Projects', icon: FolderOpen },
     { path: '/tutorials', label: 'Learn', icon: BookOpen },
     { path: '/ar', label: 'AR Lab', icon: Camera },
-    { path: '/projects', label: 'Projects', icon: FolderOpen },
   ];
+
+  const getNextUntitledName = (): string => {
+    const untitledNumbers = projects
+      .map((p) => p.name.match(/^Untitled (\d+)$/)?.[1])
+      .filter(Boolean)
+      .map((n) => Number(n));
+    const next = untitledNumbers.length > 0 ? Math.max(...untitledNumbers) + 1 : 1;
+    return `Untitled ${next}`;
+  };
+
+  const autosaveCurrentDesign = () => {
+    const name = getNextUntitledName();
+    const session = sessions.find((s) => s.id === currentSessionId);
+    autosaveCounterRef.current += 1;
+    const newProject: Project & { chatSessionId?: string; chatSession?: ChatSession } = {
+      id: `project-auto-${autosaveCounterRef.current}`,
+      name,
+      description: 'Auto-saved draft',
+      userId: user?.id || 'local',
+      nodes: [...nodes],
+      edges: [...edges],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      collaborators: [],
+      isPublic: false,
+      chatSessionId: session?.id,
+      chatSession: session,
+    };
+    addProject(newProject);
+    setCurrentProjectId(newProject.id);
+  };
+
+  const handleNavClick = (path: string) => {
+    if (path === '/projects') {
+      autosaveCurrentDesign();
+    }
+    navigate(path);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -48,9 +92,9 @@ const Navbar: React.FC = () => {
           const isActive = location.pathname === item.path;
           
           return (
-            <Link
+            <button
               key={item.path}
-              to={item.path}
+              onClick={() => handleNavClick(item.path)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all duration-150 ${
                 isActive
                   ? 'text-duo-green bg-duo-green/10 border-2 border-duo-green/30'
@@ -59,7 +103,7 @@ const Navbar: React.FC = () => {
             >
               <Icon size={16} strokeWidth={2.5} />
               {item.label}
-            </Link>
+            </button>
           );
         })}
       </div>

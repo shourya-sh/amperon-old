@@ -1,27 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { ShoppingCart, MessageSquare, Share2, Users, X, Eye, Edit3 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ShoppingCart, MessageSquare, Share2, Users, X, Eye, Edit3, Check, Cloud } from 'lucide-react';
 import ComponentLibrary from '../components/sidebar/ComponentLibrary';
 import CircuitCanvas from '../components/canvas/CircuitCanvas';
 import ChatPanel from '../components/chat/ChatPanel';
 import ShopPanel from '../components/shop/ShopPanel';
 import ShareModal from '../components/collaboration/ShareModal';
-import { useChatStore, useShopStore, useLiveShareStore } from '../stores';
+import { useChatStore, useShopStore, useLiveShareStore, useCircuitStore, useProjectStore } from '../stores';
 import { useAuth } from '../contexts/AuthContext';
 import liveShareService from '../services/liveShareService';
 
 const DesignerPage: React.FC = () => {
   const { user } = useAuth();
-  const { isOpen: isChatOpen, setIsOpen: setIsChatOpen } = useChatStore();
+  const { isOpen: isChatOpen, setIsOpen: setIsChatOpen, sessions, currentSessionId } = useChatStore();
   const { isOpen: isShopOpen, setIsOpen: setIsShopOpen } = useShopStore();
   const { isLiveSession, activeUsers, permission } = useLiveShareStore();
+  const { nodes, edges } = useCircuitStore();
+  const { 
+    currentProjectId, 
+    updateProject, 
+    autosaveEnabled,
+    setHasUnsavedChanges,
+    setLastSaved,
+    getCurrentProject
+  } = useProjectStore();
   
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaveRef = useRef<string>('');
+
+  const currentProject = getCurrentProject();
 
   // Ensure chat is open on page load
   useEffect(() => {
     if (!isChatOpen && !isShopOpen) {
       setIsChatOpen(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Initialize live share service when user is available
@@ -30,6 +45,51 @@ const DesignerPage: React.FC = () => {
       liveShareService.setUser(user.id, user.displayName || user.email || 'Anonymous');
     }
   }, [user]);
+
+  // Autosave functionality
+  useEffect(() => {
+    if (!autosaveEnabled || !currentProjectId) return;
+
+    // Create a hash of current state to detect changes
+    const currentStateHash = JSON.stringify({ nodes, edges });
+    
+    // Don't save if nothing has changed
+    if (currentStateHash === lastSaveRef.current) return;
+
+    // Clear existing timer
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
+
+    // Set a new timer to autosave after 2 seconds of inactivity
+    autosaveTimerRef.current = setTimeout(() => {
+      const currentSession = sessions.find(s => s.id === currentSessionId);
+      
+      updateProject(currentProjectId, {
+        nodes: [...nodes],
+        edges: [...edges],
+        chatSessionId: currentSessionId || undefined,
+        chatSession: currentSession ? { ...currentSession } : undefined,
+        updatedAt: new Date(),
+      });
+      
+      lastSaveRef.current = currentStateHash;
+      setLastSaved(new Date());
+      setShowSaveIndicator(true);
+      
+      // Hide save indicator after 2 seconds
+      setTimeout(() => setShowSaveIndicator(false), 2000);
+    }, 2000);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [nodes, edges, currentProjectId, autosaveEnabled, currentSessionId, sessions, updateProject, setHasUnsavedChanges, setLastSaved]);
 
   const handleChatClick = () => {
     if (isShopOpen) {
@@ -115,6 +175,26 @@ const DesignerPage: React.FC = () => {
         
         {/* Toggle Buttons */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-10 items-end">
+          {/* Project Name & Autosave Indicator */}
+          {currentProject && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-dark-800/90 backdrop-blur-sm border border-dark-700 rounded-xl">
+              <span className="text-sm font-medium text-dark-200 max-w-[150px] truncate">
+                {currentProject.name}
+              </span>
+              {showSaveIndicator ? (
+                <div className="flex items-center gap-1 text-duo-green">
+                  <Check size={14} />
+                  <span className="text-xs">Saved</span>
+                </div>
+              ) : autosaveEnabled ? (
+                <div className="flex items-center gap-1 text-dark-500">
+                  <Cloud size={14} />
+                  <span className="text-xs">Auto-save on</span>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* Share Button */}
           <button
             onClick={() => setIsShareModalOpen(true)}

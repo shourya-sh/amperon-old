@@ -670,45 +670,212 @@ export const useUIStore = create<UIState>()(
   ),
 );
 
-// Project Store
-interface ProjectState {
-  projects: Project[];
-  currentProject: Project | null;
-
-  setProjects: (projects: Project[]) => void;
-  setCurrentProject: (project: Project | null) => void;
-  addProject: (project: Project) => void;
-  updateProject: (id: string, data: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
+// Project Store - Enhanced with persistence and autosave
+interface ExtendedProject extends Project {
+  chatSessionId?: string;
+  chatSession?: ChatSession;
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
-  projects: [],
-  currentProject: null,
+interface ProjectState {
+  projects: ExtendedProject[];
+  currentProjectId: string | null;
+  isLoading: boolean;
+  lastSaved: Date | null;
+  hasUnsavedChanges: boolean;
+  autosaveEnabled: boolean;
 
-  setProjects: (projects) => set({ projects }),
-  setCurrentProject: (project) => set({ currentProject: project }),
-  addProject: (project) =>
-    set((state) => ({
-      projects: [...state.projects, project],
-    })),
-  updateProject: (id, data) =>
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === id ? { ...p, ...data } : p,
-      ),
-      currentProject:
-        state.currentProject?.id === id
-          ? { ...state.currentProject, ...data }
-          : state.currentProject,
-    })),
-  deleteProject: (id) =>
-    set((state) => ({
-      projects: state.projects.filter((p) => p.id !== id),
-      currentProject:
-        state.currentProject?.id === id ? null : state.currentProject,
-    })),
-}));
+  // Getters
+  getCurrentProject: () => ExtendedProject | null;
+
+  // Actions
+  setProjects: (projects: ExtendedProject[]) => void;
+  setCurrentProjectId: (id: string | null) => void;
+  setCurrentProject: (project: ExtendedProject | null) => void;
+  addProject: (project: ExtendedProject) => void;
+  updateProject: (id: string, data: Partial<ExtendedProject>) => void;
+  deleteProject: (id: string) => void;
+  setIsLoading: (loading: boolean) => void;
+  setLastSaved: (date: Date | null) => void;
+  setHasUnsavedChanges: (hasChanges: boolean) => void;
+  setAutosaveEnabled: (enabled: boolean) => void;
+
+  // Link chat session to project
+  linkChatSession: (projectId: string, session: ChatSession) => void;
+}
+
+export const useProjectStore = create<ProjectState>()(
+  persist(
+    (set, get) => ({
+      projects: [],
+      currentProjectId: null,
+      isLoading: false,
+      lastSaved: null,
+      hasUnsavedChanges: false,
+      autosaveEnabled: true,
+
+      getCurrentProject: () => {
+        const state = get();
+        return (
+          state.projects.find((p) => p.id === state.currentProjectId) || null
+        );
+      },
+
+      setProjects: (projects) => set({ projects }),
+      setCurrentProjectId: (id) => set({ currentProjectId: id }),
+      setCurrentProject: (project) => {
+        if (project) {
+          set((state) => {
+            const existingIndex = state.projects.findIndex(
+              (p) => p.id === project.id,
+            );
+            if (existingIndex >= 0) {
+              const newProjects = [...state.projects];
+              newProjects[existingIndex] = project;
+              return { projects: newProjects, currentProjectId: project.id };
+            } else {
+              return {
+                projects: [project, ...state.projects],
+                currentProjectId: project.id,
+              };
+            }
+          });
+        } else {
+          set({ currentProjectId: null });
+        }
+      },
+      addProject: (project) =>
+        set((state) => ({
+          projects: [project, ...state.projects],
+          currentProjectId: project.id,
+        })),
+      updateProject: (id, data) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...data, updatedAt: new Date() } : p,
+          ),
+          hasUnsavedChanges: true,
+        })),
+      deleteProject: (id) =>
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+          currentProjectId:
+            state.currentProjectId === id ? null : state.currentProjectId,
+        })),
+      setIsLoading: (loading) => set({ isLoading: loading }),
+      setLastSaved: (date) =>
+        set({ lastSaved: date, hasUnsavedChanges: false }),
+      setHasUnsavedChanges: (hasChanges) =>
+        set({ hasUnsavedChanges: hasChanges }),
+      setAutosaveEnabled: (enabled) => set({ autosaveEnabled: enabled }),
+
+      linkChatSession: (projectId, session) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  chatSessionId: session.id,
+                  chatSession: session,
+                  updatedAt: new Date(),
+                }
+              : p,
+          ),
+          hasUnsavedChanges: true,
+        })),
+    }),
+    {
+      name: "amperon-projects",
+      partialize: (state) => ({
+        projects: state.projects.map((p) => ({
+          ...p,
+          createdAt:
+            p.createdAt instanceof Date
+              ? p.createdAt.toISOString()
+              : p.createdAt,
+          updatedAt:
+            p.updatedAt instanceof Date
+              ? p.updatedAt.toISOString()
+              : p.updatedAt,
+          chatSession: p.chatSession
+            ? {
+                ...p.chatSession,
+                createdAt:
+                  p.chatSession.createdAt instanceof Date
+                    ? p.chatSession.createdAt.toISOString()
+                    : p.chatSession.createdAt,
+                updatedAt:
+                  p.chatSession.updatedAt instanceof Date
+                    ? p.chatSession.updatedAt.toISOString()
+                    : p.chatSession.updatedAt,
+                messages: p.chatSession.messages.map((m) => ({
+                  ...m,
+                  timestamp:
+                    m.timestamp instanceof Date
+                      ? m.timestamp.toISOString()
+                      : m.timestamp,
+                })),
+                checkpoints: p.chatSession.checkpoints.map((cp) => ({
+                  ...cp,
+                  timestamp:
+                    cp.timestamp instanceof Date
+                      ? cp.timestamp.toISOString()
+                      : cp.timestamp,
+                })),
+              }
+            : undefined,
+        })),
+        currentProjectId: state.currentProjectId,
+        autosaveEnabled: state.autosaveEnabled,
+      }),
+      merge: (persistedState: unknown, currentState) => {
+        const persisted = persistedState as {
+          projects?: Array<{
+            createdAt: string;
+            updatedAt: string;
+            chatSession?: {
+              createdAt: string;
+              updatedAt: string;
+              messages: Array<{ timestamp: string }>;
+              checkpoints: Array<{ timestamp: string }>;
+            };
+          }>;
+          currentProjectId?: string | null;
+          autosaveEnabled?: boolean;
+        } | null;
+
+        if (!persisted || !persisted.projects) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          projects: persisted.projects.map((p) => ({
+            ...p,
+            createdAt: new Date(p.createdAt),
+            updatedAt: new Date(p.updatedAt),
+            chatSession: p.chatSession
+              ? {
+                  ...p.chatSession,
+                  createdAt: new Date(p.chatSession.createdAt),
+                  updatedAt: new Date(p.chatSession.updatedAt),
+                  messages: p.chatSession.messages.map((m) => ({
+                    ...m,
+                    timestamp: new Date(m.timestamp),
+                  })),
+                  checkpoints: p.chatSession.checkpoints.map((cp) => ({
+                    ...cp,
+                    timestamp: new Date(cp.timestamp),
+                  })),
+                }
+              : undefined,
+          })) as ExtendedProject[],
+          currentProjectId: persisted.currentProjectId ?? null,
+          autosaveEnabled: persisted.autosaveEnabled ?? true,
+        };
+      },
+    },
+  ),
+);
 
 // AR Store - For augmented reality breadboard analysis
 interface DetectedComponent {

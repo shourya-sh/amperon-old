@@ -17,7 +17,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
   databaseURL:
     import.meta.env.VITE_FIREBASE_DATABASE_URL ||
-    "https://circuitco.firebaseio.com",
+    "https://circuitco-default-rtdb.firebaseio.com",
 };
 
 // Initialize Firebase
