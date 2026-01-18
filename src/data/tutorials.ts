@@ -1959,11 +1959,8 @@ In a **series circuit**, components are connected one after another.
 - If one component breaks, the whole circuit stops!
 
 ## Real Example:
-Old Christmas lights were series circuits - one bulb burns out, they ALL go dark! 🎄
-
-👉 **See a simple series circuit below:**`,
-        type: 'diagram',
-        circuit: simpleSeriesCircuit,
+Old Christmas lights were series circuits - one bulb burns out, they ALL go dark! 🎄`,
+        type: 'text',
         completed: false,
       },
       {
@@ -1979,11 +1976,8 @@ In a **parallel circuit**, components have their own separate paths.
 - If one component breaks, others keep working!
 
 ## Real Example:
-Your house wiring is parallel - turning off one light doesn't affect others!
-
-👉 **Notice the difference - now we have TWO independent paths!**`,
-        type: 'diagram',
-        circuit: parallelCircuit,
+Your house wiring is parallel - turning off one light doesn't affect others!`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2044,11 +2038,8 @@ Put V at top, I and R at bottom. Cover what you want to find!
 
 - Want V? It's I × R
 - Want I? It's V ÷ R
-- Want R? It's V ÷ I
-
-👉 **See Ohm's Law in action below with an ammeter measuring real current:**`,
-        type: 'diagram',
-        circuit: ohmsLawCircuit,
+- Want R? It's V ÷ I`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2116,11 +2107,8 @@ Switches let you turn circuits ON and OFF!
 
 ### SPST, SPDT, DPDT
 - Single/Double Pole (how many circuits)
-- Single/Double Throw (how many positions)
-
-👉 **See a switch controlling an LED in the circuit below:**`,
-        type: 'diagram',
-        circuit: switchCircuit,
+- Single/Double Throw (how many positions)`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2186,11 +2174,8 @@ Your phone has BILLIONS of transistors, each smaller than a virus! 🤯
 A transistor has 3 pins:
 - **Base (B)** - The control pin
 - **Collector (C)** - Current flows IN
-- **Emitter (E)** - Current flows OUT
-
-👉 **See a transistor switching an LED on and off:**`,
-        type: 'diagram',
-        circuit: transistorSwitchCircuit,
+- **Emitter (E)** - Current flows OUT`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2360,12 +2345,8 @@ A **diode** lets electricity flow in ONE direction only - like a check valve in 
 Current flows from Anode → Cathode
 Current is BLOCKED from Cathode → Anode
 
-Look for the stripe on the diode - that's the cathode side!
-
-👉 **See a diode protecting a circuit below:**`,
-        type: 'diagram',
-        circuit: diodeCircuit,
-        visualizeComponents: ['diode'],
+Look for the stripe on the diode - that's the cathode side!`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2456,11 +2437,8 @@ Two resistors in series split the voltage between them!
 - Vin = Input voltage
 - R1 = First resistor
 - R2 = Second resistor
-- Vout = Output voltage (across R2)
-
-👉 **See a voltage divider with a voltmeter probe measuring the output:**`,
-        type: 'diagram',
-        circuit: voltageDividerCircuit,
+- Vout = Output voltage (across R2)`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2532,11 +2510,8 @@ A **DC motor** converts electrical energy into spinning motion using magnetism!
 When current flows, magnetic forces make the coil spin!
 
 ## Direction Control:
-Reverse the voltage = reverse the spin direction! 🔄
-
-👉 **See a transistor-controlled motor with flyback protection:**`,
-        type: 'diagram',
-        circuit: motorCircuit,
+Reverse the voltage = reverse the spin direction! 🔄`,
+        type: 'text',
         completed: false,
       },
       {
@@ -2630,11 +2605,8 @@ A **buzzer** creates sound using vibrations!
 - Can make different tones
 - More flexible!
 
-Most hobby projects use active buzzers - super simple!
-
-👉 **See an active buzzer with switch control:**`,
-        type: 'diagram',
-        circuit: buzzerCircuit,
+Most hobby projects use active buzzers - super simple!`,
+        type: 'text',
         completed: false,
       },
       {
@@ -4433,11 +4405,20 @@ Perfect for controlling brightness, analog sensors, and audio circuits!`,
       {
         id: 'step-2',
         title: 'Interactive Voltage Divider',
-        content: `# See It In Action! 👀
+        content: `# Building a Real Voltage Divider! 👀
 
-Watch how changing the potentiometer position changes the LED brightness:`,
-        type: 'diagram',
-        circuit: voltageDividerLEDCircuit,
+Voltage dividers are used extensively in:
+- Volume controls
+- Brightness adjustments
+- Sensor signal conditioning
+
+## Practical Circuit:
+When building a real voltage divider with a potentiometer (variable resistor):
+- The potentiometer acts as two resistors
+- The wiper (middle pin) is your output
+- Moving the wiper changes the output voltage
+- Perfect for analog control!`,
+        type: 'text',
         completed: false,
       },
       {
@@ -4502,9 +4483,24 @@ Where R is in ohms and C is in farads!`,
         title: 'Blinking LED Circuit',
         content: `# Make an LED Blink! 📟
 
-Here's an oscillator circuit that makes an LED blink automatically:`,
-        type: 'diagram',
-        circuit: oscillatorFlasherCircuit,
+The classic astable multivibrator oscillator circuit uses capacitors and resistors:
+
+## How It Works:
+1. **Capacitor charges** through resistor → reaches threshold
+2. **Transistor turns ON** → capacitor discharges
+3. **Voltage drops** → transistor turns OFF
+4. **Cycle repeats** → LED blinks!
+
+## The Components:
+- **2x Transistors** (NPN, 2N2222)
+- **2x Capacitors** (100µF or adjustable)
+- **2x Resistors** (10kΩ)
+- **1x LED** with resistor (330Ω)
+- **1x Battery** (6-9V)
+
+## Building It:
+Connect the transistors in a cross-coupled configuration where each transistor's output drives the other's base. The capacitors control timing.`,
+        type: 'text',
         completed: false,
       },
       {
@@ -4576,11 +4572,31 @@ Each LED drops about **2V**
       {
         id: 'step-2',
         title: 'Three-LED Circuit',
-        content: `# See Red, Green, Blue! 🌈
+        content: `# Red, Green, Blue in Series! 🌈
 
-Check out a circuit with 3 different colored LEDs in series:`,
-        type: 'diagram',
-        circuit: threeLEDSeriesCircuit,
+## The Math:
+When connecting 3 different colored LEDs in series:
+
+- Red LED: ~2.0V drop
+- Green LED: ~2.2V drop  
+- Blue LED: ~3.2V drop
+- **Total voltage needed:** ~7.4V ✓
+
+## With a 9V Battery:
+- Voltage used by LEDs: 7.4V
+- Voltage across resistor: 1.6V
+- Current needed: 20mA (typical)
+- **Resistor value:** R = 1.6V ÷ 0.020A = **80Ω** (use 100Ω)
+
+## Building the Rainbow:
+1. Battery positive → 100Ω resistor
+2. Resistor → Red LED (positive lead)
+3. Red LED (negative) → Green LED (positive)
+4. Green LED (negative) → Blue LED (positive)
+5. Blue LED (negative) → Battery negative
+
+**Result:** A beautiful rainbow glow! 🌈`,
+        type: 'text',
         completed: false,
       },
       {
@@ -4647,11 +4663,35 @@ When LEDs are in series, they share the voltage and brightness!
       {
         id: 'step-2',
         title: 'Ammeter in Action',
-        content: `# Measure the Flow! 📊
+        content: `# How to Measure Current! 📊
 
-Here's a circuit with an ammeter showing current draw:`,
-        type: 'diagram',
-        circuit: batteryLoadCircuit,
+## Ammeter Connection:
+Ammeters must be connected **in series** with the circuit:
+
+\`\`\`
+Battery (+) → Ammeter → Components → Battery (-)
+\`\`\`
+
+**IMPORTANT:** Never connect an ammeter directly across a battery (parallel) - it will be destroyed!
+
+## Reading Current:
+- Multimeter set to A or mA
+- Choose the right range
+- Select correct polarity
+- Measure at different points
+
+## Example Readings:
+- Single LED: 20mA
+- 3 LEDs in series: 20mA (same current)
+- 2 LED branches in parallel: 40mA total (20mA each)
+- Motor circuit: 100-500mA
+
+## Tips:
+- Always estimate before measuring
+- Start on highest range
+- Reduce range if needed
+- Never exceed ammeter limit!`,
+        type: 'text',
         completed: false,
       },
       {
@@ -4720,11 +4760,40 @@ When photons hit the semiconductor material, they knock electrons loose, allowin
       {
         id: 'step-2',
         title: 'Light Sensor Circuit',
-        content: `# See the LED React to Light! 🌞➡️🌙
+        content: `# Build the Light Sensor Circuit! 🌞➡️🌙
 
-This circuit uses a voltage divider with an LDR to control LED brightness:`,
-        type: 'diagram',
-        circuit: lightSensorCircuit,
+## Circuit Design:
+Use an LDR in a voltage divider configuration:
+
+\`\`\`
+Battery (+) ─┐
+             ├─ Voltage out
+            LDR
+             ├─ To transistor base
+            Resistor (1kΩ)
+             │
+           Ground
+\`\`\`
+
+## How It Works:
+- **Bright light:** LDR resistance drops → Voltage at output goes DOWN
+- **Darkness:** LDR resistance rises → Voltage at output goes UP
+
+## Connecting to an LED:
+1. Voltage divider output → Transistor base
+2. Transistor base current → Controls LED brightness
+3. In bright light → Less current → LED off
+4. In darkness → More current → LED on
+
+## Component Values:
+- LDR: Any photoresistor (GL5528, LDR5516)
+- Fixed resistor: 1kΩ
+- Transistor: 2N2222
+- LED resistor: 330Ω
+- Battery: 9V
+
+**Test it:** Cover the LDR and watch the LED brightness change! 🔦`,
+        type: 'text',
         completed: false,
       },
       {
