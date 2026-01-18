@@ -4,8 +4,6 @@ import {
   X, 
   MessageSquare,
   Trash2,
-  Maximize2,
-  Minimize2,
   Loader2
 } from 'lucide-react';
 import { useChatStore, useCircuitStore } from '../../stores';
@@ -25,7 +23,6 @@ const ChatPanel: React.FC = () => {
   const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages, lastCircuitAction, setLastCircuitAction } = useChatStore();
   const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView } = useCircuitStore();
   const [input, setInput] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -731,9 +728,7 @@ const ChatPanel: React.FC = () => {
 
   return (
     <div
-      className={`h-full bg-dark-900/95 border-l-2 border-dark-700 flex flex-col ${
-        isExpanded ? 'w-96' : 'w-80'
-      } transition-all duration-150 backdrop-blur-md`}
+      className={`h-full bg-dark-900/95 border-l-2 border-dark-700 flex flex-col w-80 transition-all duration-150 backdrop-blur-md`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b-2 border-dark-700 bg-dark-850">
@@ -744,12 +739,6 @@ const ChatPanel: React.FC = () => {
           <span className="font-display font-bold text-dark-100">AI Helper</span>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
-          >
-            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </button>
           <button
             onClick={clearMessages}
             className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"

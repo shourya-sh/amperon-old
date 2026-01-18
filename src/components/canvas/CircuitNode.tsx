@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useReactFlow } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { motion } from 'framer-motion';
 import { getKiCadSvg } from '../../services/kicadSvgService';
@@ -16,11 +16,27 @@ interface CircuitNodeData {
 
 const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) => {
   const { component, rotation = 0, isActive = false } = data;
+  const { getEdges } = useReactFlow();
   const [svgContent, setSvgContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [hovering, setHovering] = useState(false);
   const [insight, setInsight] = useState('');
+  const [insightExpanded, setInsightExpanded] = useState(false);
   const [insightStatus, setInsightStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+
+  // Check if a connection is being dragged by looking at connection line
+  const isDraggingConnection = useMemo(() => {
+    try {
+      // Get the connection line element if it exists
+      const connectionLine = document.querySelector('.react-flow__connection-line');
+      return !!connectionLine;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Show handles if hovering over this component OR if dragging a connection
+  const shouldShowHandles = hovering || isDraggingConnection;
 
   const formattedInsight = useMemo(() => {
     const text = insight || component.description;
@@ -97,28 +113,43 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className={`relative group w-24 h-24 flex items-center justify-center ${selected ? 'z-10' : ''}`}
+      className={`relative group w-16 h-16 flex items-center justify-center ${selected ? 'z-10' : ''}`}
       style={{ transform: `rotate(${rotation}deg)` }}
       onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
+      onMouseLeave={() => { setHovering(false); setInsightExpanded(false); }}
     >
       {/* Hover insight card pulled from Gemini with local fallback */}
-      <div className={`pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-72 transition-all duration-200 ${hovering ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
+      <div className={`pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 w-64 transition-all duration-200 ${hovering ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
         <div className="bg-dark-900/95 border border-dark-700 rounded-lg shadow-xl px-3 py-2 glass">
-          <p className="text-[11px] text-dark-100 font-semibold mb-1" style={{ color: componentColor }}>
-            {component.name} insight
-          </p>
-          {insightStatus === 'loading' && (
-            <div className="flex items-center gap-2 text-[11px] text-dark-300">
-              <div className="w-3 h-3 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
-              <span>Asking Gemini...</span>
-            </div>
-          )}
-          {insightStatus !== 'loading' && (
-            <p
-              className="text-[11px] text-dark-200 leading-relaxed whitespace-pre-line"
-              dangerouslySetInnerHTML={{ __html: formattedInsight }}
-            />
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[11px] text-dark-100 font-semibold" style={{ color: componentColor }}>
+              {component.name} insight
+            </p>
+            <button
+              onClick={() => setInsightExpanded(!insightExpanded)}
+              className="flex-shrink-0 text-dark-400 hover:text-duo-green transition-colors"
+              title={insightExpanded ? 'Collapse' : 'Expand'}
+            >
+              <svg className={`w-4 h-4 transition-transform ${insightExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 8l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          {insightExpanded && (
+            <>
+              {insightStatus === 'loading' && (
+                <div className="flex items-center gap-2 text-[11px] text-dark-300 mt-2">
+                  <div className="w-3 h-3 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Asking Gemini...</span>
+                </div>
+              )}
+              {insightStatus !== 'loading' && (
+                <p
+                  className="text-[11px] text-dark-200 leading-relaxed whitespace-pre-line mt-2"
+                  dangerouslySetInnerHTML={{ __html: formattedInsight }}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -128,72 +159,72 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         type="target"
         position={Position.Left}
         id="target"
-        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source"
-        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       {/* Alternative handles for different routing, only when needed */}
       <Handle
         type="source"
         position={Position.Left}
         id="sourceLeft"
-        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       <Handle
         type="target"
         position={Position.Right}
         id="targetRight"
-        className="!w-3 !h-3 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       {/* Vertical handles - visible but smaller for cleaner look */}
       <Handle
         type="target"
         position={Position.Top}
         id="targetTop"
-        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="sourceBottom"
-        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       <Handle
         type="source"
         position={Position.Top}
         id="sourceTop"
-        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       <Handle
         type="target"
         position={Position.Bottom}
         id="targetBottom"
-        className="!w-2.5 !h-2.5 !bg-dark-600 !border-2 !border-dark-700 hover:!bg-dark-500 transition-colors"
-        style={{ backgroundColor: componentColor }}
+        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
       />
       {component.type === 'transistor' && (
         <Handle
           type="target"
           position={Position.Bottom}
           id="base"
-          className="!w-3.5 !h-3.5 !border-2 !border-dark-700"
-          style={{ backgroundColor: componentColor }}
+          className="!w-3.5 !h-3.5 !rounded-full hover:!scale-125 transition-transform"
+          style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
         />
       )}
 
       {/* Pure SVG Component Visual without box */}
-      <div className="w-20 h-20 flex items-center justify-center relative">
+      <div className="w-16 h-16 flex items-center justify-center relative">
         {!loading && svgContent && (
           <div
             className="w-12 h-12 flex items-center justify-center"
@@ -227,15 +258,17 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         )}
       </div>
 
-      {/* Label - always visible, positioned just below component with minimal spacing */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 pointer-events-none z-20">
-        <div className="bg-dark-900/95 border border-dark-700 rounded px-1.5 py-0.5 shadow-md backdrop-blur-sm"
-             style={{ borderColor: componentColor }}>
-          <p className="text-[10px] text-dark-100 whitespace-nowrap font-medium leading-tight">
-            {data.label || component.name}
-          </p>
+      {/* Label - closer to component, conditionally visible */}
+      {data.showLabels !== false && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 pointer-events-none z-20">
+          <div className="bg-dark-900/95 border border-dark-700 rounded px-1.5 py-0.5 shadow-md backdrop-blur-sm"
+               style={{ borderColor: componentColor }}>
+            <p className="text-[10px] text-dark-100 whitespace-nowrap font-medium leading-tight">
+              {data.label || component.name}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };

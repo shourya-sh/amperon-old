@@ -379,7 +379,7 @@ const ShopPanel: React.FC = () => {
   if (!isOpen) return null;
   
   return (
-    <div className="w-96 h-full bg-dark-850 border-l-2 border-dark-700 flex flex-col">
+    <div className="w-80 h-full bg-dark-850 border-l-2 border-dark-700 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b-2 border-dark-700 flex items-center justify-between">
         <div className="flex items-center gap-3">

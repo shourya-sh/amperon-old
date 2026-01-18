@@ -25,11 +25,14 @@ import {
   Play,
   Pause,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Download,
+  Type
 } from 'lucide-react';
 import CircuitNode from './CircuitNode';
-import { useCircuitStore, useCollaborationStore } from '../../stores';
+import { useCircuitStore, useCollaborationStore, useProjectStore } from '../../stores';
 import { simulateCircuit } from '../../services/circuitSimulator';
+import { generateSchematicPdf } from '../../services/schematicPdfService';
 import type { CircuitComponent, CanvasNode } from '../../types';
 
 const nodeTypes = {
@@ -62,35 +65,61 @@ const CircuitCanvasInner: React.FC = () => {
   } = useCircuitStore();
 
   const { collaborators, sessionId } = useCollaborationStore();
+  const { currentProject } = useProjectStore();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
+  const [showGrid, setShowGrid] = React.useState(true);
+  const [showLabels, setShowLabels] = React.useState(false); // Start false for better initial spacing
+  const [hasInitialized, setHasInitialized] = React.useState(false);
 
-  // Sync Zustand store nodes with React Flow nodes
+  // Sync Zustand store nodes with React Flow nodes and add showLabels prop
   useEffect(() => {
-    setNodes(storeNodes);
-  }, [storeNodes, setNodes]);
+    const nodesWithLabels = storeNodes.map(node => ({
+      ...node,
+      data: { ...node.data, showLabels }
+    }));
+    setNodes(nodesWithLabels);
+    
+    // Trigger fitView when labels are toggled
+    if (storeNodes.length > 0) {
+      setTimeout(() => {
+        fitView({
+          padding: 0.4,
+          duration: 400,
+          maxZoom: 1.0,
+          minZoom: 0.2,
+        });
+      }, 100);
+    }
+  }, [storeNodes, showLabels, setNodes, fitView]);
 
   // Sync Zustand store edges with React Flow edges
   useEffect(() => {
     setEdges(storeEdges);
   }, [storeEdges, setEdges]);
 
-  // Trigger fitView when requested by the store
+  // Initial fitView on mount and when shouldFitView changes
   useEffect(() => {
-    if (shouldFitView) {
-      // Small delay to ensure nodes are rendered before fitting view
-      setTimeout(() => {
-        fitView({ 
+    const timer = setTimeout(() => {
+      if (storeNodes.length > 0 || shouldFitView) {
+        fitView({
           padding: 0.4,
-          duration: 400,
+          duration: 300,
           maxZoom: 1.0,
           minZoom: 0.2,
         });
-        resetFitView();
-      }, 100);
-    }
-  }, [shouldFitView, fitView, resetFitView]);
+        if (shouldFitView) resetFitView();
+        
+        // Enable labels right after fitView completes (300ms)
+        setTimeout(() => {
+          setShowLabels(true);
+          setHasInitialized(true);
+        }, 350);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [shouldFitView, storeNodes.length, fitView, resetFitView]);
 
   // Handle simulation play/pause
   const handleSimulation = useCallback(() => {
@@ -213,6 +242,11 @@ const CircuitCanvasInner: React.FC = () => {
     clearCanvas();
   }, [setNodes, setEdges, clearCanvas]);
 
+  const handleDownloadSchematic = useCallback(() => {
+    const projectName = currentProject?.name || 'Untitled Circuit';
+    generateSchematicPdf(storeNodes, storeEdges, projectName);
+  }, [storeNodes, storeEdges, currentProject]);
+
   const currentZoom = useMemo(() => {
     const viewport = getViewport();
     return Math.round(viewport.zoom * 100);
@@ -243,16 +277,17 @@ const CircuitCanvasInner: React.FC = () => {
         proOptions={{ hideAttribution: true }}
         className="circuit-canvas"
       >
-        <Background 
-          variant={BackgroundVariant.Dots}
-          gap={20} 
-          size={1} 
-          color="rgba(148, 163, 184, 0)" 
-          className="transition-all duration-300 [.circuit-canvas:hover_&]:!bg-[rgba(148,163,184,0.12)]"
-          style={{
-            backgroundColor: 'transparent',
-          }}
-        />
+        {showGrid && (
+          <Background 
+            variant={BackgroundVariant.Cross}
+            gap={20} 
+            size={1.5} 
+            color="rgba(148, 163, 184, 0.3)" 
+            style={{
+              backgroundColor: 'transparent',
+            }}
+          />
+        )}
         
         <Controls 
           showZoom={false}
@@ -295,10 +330,6 @@ const CircuitCanvasInner: React.FC = () => {
               <ZoomOut size={18} />
             </button>
             
-            <span className="px-3 py-1 text-sm font-medium text-dark-300 min-w-[50px] text-center">
-              {currentZoom}%
-            </span>
-            
             <button
               onClick={() => zoomIn()}
               className="p-2 hover:bg-dark-700 rounded-lg transition-colors text-dark-300 hover:text-white"
@@ -318,15 +349,27 @@ const CircuitCanvasInner: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setViewMode(viewMode === 'schematic' ? 'breadboard' : 'schematic')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'breadboard' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'hover:bg-dark-700 text-dark-300 hover:text-white'
+              onClick={() => setShowGrid(!showGrid)}
+              className={`p-2 rounded-lg transition-colors border ${
+                showGrid
+                  ? 'border-duo-green text-duo-green bg-duo-green/10' 
+                  : 'border-dark-700 text-dark-300 hover:text-white hover:border-dark-600'
               }`}
-              title="Toggle Breadboard View"
+              title="Toggle Grid"
             >
               <Grid3X3 size={18} />
+            </button>
+
+            <button
+              onClick={() => setShowLabels(!showLabels)}
+              className={`p-2 rounded-lg transition-colors border ${
+                showLabels
+                  ? 'border-duo-green text-duo-green bg-duo-green/10' 
+                  : 'border-dark-700 text-dark-300 hover:text-white hover:border-dark-600'
+              }`}
+              title="Toggle Labels"
+            >
+              <Type size={18} />
             </button>
 
             <div className="w-px h-6 bg-dark-700 mx-1" />
@@ -350,6 +393,18 @@ const CircuitCanvasInner: React.FC = () => {
 
             <div className="w-px h-6 bg-dark-700 mx-1" />
 
+            {/* Download Schematic PDF Button */}
+            <button
+              onClick={handleDownloadSchematic}
+              disabled={nodes.length === 0}
+              className="p-2 hover:bg-dark-700 rounded-lg transition-colors text-dark-300 hover:text-duo-green disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download Schematic PDF"
+            >
+              <Download size={18} />
+            </button>
+
+            <div className="w-px h-6 bg-dark-700 mx-1" />
+
             {/* Simulation Play/Pause Button */}
             <button
               onClick={handleSimulation}
@@ -357,7 +412,7 @@ const CircuitCanvasInner: React.FC = () => {
               className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isSimulating 
                   ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-amber-600 text-white hover:bg-amber-700'
+                  : 'bg-duo-green text-dark-900 hover:bg-duo-green/90'
               }`}
               title={isSimulating ? 'Stop Simulation' : 'Start Simulation'}
             >

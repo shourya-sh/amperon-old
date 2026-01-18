@@ -87,6 +87,7 @@ const ComponentLibrary: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['source', 'passive', 'output']);
   const [hoveredComponent, setHoveredComponent] = useState<CircuitComponent | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
@@ -109,7 +110,11 @@ const ComponentLibrary: React.FC = () => {
   };
 
   return (
-    <div className="w-60 h-full bg-dark-850 border-r-2 border-dark-700 flex flex-col">
+    <div className="relative h-full flex">
+      {/* Collapsible Sidebar */}
+      <div className={`bg-dark-850 border-r-2 border-dark-700 flex flex-col transition-all duration-300 overflow-hidden ${
+        isCollapsed ? 'w-0' : 'w-60'
+      }`}>
       {/* Header */}
       <div className="p-3 border-b-2 border-dark-700">
         <h2 className="text-sm font-display font-bold text-dark-200 mb-3">Components</h2>
@@ -217,6 +222,41 @@ const ComponentLibrary: React.FC = () => {
           )}
         </div>
       )}
+      </div>
+
+      {/* Collapse/Expand Button - Semicircle */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute left-full top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all"
+        style={{
+          width: '24px',
+          height: '48px',
+          borderRadius: '0 12px 12px 0',
+          background: isCollapsed ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+          border: isCollapsed ? '2px solid rgba(34, 197, 94, 0.3)' : '2px solid rgba(148, 163, 175, 0.2)',
+          borderLeft: 'none',
+          cursor: 'pointer',
+        }}
+        title={isCollapsed ? 'Expand' : 'Collapse'}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+          e.currentTarget.style.border = '2px solid rgba(34, 197, 94, 0.3)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = isCollapsed ? 'rgba(34, 197, 94, 0.1)' : 'transparent';
+          e.currentTarget.style.border = isCollapsed ? '2px solid rgba(34, 197, 94, 0.3)' : '2px solid rgba(148, 163, 175, 0.2)';
+        }}
+      >
+        <ChevronRight
+          size={14}
+          className={`transition-all ${
+            isCollapsed ? 'text-duo-green' : 'text-dark-500 hover:text-duo-green'
+          }`}
+          style={{
+            transform: isCollapsed ? 'scaleX(1)' : 'scaleX(-1)',
+          }}
+        />
+      </button>
     </div>
   );
 };
