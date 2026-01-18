@@ -226,6 +226,7 @@ export interface TutorialStep {
   content: string;
   type: 'text' | 'video' | 'interactive' | 'quiz' | 'diagram';
   circuit?: CircuitDiagram | Partial<CircuitDiagram>;
+  visualizeComponents?: string[]; // Component IDs to show in visualizer
   validationCriteria?: {
     requireComponents?: string[];
     requireMinConnections?: number;

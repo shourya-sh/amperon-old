@@ -15,6 +15,7 @@ import { tutorials } from '../data/tutorials';
 import { useTutorialStore } from '../stores';
 import type { Tutorial } from '../types';
 import InteractiveTutorialCanvas from '../components/tutorials/InteractiveTutorialCanvas';
+import ComponentVisualizer from '../components/tutorials/ComponentVisualizer';
 
 const TutorialsPage: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -463,6 +464,16 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
                   {step.content}
                 </ReactMarkdown>
               </div>
+
+              {/* Component Visualizer */}
+              {step.visualizeComponents && step.visualizeComponents.length > 0 && (
+                <ComponentVisualizer
+                  componentIds={step.visualizeComponents}
+                  title="Interactive Component Explorer"
+                  description="Click and interact with the components used in this lesson"
+                  interactive={true}
+                />
+              )}
 
               {step.type === 'interactive' && !step.circuit && (
                 <div className="mt-8 p-6 bg-forest-600/10 border border-forest-600/30 rounded-xl">

@@ -4,7 +4,7 @@ import type { Tutorial, CircuitDiagram } from '../types';
 // CIRCUIT DIAGRAM DEFINITIONS
 // ============================================================================
 
-// Simple Series Circuit: Battery -> Resistor -> LED -> Ground (complete loop)
+// Simple Series Circuit: Battery+ -> Resistor -> LED -> Battery- (complete loop)
 const simpleSeriesCircuit: CircuitDiagram = {
   title: 'Simple Series Circuit',
   description: 'A basic circuit with a battery, resistor, and LED in series',
@@ -27,7 +27,8 @@ const simpleSeriesCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Voltage', value: 9, unit: 'V', editable: true },
-            { name: 'Type', value: 'DC', unit: '', editable: false },
+            { name: 'Current Supplied', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 191, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -49,7 +50,9 @@ const simpleSeriesCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
-            { name: 'Power Rating', value: 0.25, unit: 'W', editable: false },
+            { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 148, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -58,7 +61,7 @@ const simpleSeriesCircuit: CircuitDiagram = {
     {
       id: 'led-1',
       type: 'circuit',
-      position: { x: 450, y: 50 },
+      position: { x: 450, y: 150 },
       data: {
         component: {
           id: 'led',
@@ -72,37 +75,18 @@ const simpleSeriesCircuit: CircuitDiagram = {
           properties: [
             { name: 'Color', value: 'Red', unit: '', editable: true },
             { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
-            { name: 'Max Current', value: 20, unit: 'mA', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
           ],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-1',
-      type: 'circuit',
-      position: { x: 450, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return path',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-1', source: 'battery-1', target: 'resistor-1' },
+    { id: 'edge-1', source: 'battery-1', target: 'resistor-1', sourceHandle: 'positive' },
     { id: 'edge-2', source: 'resistor-1', target: 'led-1' },
-    { id: 'edge-3', source: 'led-1', target: 'ground-1' },
-    { id: 'edge-4', source: 'ground-1', target: 'battery-1' },
+    { id: 'edge-3', source: 'led-1', target: 'battery-1', targetHandle: 'negative' },
   ],
 };
 
@@ -129,7 +113,8 @@ const parallelCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Voltage', value: 9, unit: 'V', editable: true },
-            { name: 'Type', value: 'DC', unit: '', editable: false },
+            { name: 'Current Supplied', value: 42.4, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 382, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -152,6 +137,8 @@ const parallelCircuit: CircuitDiagram = {
           properties: [
             { name: 'Color', value: 'Red', unit: '', editable: true },
             { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -173,6 +160,9 @@ const parallelCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 148, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -194,7 +184,9 @@ const parallelCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Color', value: 'Green', unit: '', editable: true },
-            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Forward Voltage', value: 2.2, unit: 'V', editable: false },
+            { name: 'Current', value: 20.6, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 45, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -216,46 +208,28 @@ const parallelCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 6.8, unit: 'V', editable: false },
+            { name: 'Current', value: 20.6, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 140, unit: 'mW', editable: false },
           ],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-p',
-      type: 'circuit',
-      position: { x: 400, y: 150 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Common return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    // Top branch: Battery -> Resistor 1 -> LED 1 -> Ground
-    { id: 'edge-p1', source: 'battery-p', target: 'res-p1' },
+    // Top branch: Battery+ -> Resistor 1 -> LED 1 -> Battery-
+    { id: 'edge-p1', source: 'battery-p', target: 'res-p1', sourceHandle: 'positive' },
     { id: 'edge-p2', source: 'res-p1', target: 'led-p1' },
-    { id: 'edge-p3', source: 'led-p1', target: 'ground-p' },
-    // Bottom branch: Battery -> Resistor 2 -> LED 2 -> Ground
-    { id: 'edge-p4', source: 'battery-p', target: 'res-p2' },
+    { id: 'edge-p3', source: 'led-p1', target: 'battery-p', targetHandle: 'negative' },
+    // Bottom branch: Battery+ -> Resistor 2 -> LED 2 -> Battery-
+    { id: 'edge-p4', source: 'battery-p', target: 'res-p2', sourceHandle: 'positive' },
     { id: 'edge-p5', source: 'res-p2', target: 'led-p2' },
-    { id: 'edge-p6', source: 'led-p2', target: 'ground-p' },
-    // Return: Ground -> Battery
-    { id: 'edge-p7', source: 'ground-p', target: 'battery-p' },
+    { id: 'edge-p6', source: 'led-p2', target: 'battery-p', targetHandle: 'negative' },
   ],
 };
 
-// Switch Circuit: Battery -> Switch -> Resistor -> LED -> Ground
+// Switch Circuit: Battery+ -> Switch -> Resistor -> LED -> Battery-
 const switchCircuit: CircuitDiagram = {
   title: 'Switch-Controlled LED',
   description: 'Using a switch to control circuit operation',
@@ -278,6 +252,8 @@ const switchCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 191, unit: 'mW', editable: false },
           ],
         },
         rotation: 0,
@@ -297,7 +273,10 @@ const switchCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'switch',
           connections: 2,
-          properties: [{ name: 'State', value: 'Open', unit: '', editable: true }],
+          properties: [
+            { name: 'State', value: 'Open', unit: '', editable: true },
+            { name: 'Resistance', value: 0, unit: 'Ω', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -316,7 +295,12 @@ const switchCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 148, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -324,7 +308,7 @@ const switchCircuit: CircuitDiagram = {
     {
       id: 'led-s',
       type: 'circuit',
-      position: { x: 500, y: 50 },
+      position: { x: 500, y: 150 },
       data: {
         component: {
           id: 'led',
@@ -335,37 +319,22 @@ const switchCircuit: CircuitDiagram = {
           category: 'output',
           icon: 'lightbulb',
           connections: 2,
-          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-s',
-      type: 'circuit',
-      position: { x: 500, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return path',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-s1', source: 'battery-s', target: 'switch-1' },
+    { id: 'edge-s1', source: 'battery-s', target: 'switch-1', sourceHandle: 'positive' },
     { id: 'edge-s2', source: 'switch-1', target: 'resistor-s' },
     { id: 'edge-s3', source: 'resistor-s', target: 'led-s' },
-    { id: 'edge-s4', source: 'led-s', target: 'ground-s' },
-    { id: 'edge-s5', source: 'ground-s', target: 'battery-s' },
+    { id: 'edge-s4', source: 'led-s', target: 'battery-s', targetHandle: 'negative' },
   ],
 };
 
@@ -390,7 +359,11 @@ const diodeCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 19.7, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 177, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -411,6 +384,8 @@ const diodeCircuit: CircuitDiagram = {
           connections: 2,
           properties: [
             { name: 'Type', value: '1N4007', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 0.7, unit: 'V', editable: false },
+            { name: 'Current', value: 19.7, unit: 'mA', editable: false },
             { name: 'Max Current', value: 1, unit: 'A', editable: false },
           ],
         },
@@ -431,7 +406,12 @@ const diodeCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 6.3, unit: 'V', editable: false },
+            { name: 'Current', value: 19.7, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 124, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -439,7 +419,7 @@ const diodeCircuit: CircuitDiagram = {
     {
       id: 'led-d',
       type: 'circuit',
-      position: { x: 500, y: 50 },
+      position: { x: 500, y: 150 },
       data: {
         component: {
           id: 'led',
@@ -450,37 +430,22 @@ const diodeCircuit: CircuitDiagram = {
           category: 'output',
           icon: 'lightbulb',
           connections: 2,
-          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-d',
-      type: 'circuit',
-      position: { x: 500, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 19.7, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 39, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-d1', source: 'battery-d', target: 'diode-1' },
+    { id: 'edge-d1', source: 'battery-d', target: 'diode-1', sourceHandle: 'positive' },
     { id: 'edge-d2', source: 'diode-1', target: 'resistor-d' },
     { id: 'edge-d3', source: 'resistor-d', target: 'led-d' },
-    { id: 'edge-d4', source: 'led-d', target: 'ground-d' },
-    { id: 'edge-d5', source: 'ground-d', target: 'battery-d' },
+    { id: 'edge-d4', source: 'led-d', target: 'battery-d', targetHandle: 'negative' },
   ],
 };
 
@@ -505,7 +470,11 @@ const voltageDividerCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 4.5, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 40.5, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -524,7 +493,12 @@ const voltageDividerCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
+          properties: [
+            { name: 'Resistance', value: 1000, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 4.5, unit: 'V', editable: false },
+            { name: 'Current', value: 4.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 20.25, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -543,7 +517,12 @@ const voltageDividerCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
+          properties: [
+            { name: 'Resistance', value: 1000, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 4.5, unit: 'V', editable: false },
+            { name: 'Current', value: 4.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 20.25, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -562,36 +541,19 @@ const voltageDividerCircuit: CircuitDiagram = {
           category: 'measurement',
           icon: 'voltmeter',
           connections: 2,
-          properties: [{ name: 'Range', value: '20V', unit: '', editable: false }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-v',
-      type: 'circuit',
-      position: { x: 250, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Reference',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Range', value: '20V', unit: '', editable: false },
+            { name: 'Voltage Reading', value: 4.5, unit: 'V', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-v1', source: 'battery-v', target: 'resistor-v1' },
+    { id: 'edge-v1', source: 'battery-v', target: 'resistor-v1', sourceHandle: 'positive' },
     { id: 'edge-v2', source: 'resistor-v1', target: 'resistor-v2' },
-    { id: 'edge-v3', source: 'resistor-v2', target: 'ground-v' },
-    { id: 'edge-v4', source: 'ground-v', target: 'battery-v' },
+    { id: 'edge-v3', source: 'resistor-v2', target: 'battery-v', targetHandle: 'negative' },
     // Voltmeter probe to junction
     { id: 'edge-v5', source: 'voltmeter-1', target: 'resistor-v1' },
     { id: 'edge-v6', source: 'voltmeter-1', target: 'resistor-v2' },
@@ -619,7 +581,11 @@ const ohmsLawCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 9, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 81, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -638,7 +604,10 @@ const ohmsLawCircuit: CircuitDiagram = {
           category: 'measurement',
           icon: 'ammeter',
           connections: 2,
-          properties: [{ name: 'Range', value: '1A', unit: '', editable: false }],
+          properties: [
+            { name: 'Range', value: '1A', unit: '', editable: false },
+            { name: 'Current Reading', value: 9, unit: 'mA', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -646,7 +615,7 @@ const ohmsLawCircuit: CircuitDiagram = {
     {
       id: 'resistor-o',
       type: 'circuit',
-      position: { x: 400, y: 50 },
+      position: { x: 400, y: 150 },
       data: {
         component: {
           id: 'resistor',
@@ -657,36 +626,21 @@ const ohmsLawCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-o',
-      type: 'circuit',
-      position: { x: 400, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Resistance', value: 1000, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 9, unit: 'V', editable: false },
+            { name: 'Current', value: 9, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 81, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-o1', source: 'battery-o', target: 'ammeter-1' },
+    { id: 'edge-o1', source: 'battery-o', target: 'ammeter-1', sourceHandle: 'positive' },
     { id: 'edge-o2', source: 'ammeter-1', target: 'resistor-o' },
-    { id: 'edge-o3', source: 'resistor-o', target: 'ground-o' },
-    { id: 'edge-o4', source: 'ground-o', target: 'battery-o' },
+    { id: 'edge-o3', source: 'resistor-o', target: 'battery-o', targetHandle: 'negative' },
   ],
 };
 
@@ -711,7 +665,11 @@ const transistorSwitchCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 191, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -730,7 +688,12 @@ const transistorSwitchCircuit: CircuitDiagram = {
           category: 'active',
           icon: 'transistor',
           connections: 3,
-          properties: [{ name: 'Type', value: 'NPN 2N2222', unit: '', editable: false }],
+          properties: [
+            { name: 'Type', value: 'NPN 2N2222', unit: '', editable: false },
+            { name: 'Base Current', value: 212, unit: 'μA', editable: false },
+            { name: 'Collector Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power', value: 4.2, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -749,7 +712,12 @@ const transistorSwitchCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'resistor',
           connections: 2,
-          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 148, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -757,7 +725,7 @@ const transistorSwitchCircuit: CircuitDiagram = {
     {
       id: 'led-t',
       type: 'circuit',
-      position: { x: 400, y: 50 },
+      position: { x: 400, y: 150 },
       data: {
         component: {
           id: 'led',
@@ -768,37 +736,22 @@ const transistorSwitchCircuit: CircuitDiagram = {
           category: 'output',
           icon: 'lightbulb',
           connections: 2,
-          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-t',
-      type: 'circuit',
-      position: { x: 400, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 21.2, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-t1', source: 'battery-t', target: 'transistor-1' },
+    { id: 'edge-t1', source: 'battery-t', target: 'transistor-1', sourceHandle: 'positive' },
     { id: 'edge-t2', source: 'transistor-1', target: 'resistor-t' },
     { id: 'edge-t3', source: 'resistor-t', target: 'led-t' },
-    { id: 'edge-t4', source: 'led-t', target: 'ground-t' },
-    { id: 'edge-t5', source: 'ground-t', target: 'battery-t' },
+    { id: 'edge-t4', source: 'led-t', target: 'battery-t', targetHandle: 'negative' },
   ],
 };
 
@@ -823,7 +776,11 @@ const motorCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 150, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 1350, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -842,7 +799,12 @@ const motorCircuit: CircuitDiagram = {
           category: 'active',
           icon: 'transistor',
           connections: 3,
-          properties: [{ name: 'Type', value: 'NPN 2N2222', unit: '', editable: false }],
+          properties: [
+            { name: 'Type', value: 'NPN 2N2222', unit: '', editable: false },
+            { name: 'Base Current', value: 1500, unit: 'μA', editable: false },
+            { name: 'Collector Current', value: 150, unit: 'mA', editable: false },
+            { name: 'Power', value: 30, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -861,7 +823,11 @@ const motorCircuit: CircuitDiagram = {
           category: 'output',
           icon: 'motor',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: false }],
+          properties: [
+            { name: 'Voltage', value: 8.8, unit: 'V', editable: false },
+            { name: 'Current', value: 150, unit: 'mA', editable: false },
+            { name: 'Power', value: 1.32, unit: 'W', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -880,37 +846,21 @@ const motorCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'diode',
           connections: 2,
-          properties: [{ name: 'Type', value: '1N4007', unit: '', editable: false }],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-m',
-      type: 'circuit',
-      position: { x: 400, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
+          properties: [
+            { name: 'Type', value: '1N4007', unit: '', editable: false },
+            { name: 'Forward Voltage', value: 0.7, unit: 'V', editable: false },
+            { name: 'Current', value: 0, unit: 'mA', editable: false },
+          ],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-m1', source: 'battery-m', target: 'transistor-m' },
+    { id: 'edge-m1', source: 'battery-m', target: 'transistor-m', sourceHandle: 'positive' },
     { id: 'edge-m2', source: 'transistor-m', target: 'motor-1' },
     { id: 'edge-m3', source: 'motor-1', target: 'diode-m' },
-    { id: 'edge-m4', source: 'diode-m', target: 'ground-m' },
-    { id: 'edge-m5', source: 'ground-m', target: 'battery-m' },
+    { id: 'edge-m4', source: 'diode-m', target: 'battery-m', targetHandle: 'negative' },
   ],
 };
 
@@ -935,7 +885,11 @@ const buzzerCircuit: CircuitDiagram = {
           category: 'source',
           icon: 'battery',
           connections: 2,
-          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 30, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 270, unit: 'mW', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -954,7 +908,10 @@ const buzzerCircuit: CircuitDiagram = {
           category: 'passive',
           icon: 'switch',
           connections: 2,
-          properties: [{ name: 'State', value: 'Open', unit: '', editable: true }],
+          properties: [
+            { name: 'State', value: 'Open', unit: '', editable: true },
+            { name: 'Resistance', value: 0, unit: 'Ω', editable: false },
+          ],
         },
         rotation: 0,
       },
@@ -962,7 +919,7 @@ const buzzerCircuit: CircuitDiagram = {
     {
       id: 'buzzer-1',
       type: 'circuit',
-      position: { x: 350, y: 50 },
+      position: { x: 350, y: 150 },
       data: {
         component: {
           id: 'buzzer',
@@ -976,37 +933,789 @@ const buzzerCircuit: CircuitDiagram = {
           properties: [
             { name: 'Type', value: 'Active', unit: '', editable: false },
             { name: 'Frequency', value: 4000, unit: 'Hz', editable: false },
+            { name: 'Current', value: 30, unit: 'mA', editable: false },
+            { name: 'Power', value: 270, unit: 'mW', editable: false },
           ],
-        },
-        rotation: 0,
-      },
-    },
-    {
-      id: 'ground-b',
-      type: 'circuit',
-      position: { x: 350, y: 250 },
-      data: {
-        component: {
-          id: 'ground',
-          type: 'ground',
-          name: 'Ground',
-          description: 'Return',
-          symbol: 'GND',
-          category: 'connection',
-          icon: 'ground',
-          connections: 1,
-          properties: [],
         },
         rotation: 0,
       },
     },
   ],
   edges: [
-    { id: 'edge-b1', source: 'battery-b', target: 'switch-b' },
+    { id: 'edge-b1', source: 'battery-b', target: 'switch-b', sourceHandle: 'positive' },
     { id: 'edge-b2', source: 'switch-b', target: 'buzzer-1' },
-    { id: 'edge-b3', source: 'buzzer-1', target: 'ground-b' },
-    { id: 'edge-b4', source: 'ground-b', target: 'battery-b' },
+    { id: 'edge-b3', source: 'buzzer-1', target: 'battery-b', targetHandle: 'negative' },
   ],
+};
+
+// ============================================================================
+// NEW ADVANCED CIRCUITS FOR EDUCATIONAL DEMONSTRATIONS
+// ============================================================================
+
+// 1. Capacitor Charging Circuit: Battery+ -> Switch -> Resistor -> Capacitor -> Battery-
+const capacitorChargingCircuit: CircuitDiagram = {
+  title: 'Capacitor Charging Circuit',
+  description: 'Watch how a capacitor charges and voltage increases over time',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-cc',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 112.5, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'switch-cc',
+      type: 'circuit',
+      position: { x: 150, y: 50 },
+      data: {
+        component: {
+          id: 'switch',
+          type: 'switch',
+          name: 'Switch',
+          description: 'Start Charging',
+          symbol: 'SW',
+          category: 'passive',
+          icon: 'switch',
+          connections: 2,
+          properties: [
+            { name: 'State', value: 'Closed', unit: '', editable: true },
+            { name: 'Resistance', value: 0, unit: 'Ω', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-cc',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor',
+          description: 'Limits Charging Current',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 680, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 8.5, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 106, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'capacitor-cc',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'capacitor',
+          type: 'capacitor',
+          name: 'Capacitor',
+          description: 'Energy Storage',
+          symbol: 'C',
+          category: 'passive',
+          icon: 'capacitor',
+          connections: 2,
+          properties: [
+            { name: 'Capacitance', value: 100, unit: 'µF', editable: true },
+            { name: 'Voltage', value: 0.5, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Charging Time', value: 4.2, unit: 's', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-cc1', source: 'battery-cc', target: 'switch-cc', sourceHandle: 'positive' },
+    { id: 'edge-cc2', source: 'switch-cc', target: 'resistor-cc' },
+    { id: 'edge-cc3', source: 'resistor-cc', target: 'capacitor-cc' },
+    { id: 'edge-cc4', source: 'capacitor-cc', target: 'battery-cc', targetHandle: 'negative' },
+  ],
+};
+
+// 2. LED Brightness Control (Voltage Divider): Battery+ -> R1 -> Divider -> R2 -> LED -> Battery-
+const voltageDividerLEDCircuit: CircuitDiagram = {
+  title: 'LED Brightness Control (Voltage Divider)',
+  description: 'Control LED brightness by adjusting voltage with a potentiometer voltage divider',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-vd',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 27.5, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 247.5, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-vd1',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor 1',
+          description: 'Upper Divider',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 3.3, unit: 'V', editable: false },
+            { name: 'Current', value: 27.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 91, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'potentiometer-vd',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'potentiometer',
+          type: 'potentiometer',
+          name: 'Potentiometer',
+          description: 'Voltage Control (50% position)',
+          symbol: 'POT',
+          category: 'passive',
+          icon: 'potentiometer',
+          connections: 3,
+          properties: [
+            { name: 'Total Resistance', value: 10000, unit: 'Ω', editable: false },
+            { name: 'Position', value: 50, unit: '%', editable: true },
+            { name: 'Output Voltage', value: 4.5, unit: 'V', editable: false },
+            { name: 'Voltage Drop', value: 1.2, unit: 'V', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-vd2',
+      type: 'circuit',
+      position: { x: 200, y: 250 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor 2',
+          description: 'Lower Divider / LED Protection',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 2.3, unit: 'V', editable: false },
+            { name: 'Current', value: 27.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 63, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-vd',
+      type: 'circuit',
+      position: { x: 350, y: 250 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Brightness Controlled',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 27.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 55, unit: 'mW', editable: false },
+            { name: 'Brightness', value: 55, unit: '%', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-vd1', source: 'battery-vd', target: 'resistor-vd1', sourceHandle: 'positive' },
+    { id: 'edge-vd2', source: 'resistor-vd1', target: 'potentiometer-vd' },
+    { id: 'edge-vd3', source: 'potentiometer-vd', target: 'resistor-vd2' },
+    { id: 'edge-vd4', source: 'resistor-vd2', target: 'led-vd' },
+    { id: 'edge-vd5', source: 'led-vd', target: 'battery-vd', targetHandle: 'negative' },
+  ],
+};
+
+// 3. Simple Oscillator/Flasher: Battery+ -> Switch -> Resistor -> Capacitor -> Transistor -> LED -> Battery-
+const oscillatorFlasherCircuit: CircuitDiagram = {
+  title: 'Simple Oscillator (Flasher)',
+  description: 'A transistor-based oscillator that makes the LED blink repeatedly',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-osc',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 45, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 405, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-osc1',
+      type: 'circuit',
+      position: { x: 150, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Base Resistor',
+          description: 'Controls Base Current',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 10000, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 1.8, unit: 'V', editable: false },
+            { name: 'Current', value: 18, unit: 'µA', editable: false },
+            { name: 'Power Dissipated', value: 32.4, unit: 'µW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'capacitor-osc',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'capacitor',
+          type: 'capacitor',
+          name: 'Timing Capacitor',
+          description: 'Controls Frequency',
+          symbol: 'C',
+          category: 'passive',
+          icon: 'capacitor',
+          connections: 2,
+          properties: [
+            { name: 'Capacitance', value: 10, unit: 'µF', editable: true },
+            { name: 'Voltage', value: 4.5, unit: 'V', editable: false },
+            { name: 'Charge', value: 45, unit: 'µC', editable: false },
+            { name: 'Frequency', value: 1.5, unit: 'Hz', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'transistor-osc',
+      type: 'circuit',
+      position: { x: 350, y: 150 },
+      data: {
+        component: {
+          id: 'transistor',
+          type: 'transistor',
+          name: 'Transistor',
+          description: '2N3904 NPN',
+          symbol: 'Q',
+          category: 'active',
+          icon: 'transistor',
+          connections: 3,
+          properties: [
+            { name: 'Type', value: 'NPN', unit: '', editable: false },
+            { name: 'Base-Emitter Voltage', value: 0.7, unit: 'V', editable: false },
+            { name: 'Collector Current', value: 45, unit: 'mA', editable: false },
+            { name: 'State', value: 'Oscillating', unit: '', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-osc',
+      type: 'circuit',
+      position: { x: 450, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Blinking Output',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current (peak)', value: 35, unit: 'mA', editable: false },
+            { name: 'Power (avg)', value: 31.5, unit: 'mW', editable: false },
+            { name: 'Frequency', value: 1.5, unit: 'Hz', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-osc1', source: 'battery-osc', target: 'resistor-osc1', sourceHandle: 'positive' },
+    { id: 'edge-osc2', source: 'resistor-osc1', target: 'capacitor-osc' },
+    { id: 'edge-osc3', source: 'capacitor-osc', target: 'transistor-osc' },
+    { id: 'edge-osc4', source: 'transistor-osc', target: 'led-osc' },
+    { id: 'edge-osc5', source: 'led-osc', target: 'battery-osc', targetHandle: 'negative' },
+  ],
+};
+
+// 4. Three LED Series Circuit: Battery+ -> R1 -> LED1 -> R2 -> LED2 -> R3 -> LED3 -> Battery-
+const threeLEDSeriesCircuit: CircuitDiagram = {
+  title: 'Three LEDs in Series',
+  description: 'See how voltage drops across each LED in a series circuit',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-3led',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 112.5, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-3led1',
+      type: 'circuit',
+      position: { x: 150, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor 1',
+          description: 'Current Limiting',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 100, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 1.25, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 15.6, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-3led1',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED 1',
+          description: 'Red',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 25, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-3led2',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED 2',
+          description: 'Green',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Green', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2.2, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 27.5, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-3led3',
+      type: 'circuit',
+      position: { x: 450, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED 3',
+          description: 'Blue',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Blue', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 3.2, unit: 'V', editable: false },
+            { name: 'Current', value: 12.5, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 40, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-3led1', source: 'battery-3led', target: 'resistor-3led1', sourceHandle: 'positive' },
+    { id: 'edge-3led2', source: 'resistor-3led1', target: 'led-3led1' },
+    { id: 'edge-3led3', source: 'led-3led1', target: 'led-3led2' },
+    { id: 'edge-3led4', source: 'led-3led2', target: 'led-3led3' },
+    { id: 'edge-3led5', source: 'led-3led3', target: 'battery-3led', targetHandle: 'negative' },
+  ],
+};
+
+// 5. Battery with Load: Battery -> Ammeter -> Variable Resistor -> Battery- (Power Consumption)
+const batteryLoadCircuit: CircuitDiagram = {
+  title: 'Battery with Load (Power Consumption)',
+  description: 'Observe how an ammeter measures current draw and power consumption changes',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-load',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '12V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 12, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 240, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 2880, unit: 'mW', editable: false },
+            { name: 'Internal Resistance', value: 0.5, unit: 'Ω', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ammeter-load',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'ammeter',
+          type: 'ammeter',
+          name: 'Ammeter',
+          description: 'Current Measurement',
+          symbol: 'A',
+          category: 'measurement',
+          icon: 'ammeter',
+          connections: 2,
+          properties: [
+            { name: 'Current', value: 240, unit: 'mA', editable: false },
+            { name: 'Internal Resistance', value: 0.1, unit: 'Ω', editable: false },
+            { name: 'Max Current', value: 1, unit: 'A', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'potentiometer-load',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'potentiometer',
+          type: 'potentiometer',
+          name: 'Variable Resistor (Load)',
+          description: 'Adjustable Load - 50Ω position',
+          symbol: 'POT',
+          category: 'passive',
+          icon: 'potentiometer',
+          connections: 3,
+          properties: [
+            { name: 'Total Resistance', value: 100, unit: 'Ω', editable: false },
+            { name: 'Current Position', value: 50, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 12, unit: 'V', editable: false },
+            { name: 'Current Through', value: 240, unit: 'mA', editable: false },
+            { name: 'Power Consumed', value: 2880, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-load1', source: 'battery-load', target: 'ammeter-load', sourceHandle: 'positive' },
+    { id: 'edge-load2', source: 'ammeter-load', target: 'potentiometer-load' },
+    { id: 'edge-load3', source: 'potentiometer-load', target: 'battery-load', targetHandle: 'negative' },
+  ],
+};
+
+// 6. Light Sensor Circuit: Battery+ -> R1 -> LDR -> R2 (divider) -> LED -> Battery-
+const lightSensorCircuit: CircuitDiagram = {
+  title: 'Light Sensor Circuit (Photoresistor)',
+  description: 'See how a photoresistor (LDR) changes resistance based on light and affects LED brightness',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-ls',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V Power Source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Current Supplied', value: 18, unit: 'mA', editable: false },
+            { name: 'Power Output', value: 162, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-ls1',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Series Resistor',
+          description: 'Current Limiting',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 220, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 1.8, unit: 'V', editable: false },
+            { name: 'Current', value: 18, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 32.4, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ldr-ls',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'potentiometer',
+          type: 'potentiometer',
+          name: 'Photoresistor (LDR)',
+          description: 'Light Sensor - Medium Light',
+          symbol: 'LDR',
+          category: 'passive',
+          icon: 'potentiometer',
+          connections: 3,
+          properties: [
+            { name: 'Resistance (Dark)', value: 100000, unit: 'Ω', editable: false },
+            { name: 'Resistance (Bright)', value: 500, unit: 'Ω', editable: false },
+            { name: 'Current Resistance', value: 5000, unit: 'Ω', editable: true },
+            { name: 'Light Level', value: 50, unit: '%', editable: false },
+            { name: 'Voltage Output', value: 4.5, unit: 'V', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-ls2',
+      type: 'circuit',
+      position: { x: 200, y: 250 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Load Resistor',
+          description: 'Voltage Divider',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 4700, unit: 'Ω', editable: true },
+            { name: 'Voltage Drop', value: 3.2, unit: 'V', editable: false },
+            { name: 'Current', value: 18, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 57.6, unit: 'mW', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-ls',
+      type: 'circuit',
+      position: { x: 350, y: 250 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Light Indicator',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Yellow', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Current', value: 18, unit: 'mA', editable: false },
+            { name: 'Power Dissipated', value: 36, unit: 'mW', editable: false },
+            { name: 'Brightness', value: 60, unit: '%', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-ls1', source: 'battery-ls', target: 'resistor-ls1', sourceHandle: 'positive' },
+    { id: 'edge-ls2', source: 'resistor-ls1', target: 'ldr-ls' },
+    { id: 'edge-ls3', source: 'ldr-ls', target: 'resistor-ls2' },
+    { id: 'edge-ls4', source: 'resistor-ls2', target: 'led-ls' },
+    { id: 'edge-ls5', source: 'led-ls', target: 'battery-ls', targetHandle: 'negative' },
+  ],
+};
+
+// ============================================================================
+// EXPORT ALL CIRCUITS FOR USE IN TUTORIALS
+// ============================================================================
+
+export const allCircuits = {
+  simpleSeriesCircuit,
+  parallelCircuit,
+  switchCircuit,
+  diodeCircuit,
+  voltageDividerCircuit,
+  ohmsLawCircuit,
+  transistorSwitchCircuit,
+  motorCircuit,
+  buzzerCircuit,
+  capacitorChargingCircuit,
+  voltageDividerLEDCircuit,
+  oscillatorFlasherCircuit,
+  threeLEDSeriesCircuit,
+  batteryLoadCircuit,
+  lightSensorCircuit,
 };
 
 // ============================================================================
@@ -1075,6 +1784,7 @@ Something useful that uses the electricity!
 
 If ANY part is missing, the circuit won't work!`,
         type: 'text',
+        visualizeComponents: ['battery', 'wire', 'led'],
         completed: false,
       },
       {
@@ -1125,6 +1835,7 @@ A **resistor** is like a speed bump for electricity. It slows down the flow of e
 
 Without resistors, many circuits would break or even catch fire! 🔥`,
         type: 'text',
+        visualizeComponents: ['resistor'],
         completed: false,
       },
       {
@@ -1200,6 +1911,7 @@ A **330Ω** or **470Ω** resistor would work great!
 
 LEDs are used in phone screens, traffic lights, and even your TV!`,
         type: 'text',
+        visualizeComponents: ['led'],
         completed: false,
       },
       {
@@ -1560,6 +2272,7 @@ Imagine a bucket that fills with water (energy) when you pour it in, then pours 
 
 When voltage is applied, electrons pile up on one side creating stored energy!`,
         type: 'text',
+        visualizeComponents: ['capacitor'],
         completed: false,
       },
       {
@@ -1652,6 +2365,7 @@ Look for the stripe on the diode - that's the cathode side!
 👉 **See a diode protecting a circuit below:**`,
         type: 'diagram',
         circuit: diodeCircuit,
+        visualizeComponents: ['diode'],
         completed: false,
       },
       {
@@ -1981,6 +2695,155 @@ Use a transistor to control the buzzer with a tiny signal. Perfect for security 
     ],
   },
   {
+    id: 'understanding-ground',
+    title: 'Understanding Ground',
+    description: 'Learn what ground really is and how it completes the circuit!',
+    difficulty: 'beginner',
+    duration: '12 min',
+    category: 'Fundamentals',
+    icon: '⏚',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'What is Ground?',
+        content: `# The Circuit's Return Path! 🔄
+
+**Ground** (GND) is the 0-volt reference point in your circuit. It's where current returns to complete the loop back to the power source.
+
+## Important Concepts:
+
+### Ground is NOT a "drain"
+Ground doesn't "remove" or "absorb" current. Current must flow in a complete loop - from the positive terminal, through your circuit, to ground, and back to the negative terminal of the battery.
+
+### Ground is a Reference Point
+- All voltages are measured relative to ground (0V)
+- Ground connects to the negative terminal of your power source
+- It provides the return path for current to flow
+
+## Think of it Like Water:
+Water flows in a complete loop through pipes. Ground is like the return pipe that brings water back to the pump. The water isn't "removed" - it just completes the cycle!`,
+        type: 'text',
+        visualizeComponents: ['ground', 'battery'],
+        completed: false,
+      },
+      {
+        id: 'step-1b',
+        title: 'Two Meanings of "Ground"',
+        content: `# 0V Return vs Earth Ground 🌍
+
+"Ground" is used in two common ways. Knowing the difference prevents mistakes:
+
+## 1) Circuit Ground (0V, Common, Return)
+- The 0V reference for your circuit
+- Usually tied to the battery's negative (−) terminal in battery-powered circuits
+- Provides the return path so current can complete the loop
+- Shown as the standard ground symbol (⏚)
+
+## 2) Earth/Chassis Ground (Protective Ground)
+- A safety connection to the physical earth or metal chassis
+- Used in mains-powered equipment to carry FAULT current safely to earth
+- Not a sink for "excess power" during normal operation
+- Marked with an earth ground symbol (often three descending lines)
+
+## Myth vs Reality
+- ❌ Myth: "Ground absorbs extra electricity"
+- ✅ Reality: In normal operation, current flows in closed loops. Circuit ground is just the 0V reference/return. Earth ground is for safety in fault conditions.
+
+## Quick Rule of Thumb
+- Battery/low-voltage electronics: ground ≈ negative terminal (0V reference)
+- Mains/safety contexts: earth ground = protective conductor for faults, not a return path for your signal currents`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Current Flow and Ground',
+        content: `# Current MUST Complete the Loop! ⚡🔁
+
+## The Complete Circuit:
+1. **Battery positive (+)** → pushes current out
+2. **Through components** → LED, resistor, etc.
+3. **To ground (GND)** → the 0V reference point
+4. **Back to battery negative (-)** → completes the loop
+
+## Key Points:
+
+### Current Doesn't Disappear
+- Current flows FROM positive TO ground
+- Then FROM ground BACK TO battery negative
+- Same current throughout the entire loop
+- Ground is just a convenient reference point
+
+### Ground Connections:
+- Only has ONE connection point (terminal)
+- Acts as a common connection for multiple circuits
+- Simplifies circuit diagrams
+- Represents the return path
+
+## Why It's Called "Ground":
+Originally, circuits were connected to the actual earth ground for safety. In modern electronics, "ground" is just the 0V reference - it may or may not be connected to earth.`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Common Ground Mistakes',
+        content: `# Avoid These Errors! ⚠️
+
+## Mistake 1: Thinking Ground "Removes" Current
+❌ **Wrong:** "Current flows to ground and disappears"
+✅ **Right:** "Current flows through ground back to the power source"
+
+## Mistake 2: Not Completing the Circuit
+❌ **Wrong:** Battery → LED → Ground (incomplete!)
+✅ **Right:** Battery → LED → Ground → back to Battery
+
+## Mistake 3: Confusing Ground with Negative
+While ground often connects to battery negative:
+- **Ground** = 0V reference point
+- **Negative terminal** = the actual battery connection
+- They're connected, but ground is the common reference for the whole circuit
+
+## Mistake 4: Multiple Grounds Not Connected
+- All ground symbols in a circuit are connected together
+- They represent the same 0V point
+- This simplifies wiring diagrams`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-4',
+        title: 'Interactive: Build a Complete Circuit',
+        content: `# Practice Time! 🛠️
+
+Build a proper circuit with ground:
+
+## Requirements:
+1. Add a **Battery** (power source)
+2. Add a **Resistor** (current limiter)
+3. Add an **LED** (load)
+4. Add **Ground** (return path reference)
+5. **Connect**: Battery + → Resistor → LED → Ground
+6. **Important**: Wire ground back to battery negative!
+
+## What You'll Learn:
+- How current flows in a complete loop
+- Why ground is necessary
+- That ground is a connection point, not an endpoint
+
+Remember: **Electricity only flows in complete loops!**`,
+        type: 'interactive',
+        validationCriteria: {
+          requireComponents: ['battery', 'resistor', 'led', 'ground'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
+        completed: false,
+      },
+    ],
+  },
+  {
     id: 'breadboards',
     title: 'Using Breadboards',
     description: 'Master the essential tool for prototyping circuits!',
@@ -2019,6 +2882,8 @@ Breadboards have rows and columns of holes. Inside are metal clips that connect 
 - Blue/Black line = Negative rail (-)
 - ALL holes in a rail are connected together
 - Use for power distribution
+
+> Note: In battery-powered circuits, the blue/black rail often serves as **ground (0V)** and is typically tied to the battery's negative (−) terminal. This does not "dump excess power" — it provides the return path to complete the circuit loop.
 
 ## Center Rows:
 - Holes in each row (a-e or f-j) are connected
@@ -3529,6 +4394,365 @@ export const futureTutorialCategories = [
       'Shift Registers',
       'Multiplexers',
       'State Machines',
+    ],
+  },
+
+  // New Practice Tutorials Using Enhanced Circuits
+  {
+    id: 'voltage-dividers-led-control',
+    title: 'Voltage Dividers - Control LED Brightness',
+    description: 'Use a potentiometer to control LED brightness with a voltage divider',
+    difficulty: 'intermediate',
+    duration: '20 min',
+    category: 'Components',
+    icon: '🔅',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'What is a Voltage Divider?',
+        content: `# Split the Voltage! ⚡
+
+A **voltage divider** is a clever way to get a fraction of your battery voltage!
+
+## The Concept:
+Two resistors in series create a "tap" between them where you get a voltage between 0V and battery voltage.
+
+## Formula:
+\`V_out = V_in × (R2 / (R1 + R2))\`
+
+## Example:
+- 9V battery
+- R1 = R2 = 1kΩ
+- V_out = 9V × (1kΩ / 2kΩ) = **4.5V** ✅
+
+Perfect for controlling brightness, analog sensors, and audio circuits!`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Interactive Voltage Divider',
+        content: `# See It In Action! 👀
+
+Watch how changing the potentiometer position changes the LED brightness:`,
+        type: 'diagram',
+        circuit: voltageDividerLEDCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Real-World Applications',
+        content: `# Where's the Voltage Divider? 🌍
+
+Voltage dividers are EVERYWHERE:
+
+1. **Volume Controls** - Your speaker volume uses this!
+2. **Brightness Sensors** - Phone auto-brightness
+3. **Temperature Sensors** - Thermometers in circuits
+4. **Joysticks** - Game controller analog sticks
+5. **Microphone Preamps** - Audio recording equipment
+
+**Challenge:** Can you build your own voltage divider and measure the middle voltage? 🎯`,
+        type: 'text',
+        completed: false,
+      },
+    ],
+  },
+
+  {
+    id: 'oscillators-and-timing',
+    title: 'Oscillators - Make Things Blink!',
+    description: 'Learn about oscillators that create repeating signals',
+    difficulty: 'advanced',
+    duration: '25 min',
+    category: 'Components',
+    icon: '⏱️',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'What is an Oscillator?',
+        content: `# The Heartbeat of Electronics! 💓
+
+An **oscillator** is a circuit that automatically switches on and off over and over.
+
+## Key Components:
+1. **Transistor** - The switch
+2. **Capacitor** - Creates timing
+3. **Resistor** - Controls speed
+4. **Battery** - Powers it
+
+## The Magic:
+- Capacitor charges through resistor
+- Transistor switches ON when voltage rises
+- Capacitor discharges through transistor
+- Capacitor voltage falls, transistor turns OFF
+- Cycle repeats! 🔄
+
+## Frequency Formula:
+\`f ≈ 0.7 / (R × C)\`
+
+Where R is in ohms and C is in farads!`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Blinking LED Circuit',
+        content: `# Make an LED Blink! 📟
+
+Here's an oscillator circuit that makes an LED blink automatically:`,
+        type: 'diagram',
+        circuit: oscillatorFlasherCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Make It Faster or Slower',
+        content: `# Control the Blink Speed! ⚡
+
+Try these modifications:
+
+## To Make It Blink FASTER:
+- Decrease R (smaller resistor)
+- Decrease C (smaller capacitor)
+- Example: 1kΩ and 10µF = ~70 blinks per second! ⚡⚡⚡
+
+## To Make It Blink SLOWER:
+- Increase R (bigger resistor)
+- Increase C (bigger capacitor)
+- Example: 100kΩ and 100µF = 1 blink per minute 🐢
+
+**Real Devices Using Oscillators:**
+- 🚗 Car turn signals
+- 📱 Phone vibration patterns
+- 🎵 Music synthesizers (generate tones!)
+- ⏰ Digital clocks
+- 📡 Radio transmitters`,
+        type: 'text',
+        completed: false,
+      },
+    ],
+  },
+
+  {
+    id: 'series-led-circuits',
+    title: 'Series Circuits - More Than One LED',
+    description: 'Connect multiple LEDs in series and understand voltage distribution',
+    difficulty: 'beginner',
+    duration: '15 min',
+    category: 'Circuits',
+    icon: '🟡',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'One LED vs Multiple LEDs',
+        content: `# Stacking LEDs! 🪜
+
+When LEDs are connected in **series**, they add up!
+
+## Voltage Drop Rule:
+Each LED drops about **2V**
+
+### Example 1: One LED
+- Battery: 9V
+- LED1: 2V drop
+- Resistor: 7V drop ✅
+
+### Example 2: Three LEDs
+- Battery: 9V
+- LED1: 2V drop
+- LED2: 2V drop  
+- LED3: 2V drop
+- Resistor: 3V drop ✅
+- Total: 9V ✓
+
+**Key Insight:** Same current flows through ALL components!`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Three-LED Circuit',
+        content: `# See Red, Green, Blue! 🌈
+
+Check out a circuit with 3 different colored LEDs in series:`,
+        type: 'diagram',
+        circuit: threeLEDSeriesCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Brightness Comparison',
+        content: `# Why Less Bright? 💡
+
+When LEDs are in series, they share the voltage and brightness!
+
+## The Trade-off:
+| Config | Brightness | Pros | Cons |
+|--------|-----------|------|------|
+| 1 LED | 100% | Max brightness | Limited |
+| 2 LEDs | ~75% | More variety | Some loss |
+| 3 LEDs | ~60% | Rainbow! 🌈 | Dimmer |
+
+## Design Tips:
+- Use **series** when you want multiple effects
+- Use **parallel** when you need full brightness
+- Mix them for cool multi-color displays! ✨`,
+        type: 'text',
+        completed: false,
+      },
+    ],
+  },
+
+  {
+    id: 'current-and-power-meter',
+    title: 'Measuring Current and Power',
+    description: 'Use an ammeter to measure current and calculate power consumption',
+    difficulty: 'intermediate',
+    duration: '20 min',
+    category: 'Measurement',
+    icon: '⚙️',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'What is Current?',
+        content: `# Electrons on the Move! 🏃
+
+**Current** is the flow of electrons through a circuit, measured in **Amperes (A)** or **milliamps (mA)**.
+
+## Think of It Like Water:
+- Voltage = Water Pressure
+- Current = How much water flows
+- Resistance = Size of the pipe
+
+## Ohm's Law (Again!):
+\`I = V / R\`
+
+- Increase voltage → More current
+- Increase resistance → Less current
+
+## Safe Ranges:
+- **< 5mA** - Safe to touch! 🟢
+- **5-50mA** - Painful, can interfere with heartbeat ⚠️
+- **> 50mA** - Extremely dangerous 🔴
+
+**Always be careful with electricity!**`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Ammeter in Action',
+        content: `# Measure the Flow! 📊
+
+Here's a circuit with an ammeter showing current draw:`,
+        type: 'diagram',
+        circuit: batteryLoadCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Power Consumption',
+        content: `# How Much Energy? ⚡
+
+**Power** tells us how much energy is being used per second!
+
+## Formula:
+\`P = V × I\`
+
+Power in Watts (W), Voltage in Volts, Current in Amps
+
+## Examples:
+- LED (2V, 20mA): P = 2 × 0.020 = **0.04W** = 40mW
+- Motor (9V, 150mA): P = 9 × 0.150 = **1.35W** = 1350mW
+- Your Phone: ~5W
+- Light Bulb: ~60W
+- Your House: ~1000-5000W total!
+
+## Cost Calculator:
+1kWh costs about $0.12 in the US
+
+If your phone charges at 5W:
+- 1 hour charging = 0.005 kWh
+- Cost = 0.005 × $0.12 = **$0.0006** ✅ (less than 1 cent!)`,
+        type: 'text',
+        completed: false,
+      },
+    ],
+  },
+
+  {
+    id: 'light-sensing-circuit',
+    title: 'Light Sensors - Photoresistors',
+    description: 'Build a circuit that responds to light levels',
+    difficulty: 'intermediate',
+    duration: '20 min',
+    category: 'Sensors',
+    icon: '🔦',
+    progress: 0,
+    steps: [
+      {
+        id: 'step-1',
+        title: 'What is a Photoresistor?',
+        content: `# Light Changes Resistance! 🌞
+
+A **Photoresistor (LDR - Light Dependent Resistor)** is magical - its resistance changes with light!
+
+## How It Works:
+- **Bright light** → Low resistance (100Ω) 💡
+- **Darkness** → High resistance (1MΩ) 🌙
+
+## Physics:
+When photons hit the semiconductor material, they knock electrons loose, allowing current to flow more easily!
+
+## Applications:
+1. **Auto brightness** - Your phone screen 📱
+2. **Street lights** - Turn on at dusk 🛣️
+3. **Camera exposure** - Adjust for light levels 📸
+4. **Burglar alarms** - Detect intruders 🚨`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Light Sensor Circuit',
+        content: `# See the LED React to Light! 🌞➡️🌙
+
+This circuit uses a voltage divider with an LDR to control LED brightness:`,
+        type: 'diagram',
+        circuit: lightSensorCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-3',
+        title: 'Build Your Own Light Detector',
+        content: `# DIY Light Meter! 🔧
+
+Create a circuit that automatically:
+- ✅ Turns ON at night (darkness)
+- ✅ Turns OFF during day (light)
+- ✅ Adjusts brightness based on ambient light
+
+## Challenge Project:
+1. Use an LDR in a voltage divider
+2. Connect output to transistor base
+3. Transistor drives the LED
+4. Test it with your phone's flashlight! 📱💡
+
+## Real Products:
+- 🏠 Home automation sensors
+- 🚗 Automotive light sensors  
+- 💡 Smart lighting systems
+- 🌳 Outdoor decorative lights
+
+**Bonus:** Can you add a temperature sensor too? 🌡️`,
+        type: 'text',
+        completed: false,
+      },
     ],
   },
 ];

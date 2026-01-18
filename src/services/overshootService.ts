@@ -3,7 +3,7 @@ import { RealtimeVision, StreamClient, type StreamInferenceResult } from '@overs
 
 // Overshoot API configuration
 const OVERSHOOT_API_URL = 'https://cluster1.overshoot.ai/api/v0.2';
-const OVERSHOOT_API_KEY = 'ovs_3869c2f26aff295082c87e4a4fb75a3a';
+const OVERSHOOT_API_KEY = import.meta.env.VITE_OVERSHOOT_API_KEY;
 
 // OpenRouter API for Gemini fallback
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;

@@ -405,8 +405,8 @@ export const circuitComponents: CircuitComponent[] = [
   {
     id: 'ground',
     type: 'ground',
-    name: 'Ground',
-    description: 'The reference point at 0 volts in a circuit. All voltages are measured relative to ground.',
+    name: 'Earth Ground',
+    description: 'Earth or chassis ground for safety and noise reduction. Used to connect metal enclosures to earth for protection against electric shock, or as a reference for sensitive circuits. For simple battery-powered circuits, connect components directly back to the battery negative terminal to complete the loop.',
     symbol: 'GND',
     category: 'connection',
     icon: 'ground',
