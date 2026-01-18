@@ -160,34 +160,22 @@ const PriceDisplay: React.FC<{
       onClick={onSelect}
       className={`w-full flex items-center justify-between p-3 rounded-lg transition-all relative ${
         isBest 
-          ? 'bg-gradient-to-r from-duo-green/30 to-duo-green/10 border-2 border-duo-green shadow-[0_0_25px_rgba(34,197,94,0.35)]' 
+          ? 'bg-dark-800 border-2 border-duo-green' 
           : isSelected 
             ? 'bg-dark-750 border border-dark-600' 
             : 'bg-dark-800 border border-dark-700 hover:border-dark-600'
       }`}
     >
-      {/* Best price indicator ribbon */}
-      {isBest && (
-        <div className="absolute -top-1 -right-1 bg-duo-green text-dark-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg rounded-tr-lg shadow-lg">
-          BEST DEAL
-        </div>
-      )}
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-start gap-1">
           <VendorBadge vendor={price.vendor} isSelected={isSelected || isBest} />
           <span className={`text-[10px] ${isNexarLive ? 'text-red-400' : isLive ? 'text-green-400' : 'text-dark-500'}`}>
-            {isNexarLive ? '🔴 Nexar Live' : isLive ? '● Live Price' : '○ Estimated'}
+            {isNexarLive ? '🔴 Nexar Live' : isLive ? '● Live Price' : ''}
           </span>
         </div>
-        {isBest && (
-          <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold text-dark-900 bg-duo-green rounded-full">
-            <TrendingDown size={12} />
-            LOWEST PRICE
-          </span>
-        )}
       </div>
       <div className="flex items-center gap-3">
-        <span className={`font-mono text-xl font-bold ${isBest ? 'text-duo-green' : isSelected ? 'text-dark-100' : 'text-dark-200'}`}>
+        <span className={`font-[family-name:var(--font-fredoka)] text-lg font-bold ${isBest ? 'text-duo-green' : isSelected ? 'text-dark-100' : 'text-dark-200'}`}>
           ${price.price.toFixed(2)}
         </span>
         {price.inStock ? (
@@ -258,9 +246,9 @@ const ComponentPriceCard: React.FC<{
         <div className="flex items-center gap-3">
           <ComponentIcon componentType={pricing.componentType} />
           <div className="text-left">
-            <h4 className="font-medium text-dark-200">{pricing.componentName}</h4>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-dark-500">
+            <h4 className="font-[family-name:var(--font-fredoka)] font-semibold text-dark-200">{pricing.componentName}</h4>
+            <div className="flex flex-col gap-1 mt-1">
+              <span className="text-sm font-[family-name:var(--font-fredoka)] font-medium text-dark-300">
                 {pricing.componentType} × {quantity}
               </span>
               {pricing.bestPrice && (
@@ -268,7 +256,7 @@ const ComponentPriceCard: React.FC<{
                   href={pricing.bestPrice.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-duo-green font-medium inline-flex items-center gap-1 hover:underline"
+                  className="text-xs text-duo-green font-medium inline-flex items-center gap-1 hover:underline w-fit"
                   title={`Open ${vendorDisplayNames[pricing.bestPrice.vendor]} link`}
                 >
                   via {vendorDisplayNames[pricing.bestPrice.vendor]}
@@ -281,15 +269,10 @@ const ComponentPriceCard: React.FC<{
         <div className="flex items-center gap-3">
           {activeVendor && (
             <div className="text-right">
-              <div className="flex items-center gap-1 justify-end">
-                {activeVendor === pricing.bestPrice && (
-                  <TrendingDown size={14} className="text-duo-green" />
-                )}
-                <p className="font-mono text-lg font-bold text-duo-green">
-                  ${(activeVendor.price * quantity).toFixed(2)}
-                </p>
-              </div>
-              <p className="text-xs text-dark-500">
+              <p className="font-[family-name:var(--font-fredoka)] text-sm font-bold text-duo-green">
+                ${(activeVendor.price * quantity).toFixed(2)}
+              </p>
+              <p className="text-xs text-dark-400 font-[family-name:var(--font-fredoka)]">
                 ${activeVendor.price.toFixed(2)} each
               </p>
             </div>
@@ -304,15 +287,13 @@ const ComponentPriceCard: React.FC<{
       
       {/* Expanded vendor options */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-2 border-t border-dark-700 pt-3">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-dark-500">Compare prices from {pricing.prices.length} vendors:</p>
-            {pricing.bestPrice && (
-              <p className="text-xs text-duo-green font-medium">
-                Lowest: ${pricing.bestPrice.price.toFixed(2)} at {vendorDisplayNames[pricing.bestPrice.vendor]}
-              </p>
-            )}
-          </div>
+        <div className="px-4 pb-4 space-y-3 border-t border-dark-700 pt-4">
+          <p className="text-xs text-dark-500 font-[family-name:var(--font-fredoka)]">Compare prices from {pricing.prices.length} vendors:</p>
+          {pricing.bestPrice && (
+            <p className="text-sm text-duo-green font-[family-name:var(--font-fredoka)] font-medium">
+              Lowest: ${pricing.bestPrice.price.toFixed(2)} at {vendorDisplayNames[pricing.bestPrice.vendor]}
+            </p>
+          )}
           {pricing.prices.map((price) => (
             <PriceDisplay
               key={price.vendor}
@@ -325,7 +306,7 @@ const ComponentPriceCard: React.FC<{
           
           {/* Part numbers and links */}
           <div className="mt-4 pt-3 border-t border-dark-700">
-            <p className="text-xs text-dark-500 mb-2">Part Numbers & Links:</p>
+            <p className="text-xs text-dark-500 mb-2 font-[family-name:var(--font-fredoka)]">Part Numbers & Links:</p>
             <div className="space-y-1">
               {pricing.prices.map((price) => (
                 <div key={price.vendor} className="flex items-center justify-between text-xs">
@@ -472,7 +453,7 @@ const ShopPanel: React.FC = () => {
               <h2 className="font-display font-bold text-dark-200">Shop Parts</h2>
               {apiStatus.checked && (
                 <span 
-                  className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${
+                  className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-[family-name:var(--font-fredoka)] ${
                     apiStatus.available 
                       ? 'bg-green-500/20 text-green-400' 
                       : 'bg-amber-500/20 text-amber-400'
@@ -484,7 +465,7 @@ const ShopPanel: React.FC = () => {
                 </span>
               )}
             </div>
-            <p className="text-xs text-dark-500">
+            <p className="text-xs text-dark-500 font-[family-name:var(--font-fredoka)]">
               {canvasComponents.length} components on canvas
             </p>
           </div>
@@ -498,7 +479,7 @@ const ShopPanel: React.FC = () => {
       </div>
       
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
         {canvasComponents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-16 h-16 bg-dark-800 rounded-2xl flex items-center justify-center mb-4">
@@ -527,29 +508,29 @@ const ShopPanel: React.FC = () => {
             </button>
             
             {/* Summary stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-dark-800 rounded-xl border border-dark-700">
-                <div className="flex items-center gap-2 text-dark-500 mb-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-dark-800 rounded-xl border border-dark-700">
+                <div className="flex items-center gap-2 text-dark-500 mb-2">
                   <Package size={14} />
-                  <span className="text-xs">Components</span>
+                  <span className="text-xs font-medium font-[family-name:var(--font-fredoka)]">Components</span>
                 </div>
-                <p className="font-mono font-semibold text-dark-200">
+                <p className="font-[family-name:var(--font-fredoka)] font-semibold text-lg text-dark-200">
                   {canvasComponents.reduce((sum, c) => sum + c.count, 0)}
                 </p>
               </div>
-              <div className="p-3 bg-dark-800 rounded-xl border border-dark-700">
-                <div className="flex items-center gap-2 text-dark-500 mb-1">
+              <div className="p-4 bg-dark-800 rounded-xl border border-dark-700">
+                <div className="flex items-center gap-2 text-dark-500 mb-2">
                   <Check size={14} />
-                  <span className="text-xs">In Stock</span>
+                  <span className="text-xs font-medium font-[family-name:var(--font-fredoka)]">In Stock</span>
                 </div>
-                <p className="font-mono font-semibold text-green-500">
+                <p className="font-[family-name:var(--font-fredoka)] font-semibold text-lg text-green-500">
                   {inStockCount}/{Object.keys(pricing).length}
                 </p>
               </div>
             </div>
             
             {/* Component list */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="text-xs font-display font-semibold text-dark-500 uppercase tracking-wider">
                 Parts List
               </h3>
@@ -578,46 +559,14 @@ const ShopPanel: React.FC = () => {
       
       {/* Footer with total */}
       {canvasComponents.length > 0 && Object.keys(pricing).length > 0 && (
-        <div className="p-4 border-t-2 border-dark-700 space-y-3">
-          {/* Best Price Summary */}
-          {(() => {
-            // Calculate potential savings
-            const lowestTotal = Object.values(pricing).reduce((sum, p) => {
-              const comp = canvasComponents.find(c => c.id === p.componentId);
-              const qty = comp?.count || 1;
-              return sum + (p.bestPrice?.price || 0) * qty;
-            }, 0);
-            
-            const highestTotal = Object.values(pricing).reduce((sum, p) => {
-              const comp = canvasComponents.find(c => c.id === p.componentId);
-              const qty = comp?.count || 1;
-              const highestPrice = Math.max(...p.prices.map(pr => pr.price), 0);
-              return sum + highestPrice * qty;
-            }, 0);
-            
-            const savings = highestTotal - lowestTotal;
-            
-            return (
-              <div className="p-3 bg-dark-800 rounded-xl border border-duo-green/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown size={16} className="text-duo-green" />
-                  <span className="text-xs font-medium text-duo-green">Using Lowest Prices</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-dark-400">You save:</span>
-                  <span className="font-mono font-bold text-duo-green">${savings.toFixed(2)}</span>
-                </div>
-              </div>
-            );
-          })()}
-          
+        <div className="p-3 border-t-2 border-dark-700 space-y-2">
           {/* Total price */}
           <div className="flex items-center justify-between p-3 bg-duo-green/10 rounded-xl border border-duo-green/30">
             <div className="flex items-center gap-2">
-              <DollarSign size={20} className="text-duo-green" />
-              <span className="font-display font-semibold text-dark-200">Estimated Total</span>
+              <DollarSign size={18} className="text-duo-green" />
+              <span className="font-[family-name:var(--font-fredoka)] font-semibold text-dark-200 text-sm">Estimated Total</span>
             </div>
-            <span className="font-mono text-xl font-bold text-duo-green">
+            <span className="font-[family-name:var(--font-fredoka)] text-xl font-bold text-duo-green">
               ${totalPrice.toFixed(2)}
             </span>
           </div>
@@ -625,13 +574,13 @@ const ShopPanel: React.FC = () => {
           {/* Export button */}
           <button
             onClick={handleExport}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-duo-green text-dark-900 font-semibold rounded-xl hover:bg-duo-green/90 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-duo-green text-dark-900 font-[family-name:var(--font-fredoka)] font-semibold rounded-xl hover:bg-duo-green/90 transition-all text-sm"
           >
-            <Download size={18} />
+            <Download size={16} />
             Download Parts List (CSV)
           </button>
           
-          <p className="text-xs text-dark-500 text-center">
+          <p className="text-xs text-dark-500 text-center leading-tight font-[family-name:var(--font-fredoka)]">
             {apiStatus.available 
               ? 'Live prices from Octopart, ComponentsCSE, and Amazon. Click component to compare all vendors.' 
               : 'Prices are estimates and may vary. Start the server for live prices.'}

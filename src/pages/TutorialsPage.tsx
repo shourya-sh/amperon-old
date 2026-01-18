@@ -154,9 +154,9 @@ const TutorialsPage: React.FC = () => {
     <div className="h-full overflow-y-auto bg-dark-900">
       {/* Top Header Bar */}
       <div className="sticky top-0 z-20 bg-dark-900/95 backdrop-blur-sm border-b border-dark-800">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-display font-bold text-dark-100">Learn</h1>
+            <h1 className="text-3xl font-display font-bold text-dark-100">Learn</h1>
           </div>
           
           {/* Currency Display */}
@@ -176,20 +176,20 @@ const TutorialsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Progress Card - Compact */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-dark-800 rounded-2xl border border-dark-700 flex items-center gap-4"
+          className="mb-8 p-6 bg-dark-800 rounded-2xl border border-dark-700 flex items-center gap-6"
         >
-          <div className="w-14 h-14 rounded-full bg-duo-green/20 flex items-center justify-center shrink-0">
-            <span className="font-display font-bold text-xl text-duo-green">
+          <div className="w-16 h-16 rounded-full bg-duo-green/20 flex items-center justify-center shrink-0">
+            <span className="font-display font-bold text-2xl text-duo-green">
               {Math.round((completedCount / totalTutorials) * 100)}%
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-display font-bold text-dark-100">Your Progress</h2>
+            <h2 className="font-display font-bold text-lg text-dark-100">Your Progress</h2>
             <div className="flex items-center gap-3 mt-1">
               <div className="flex-1 h-2 bg-dark-700 rounded-full overflow-hidden">
                 <motion.div
@@ -225,65 +225,54 @@ const TutorialsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Curved Snake Path - 4 items per row */}
-              <div className="relative">
-                {/* SVG Path connecting nodes */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
-                  <defs>
-                    <linearGradient id={`path-gradient-${section.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#22c55e" stopOpacity="0.5" />
-                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0.2" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-
-                {/* Grid of tutorial nodes - snake pattern */}
-                <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+              {/* Tutorial Nodes - Simple grid with visual state indicators */}
+              <div className="relative py-4">
+                {/* Grid of tutorial nodes */}
+                <div className="grid grid-cols-5 gap-x-8 gap-y-12 px-8">
                   {section.tutorials.map((tutorial, idx) => {
                     const isCompleted = tutorial.completed;
                     const isLocked = tutorial.isLocked;
                     const isInProgress = tutorial.progress > 0 && !isCompleted;
                     
-                    // Snake pattern: reverse every other row
-                    const row = Math.floor(idx / 4);
-                    const col = idx % 4;
-                    const isReversedRow = row % 2 === 1;
-                    const actualCol = isReversedRow ? 3 - col : col;
-                    
                     return (
-                      <motion.button
+                      <motion.div
                         key={tutorial.id}
-                        onClick={() => !isLocked && setActiveTutorial(tutorial)}
-                        disabled={isLocked}
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: idx * 0.03 }}
-                        whileHover={!isLocked ? { scale: 1.05, y: -2 } : {}}
-                        whileTap={!isLocked ? { scale: 0.95 } : {}}
-                        style={{ order: row * 4 + actualCol }}
+                        transition={{ delay: idx * 0.05 }}
                         className="relative group flex flex-col items-center"
                       >
                         {/* Node Circle */}
-                        <div className={`
-                          w-14 h-14 rounded-2xl flex items-center justify-center
-                          transition-all duration-200 shadow-lg
-                          ${isLocked 
-                            ? 'bg-dark-700 border-2 border-dark-600 cursor-not-allowed' 
-                            : isCompleted 
-                              ? 'bg-duo-green border-2 border-duo-greenDark cursor-pointer' 
-                              : isInProgress
-                                ? 'bg-duo-blue border-2 border-blue-600 cursor-pointer'
-                                : 'bg-duo-green border-2 border-duo-greenDark cursor-pointer hover:brightness-110'
-                          }
-                        `}>
+                        <motion.button
+                          onClick={() => !isLocked && setActiveTutorial(tutorial)}
+                          disabled={isLocked}
+                          whileHover={!isLocked ? { scale: 1.08, boxShadow: '0 0 20px rgba(34, 197, 94, 0.4)' } : {}}
+                          whileTap={!isLocked ? { scale: 0.95 } : {}}
+                          className={`
+                            w-16 h-16 rounded-2xl flex items-center justify-center
+                            transition-all duration-200 shadow-lg
+                            ${isLocked 
+                              ? 'bg-dark-700 border-2 border-dark-600 cursor-not-allowed' 
+                              : isCompleted 
+                                ? 'bg-duo-green border-2 border-duo-greenDark cursor-pointer' 
+                                : isInProgress
+                                  ? 'bg-duo-green/20 border-2 border-duo-green cursor-pointer'
+                                  : 'bg-dark-700 border-2 border-dark-600 cursor-pointer hover:brightness-110'
+                            }
+                          `}
+                        >
                           {isLocked ? (
-                            <Lock size={20} className="text-dark-500" />
+                            <Lock size={22} className="text-dark-500" />
                           ) : isCompleted ? (
-                            <CheckCircle size={24} className="text-white" fill="currentColor" />
-                          ) : (
+                            <CheckCircle size={26} className="text-white" fill="currentColor" />
+                          ) : isInProgress ? (
                             getTutorialIcon(tutorial.id, isCompleted, isLocked)
+                          ) : (
+                            <div className="text-dark-500">
+                              {getTutorialIcon(tutorial.id, isCompleted, isLocked)}
+                            </div>
                           )}
-                        </div>
+                        </motion.button>
 
                         {/* Star badge for completed */}
                         {isCompleted && (
@@ -296,27 +285,27 @@ const TutorialsPage: React.FC = () => {
                         {isInProgress && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-dark-700 rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-duo-blue rounded-full"
+                              className="h-full bg-duo-green rounded-full"
                               style={{ width: `${tutorial.progress}%` }}
                             />
                           </div>
                         )}
 
-                        {/* Title - shown below */}
-                        <div className="mt-2 text-center max-w-[80px]">
-                          <p className="text-xs font-display font-medium text-dark-300 truncate">
+                        {/* Title - shown below with better spacing */}
+                        <div className="mt-3 text-center w-full">
+                          <p className="text-xs font-display font-medium text-dark-300 leading-tight line-clamp-2">
                             {tutorial.title.split(':')[0]}
                           </p>
                         </div>
 
                         {/* Hover tooltip */}
                         <div className={`
-                          absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-44 p-2.5 rounded-xl
+                          absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-48 p-3 rounded-xl
                           bg-dark-800 border border-dark-700 shadow-xl
                           opacity-0 group-hover:opacity-100 pointer-events-none
                           transition-opacity duration-200 z-20
                         `}>
-                          <p className="font-display font-semibold text-xs text-dark-100 text-center mb-1">
+                          <p className="font-display font-semibold text-xs text-dark-100 text-center mb-2">
                             {tutorial.title}
                           </p>
                           <div className="flex items-center justify-center gap-2 text-[10px] text-dark-400">
@@ -326,25 +315,10 @@ const TutorialsPage: React.FC = () => {
                             <span>+{tutorial.amperesReward}</span>
                           </div>
                         </div>
-                      </motion.button>
+                      </motion.div>
                     );
                   })}
                 </div>
-
-                {/* Connecting curved lines between rows */}
-                {section.tutorials.length > 4 && (
-                  <div className="absolute right-0 top-[72px] w-12 h-16 pointer-events-none">
-                    <svg className="w-full h-full" viewBox="0 0 48 64">
-                      <path
-                        d="M 24 0 Q 48 0 48 32 Q 48 64 24 64"
-                        fill="none"
-                        stroke="rgba(34, 197, 94, 0.3)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                )}
               </div>
             </motion.div>
           ))}

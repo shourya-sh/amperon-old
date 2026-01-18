@@ -1939,61 +1939,500 @@ If you connect it backwards, it won't light up (but it won't break either!).
   {
     id: 'series-parallel',
     title: 'Series vs Parallel Circuits',
-    description: 'Learn the two ways to connect components!',
+    description: 'Master the two fundamental ways to connect components!',
     difficulty: 'intermediate',
-    duration: '20 min',
+    duration: '25 min',
     category: 'Circuit Design',
     icon: '🔀',
     progress: 0,
     steps: [
       {
         id: 'step-1',
-        title: 'Series Circuits',
-        content: `# All in a Row! ➡️
+        title: 'Introduction: Two Ways to Connect',
+        content: `# Two Fundamental Circuit Types! 🔌
 
-In a **series circuit**, components are connected one after another.
+When you connect components to a power source, there are **two basic ways** to do it:
 
-## Key Facts:
-- Current is the **SAME** everywhere
-- Voltage is **SHARED** between components
-- If one component breaks, the whole circuit stops!
+## 🔗 Series Connection
+Components connected **end-to-end**, forming a single path for electricity.
 
-## Real Example:
-Old Christmas lights were series circuits - one bulb burns out, they ALL go dark! 🎄`,
+## 🔀 Parallel Connection  
+Components connected **side-by-side**, creating multiple paths for electricity.
+
+### Why Does This Matter?
+The way you connect components completely changes how your circuit behaves! Understanding this difference is **crucial** for designing any electronic device.
+
+Let's explore each type with interactive examples! 🚀`,
         type: 'text',
         completed: false,
       },
       {
         id: 'step-2',
-        title: 'Parallel Circuits',
-        content: `# Multiple Paths! 🔀
+        title: 'Series Circuit: One Path',
+        content: `# Series Circuits: All in a Row! ➡️
 
-In a **parallel circuit**, components have their own separate paths.
+In a **series circuit**, electricity has only **ONE path** to follow.
 
-## Key Facts:
-- Voltage is the **SAME** for each component
-- Current is **SPLIT** between paths
-- If one component breaks, others keep working!
+## 🔑 Key Rules of Series Circuits:
 
-## Real Example:
-Your house wiring is parallel - turning off one light doesn't affect others!`,
-        type: 'text',
+### 1. Current is IDENTICAL Everywhere
+Like a river flowing through - the same amount of water passes every point.
+
+> **I₁ = I₂ = I₃ = I_total**
+
+### 2. Voltage is DIVIDED Among Components
+Each component uses up some voltage. Add them all up = battery voltage!
+
+> **V_total = V₁ + V₂ + V₃**
+
+### 3. Total Resistance ADDS UP
+More components = more total resistance.
+
+> **R_total = R₁ + R₂ + R₃**
+
+## 🔴 The Big Drawback:
+If **ANY** component breaks or is removed, the **entire circuit stops!**
+
+Watch the circuit diagram and click "Simulate" to see the current flow! ⚡`,
+        type: 'diagram',
+        circuit: {
+          title: 'Series Circuit - Two LEDs',
+          description: 'Two LEDs connected end-to-end with a shared current',
+          isReadOnly: true,
+          showSimulation: true,
+          nodes: [
+            {
+              id: 'battery-series',
+              type: 'circuit',
+              position: { x: 50, y: 150 },
+              data: {
+                component: {
+                  id: 'battery',
+                  type: 'battery',
+                  name: '9V Battery',
+                  description: 'Power source',
+                  symbol: 'Battery',
+                  category: 'source',
+                  icon: 'battery',
+                  connections: 2,
+                  properties: [
+                    { name: 'Voltage', value: 9, unit: 'V', editable: false },
+                    { name: 'Current Supplied', value: 15, unit: 'mA', editable: false },
+                    { name: 'Power Output', value: 135, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'resistor-series',
+              type: 'circuit',
+              position: { x: 180, y: 50 },
+              data: {
+                component: {
+                  id: 'resistor',
+                  type: 'resistor',
+                  name: 'Resistor',
+                  description: 'Current limiter - 330Ω',
+                  symbol: 'R',
+                  category: 'passive',
+                  icon: 'resistor',
+                  connections: 2,
+                  properties: [
+                    { name: 'Resistance', value: 330, unit: 'Ω', editable: false },
+                    { name: 'Voltage Drop', value: 4.95, unit: 'V', editable: false },
+                    { name: 'Current', value: 15, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 74, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'led-series-1',
+              type: 'circuit',
+              position: { x: 340, y: 50 },
+              data: {
+                component: {
+                  id: 'led',
+                  type: 'led',
+                  name: 'LED 1 (Red)',
+                  description: 'Same current as LED 2!',
+                  symbol: 'LED',
+                  category: 'output',
+                  icon: 'lightbulb',
+                  connections: 2,
+                  properties: [
+                    { name: 'Color', value: 'Red', unit: '', editable: false },
+                    { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+                    { name: 'Current', value: 15, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 30, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'led-series-2',
+              type: 'circuit',
+              position: { x: 500, y: 150 },
+              data: {
+                component: {
+                  id: 'led',
+                  type: 'led',
+                  name: 'LED 2 (Red)',
+                  description: 'Same current as LED 1!',
+                  symbol: 'LED',
+                  category: 'output',
+                  icon: 'lightbulb',
+                  connections: 2,
+                  properties: [
+                    { name: 'Color', value: 'Red', unit: '', editable: false },
+                    { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+                    { name: 'Current', value: 15, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 30, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+          ],
+          edges: [
+            { id: 'edge-s1', source: 'battery-series', target: 'resistor-series', sourceHandle: 'positive' },
+            { id: 'edge-s2', source: 'resistor-series', target: 'led-series-1' },
+            { id: 'edge-s3', source: 'led-series-1', target: 'led-series-2' },
+            { id: 'edge-s4', source: 'led-series-2', target: 'battery-series', targetHandle: 'negative' },
+          ],
+        },
         completed: false,
       },
       {
         id: 'step-3',
-        title: 'Build Both Types!',
-        content: `# Experiment Time! 🔬
+        title: 'Series Math: Adding it Up',
+        content: `# Let's Do the Math! 🧮
 
-**Challenge 1: Series Circuit**
-Connect 2 LEDs in series with a battery and see what happens!
+Looking at our series circuit with 2 LEDs:
 
-**Challenge 2: Parallel Circuit**  
-Now connect 2 LEDs in parallel - notice they're brighter!
+## Voltage Distribution:
+| Component | Voltage Drop |
+|-----------|-------------|
+| Resistor (330Ω) | 4.95V |
+| LED 1 | 2.0V |
+| LED 2 | 2.0V |
+| **Total** | **≈9V** ✅ |
 
-**Why?** In series, the voltage is shared. In parallel, each LED gets full voltage!
+## Current Check:
+- Current through Resistor: **15mA**
+- Current through LED 1: **15mA**  
+- Current through LED 2: **15mA**
 
-Try building different configurations in the canvas!`,
+👉 **Same current everywhere!** This is the defining feature of series circuits.
+
+## The Voltage Formula:
+\`V_battery = V_resistor + V_LED1 + V_LED2\`
+\`9V = 4.95V + 2V + 2V\`
+
+## 💡 Pro Tip:
+If you add MORE LEDs in series, each one gets **less voltage** (and appears dimmer). The total voltage must still equal the battery!`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-4',
+        title: 'Parallel Circuit: Multiple Paths',
+        content: `# Parallel Circuits: Choose Your Path! 🔀
+
+In a **parallel circuit**, electricity has **MULTIPLE paths** to choose from.
+
+## 🔑 Key Rules of Parallel Circuits:
+
+### 1. Voltage is IDENTICAL Across All Branches
+Each component "sees" the full battery voltage!
+
+> **V₁ = V₂ = V₃ = V_source**
+
+### 2. Current is DIVIDED Among Branches
+The total current splits up - like a river dividing into streams.
+
+> **I_total = I₁ + I₂ + I₃**
+
+### 3. Total Resistance DECREASES
+More paths = easier for current to flow!
+
+> **1/R_total = 1/R₁ + 1/R₂ + 1/R₃**
+
+## ✅ The Big Advantage:
+If one component breaks, **the others keep working!**
+
+Observe how each LED has its own separate path in this circuit! ⚡`,
+        type: 'diagram',
+        circuit: {
+          title: 'Parallel Circuit - Two LEDs',
+          description: 'Two LEDs with independent paths - each gets full voltage!',
+          isReadOnly: true,
+          showSimulation: true,
+          nodes: [
+            {
+              id: 'battery-parallel',
+              type: 'circuit',
+              position: { x: 50, y: 150 },
+              data: {
+                component: {
+                  id: 'battery',
+                  type: 'battery',
+                  name: '9V Battery',
+                  description: 'Power source',
+                  symbol: 'Battery',
+                  category: 'source',
+                  icon: 'battery',
+                  connections: 2,
+                  properties: [
+                    { name: 'Voltage', value: 9, unit: 'V', editable: false },
+                    { name: 'Current Supplied', value: 42, unit: 'mA', editable: false },
+                    { name: 'Power Output', value: 378, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'resistor-parallel-1',
+              type: 'circuit',
+              position: { x: 220, y: 50 },
+              data: {
+                component: {
+                  id: 'resistor',
+                  type: 'resistor',
+                  name: 'Resistor 1',
+                  description: '330Ω - Branch 1',
+                  symbol: 'R1',
+                  category: 'passive',
+                  icon: 'resistor',
+                  connections: 2,
+                  properties: [
+                    { name: 'Resistance', value: 330, unit: 'Ω', editable: false },
+                    { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+                    { name: 'Current', value: 21, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 147, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'led-parallel-1',
+              type: 'circuit',
+              position: { x: 400, y: 50 },
+              data: {
+                component: {
+                  id: 'led',
+                  type: 'led',
+                  name: 'LED 1 (Red)',
+                  description: 'Full brightness - 21mA!',
+                  symbol: 'LED',
+                  category: 'output',
+                  icon: 'lightbulb',
+                  connections: 2,
+                  properties: [
+                    { name: 'Color', value: 'Red', unit: '', editable: false },
+                    { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+                    { name: 'Current', value: 21, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'resistor-parallel-2',
+              type: 'circuit',
+              position: { x: 220, y: 250 },
+              data: {
+                component: {
+                  id: 'resistor',
+                  type: 'resistor',
+                  name: 'Resistor 2',
+                  description: '330Ω - Branch 2',
+                  symbol: 'R2',
+                  category: 'passive',
+                  icon: 'resistor',
+                  connections: 2,
+                  properties: [
+                    { name: 'Resistance', value: 330, unit: 'Ω', editable: false },
+                    { name: 'Voltage Drop', value: 7, unit: 'V', editable: false },
+                    { name: 'Current', value: 21, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 147, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+            {
+              id: 'led-parallel-2',
+              type: 'circuit',
+              position: { x: 400, y: 250 },
+              data: {
+                component: {
+                  id: 'led',
+                  type: 'led',
+                  name: 'LED 2 (Green)',
+                  description: 'Full brightness - 21mA!',
+                  symbol: 'LED',
+                  category: 'output',
+                  icon: 'lightbulb',
+                  connections: 2,
+                  properties: [
+                    { name: 'Color', value: 'Green', unit: '', editable: false },
+                    { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+                    { name: 'Current', value: 21, unit: 'mA', editable: false },
+                    { name: 'Power Dissipated', value: 42, unit: 'mW', editable: false },
+                  ],
+                },
+                rotation: 0,
+              },
+            },
+          ],
+          edges: [
+            { id: 'edge-p1', source: 'battery-parallel', target: 'resistor-parallel-1', sourceHandle: 'positive' },
+            { id: 'edge-p2', source: 'resistor-parallel-1', target: 'led-parallel-1' },
+            { id: 'edge-p3', source: 'led-parallel-1', target: 'battery-parallel', targetHandle: 'negative' },
+            { id: 'edge-p4', source: 'battery-parallel', target: 'resistor-parallel-2', sourceHandle: 'positive' },
+            { id: 'edge-p5', source: 'resistor-parallel-2', target: 'led-parallel-2' },
+            { id: 'edge-p6', source: 'led-parallel-2', target: 'battery-parallel', targetHandle: 'negative' },
+          ],
+        },
+        completed: false,
+      },
+      {
+        id: 'step-5',
+        title: 'Parallel Math: Splitting Current',
+        content: `# Let's Do the Math! 🧮
+
+Looking at our parallel circuit with 2 LEDs:
+
+## Voltage Distribution:
+| Branch | Voltage |
+|--------|---------|
+| Branch 1 (R1 + LED1) | 7V + 2V = **9V** |
+| Branch 2 (R2 + LED2) | 7V + 2V = **9V** |
+
+👉 **Each branch gets the FULL 9V!** This is why parallel LEDs are brighter.
+
+## Current Distribution:
+| Path | Current |
+|------|---------|
+| Through R1 + LED1 | 21mA |
+| Through R2 + LED2 | 21mA |
+| **From Battery** | **42mA** (total) |
+
+## The Current Formula:
+\`I_battery = I_branch1 + I_branch2\`
+\`42mA = 21mA + 21mA\`
+
+## 💡 Pro Tip:
+Adding MORE parallel branches draws **more total current** from the battery, but each LED stays at full brightness!
+
+## ⚠️ Warning:
+Parallel circuits can drain batteries faster because they draw more current!`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-6',
+        title: 'Side-by-Side Comparison',
+        content: `# Series vs Parallel: The Ultimate Showdown! ⚔️
+
+## 📊 Quick Comparison Table:
+
+| Feature | Series 🔗 | Parallel 🔀 |
+|---------|----------|-------------|
+| **Paths** | ONE path | MULTIPLE paths |
+| **Voltage** | DIVIDED among components | SAME for all components |
+| **Current** | SAME everywhere | DIVIDED among paths |
+| **If one breaks?** | ENTIRE circuit stops ❌ | Others keep working ✅ |
+| **LED Brightness** | Dimmer (shared voltage) | Brighter (full voltage) |
+| **Battery Drain** | Lower current draw | Higher current draw |
+| **Resistance** | R_total = R₁ + R₂ + ... | 1/R_total = 1/R₁ + 1/R₂ + ... |
+
+## 🎄 Real-World Examples:
+
+### Series (One Path):
+- Old Christmas tree lights (one breaks, all go out!)
+- Battery cells in a flashlight (voltages add up)
+- Light switches on the wall (must be ON for light to work)
+
+### Parallel (Multiple Paths):
+- Modern Christmas lights (one breaks, rest stay on)
+- House electrical outlets (each device gets 120V)
+- USB hubs (each device gets power independently)`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-7',
+        title: 'Visual Memory Trick',
+        content: `# Remember This Forever! 🧠
+
+## The Water Pipe Analogy 💧
+
+### Series = Single Pipe
+Imagine water flowing through **one pipe** with obstacles:
+- Same amount of water (current) passes each obstacle
+- Each obstacle slows down the pressure (voltage drop)
+- Block one section = NO water flows anywhere!
+
+### Parallel = Split Pipes
+Imagine water splitting into **multiple pipes**:
+- Each pipe gets the full water pressure (voltage)
+- Water amount (current) divides between pipes
+- Block one pipe = others still flow!
+
+---
+
+## 📝 Memory Trick:
+
+### **S**eries = **S**ame current
+### **P**arallel = **S**ame voltage (P's point different directions like split paths!)
+
+---
+
+## 🎯 Quick Quiz for Yourself:
+1. In series, if one LED goes out, what happens? *(Answer: All go out)*
+2. In parallel, what does each LED get? *(Answer: Full voltage)*
+3. Which uses more battery power with 2 LEDs? *(Answer: Parallel)*`,
+        type: 'text',
+        completed: false,
+      },
+      {
+        id: 'step-8',
+        title: 'Build a Series Circuit',
+        content: `# Challenge 1: Build a Series Circuit! 🔗
+
+## Your Mission:
+Create a **series circuit** with the following components:
+
+1. **1 Battery** (power source)
+2. **1 Resistor** (to limit current)  
+3. **2 LEDs** (connected one after another)
+
+## Steps:
+1. Drag a **Battery** onto the canvas
+2. Drag a **Resistor** and connect it to the battery's (+)
+3. Drag **LED 1** and connect it to the resistor
+4. Drag **LED 2** and connect it to LED 1
+5. Connect LED 2 back to the battery's (-)
+
+## 🎯 What to Observe:
+- Click **Simulate** and watch the current flow
+- Notice both LEDs have the **same current**
+- Try the "i" button on each component to see the values
+
+## ✅ Success Criteria:
+- All components connected in ONE loop
+- Circuit simulates successfully
+- Current flows through all components
+
+**Pro tip:** Keep components in a line for a clean series circuit!`,
         type: 'interactive',
         circuit: {
           isReadOnly: false,
@@ -2002,10 +2441,96 @@ Try building different configurations in the canvas!`,
           edges: [],
         },
         validationCriteria: {
-          requireComponents: ['battery', 'led'],
-          requireMinConnections: 3,
+          requireComponents: ['battery', 'resistor', 'led'],
+          requireMinConnections: 4,
           requirePowerSource: true,
         },
+        completed: false,
+      },
+      {
+        id: 'step-9',
+        title: 'Build a Parallel Circuit',
+        content: `# Challenge 2: Build a Parallel Circuit! 🔀
+
+## Your Mission:
+Create a **parallel circuit** with two separate LED branches!
+
+1. **1 Battery** (power source)
+2. **2 Resistors** (one for each branch)
+3. **2 LEDs** (each in its own branch)
+
+## Steps:
+1. Drag a **Battery** onto the canvas
+2. Create **Branch 1**: Resistor → LED → back to battery (-)
+3. Create **Branch 2**: Another Resistor → LED → back to battery (-)
+4. Both branches connect to battery (+) and battery (-)
+
+## 🎯 What to Observe:
+- Each LED gets its **own resistor** (important for protection!)
+- The battery supplies **more total current** than in series
+- Each LED should appear equally bright
+
+## 💡 Parallel Pattern:
+\`\`\`
+        ┌─ R1 ─ LED1 ─┐
+(+) ────┤              ├──── (-)
+        └─ R2 ─ LED2 ─┘
+\`\`\`
+
+## ⚡ Compare the Results:
+- How does the battery current compare to your series circuit?
+- Which circuit would drain the battery faster?`,
+        type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'resistor', 'led'],
+          requireMinConnections: 6,
+          requirePowerSource: true,
+        },
+        completed: false,
+      },
+      {
+        id: 'step-10',
+        title: 'Knowledge Check',
+        content: `# Test Your Understanding! 🎓
+
+## Question 1:
+You have 3 LEDs in series with a 9V battery. Each LED drops 2V. How much voltage is left for the resistor?
+
+**Answer:** 9V - (3 × 2V) = 9V - 6V = **3V** for the resistor ✅
+
+---
+
+## Question 2:
+In a parallel circuit with 3 branches, if each branch draws 20mA, how much total current does the battery supply?
+
+**Answer:** 20mA × 3 = **60mA** total ✅
+
+---
+
+## Question 3:
+You're designing fairy lights. Why would modern designers choose parallel over series?
+
+**Answer:** If one bulb burns out in a **parallel** circuit, the others stay lit! In series, one failure = all dark! 🎄
+
+---
+
+## Question 4:
+Your circuit has 2 parallel 100Ω resistors. What's the total resistance?
+
+**Answer:** 1/R_total = 1/100 + 1/100 = 2/100, so R_total = **50Ω** 
+(Two equal parallel resistors = half the resistance of one!)
+
+---
+
+## 🏆 Congratulations!
+You now understand the difference between series and parallel circuits!`,
+        type: 'text',
         completed: false,
       },
     ],

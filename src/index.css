@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --font-fredoka: "Fredoka", sans-serif;
+  }
+
   * {
     @apply border-[#30363d];
   }
