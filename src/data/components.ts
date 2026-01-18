@@ -59,6 +59,34 @@ export const circuitComponents: CircuitComponent[] = [
       { name: 'Inductance', value: 10, unit: 'mH', editable: true },
     ],
   },
+  {
+    id: 'potentiometer',
+    type: 'potentiometer',
+    name: 'Potentiometer',
+    description: 'A variable resistor with an adjustable knob. Used for volume controls, dimmer switches, and adjustable settings.',
+    symbol: 'VR',
+    category: 'passive',
+    icon: 'resistor',
+    connections: 3,
+    properties: [
+      { name: 'Resistance', value: 10000, unit: 'Ω', editable: true },
+      { name: 'Position', value: 50, unit: '%', editable: true },
+    ],
+  },
+  {
+    id: 'fuse',
+    type: 'fuse',
+    name: 'Fuse',
+    description: 'A safety device that breaks the circuit if too much current flows. Protects components from damage.',
+    symbol: 'F',
+    category: 'passive',
+    icon: 'resistor',
+    connections: 2,
+    properties: [
+      { name: 'Rating', value: 1, unit: 'A', editable: true },
+      { name: 'Type', value: 'Fast-Blow', unit: '', editable: false },
+    ],
+  },
 
   // Active Components
   {
@@ -202,6 +230,35 @@ export const circuitComponents: CircuitComponent[] = [
       { name: 'Model', value: '2N2222', unit: '', editable: false },
     ],
   },
+  {
+    id: 'relay',
+    type: 'relay',
+    name: 'Relay',
+    description: 'An electromagnetic switch. A small control current switches a larger load current on/off.',
+    symbol: 'K',
+    category: 'active',
+    icon: 'switch',
+    connections: 5,
+    properties: [
+      { name: 'Coil Voltage', value: 5, unit: 'V', editable: true },
+      { name: 'Contact Rating', value: 10, unit: 'A', editable: false },
+    ],
+  },
+  {
+    id: 'transformer',
+    type: 'transformer',
+    name: 'Transformer',
+    description: 'Changes AC voltage levels up or down using electromagnetic induction. No moving parts.',
+    symbol: 'T',
+    category: 'source',
+    icon: 'inductor',
+    connections: 4,
+    properties: [
+      { name: 'Primary', value: 120, unit: 'V', editable: true },
+      { name: 'Secondary', value: 12, unit: 'V', editable: true },
+      { name: 'Power', value: 10, unit: 'VA', editable: false },
+    ],
+  },
 
   // Switches and Controls
   {
@@ -216,6 +273,20 @@ export const circuitComponents: CircuitComponent[] = [
     properties: [
       { name: 'State', value: 'Open', unit: '', editable: true },
       { name: 'Type', value: 'SPST', unit: '', editable: false },
+    ],
+  },
+  {
+    id: 'pushbutton',
+    type: 'pushbutton',
+    name: 'Push Button',
+    description: 'A momentary switch - only conducts while being pressed. Commonly used for doorbells and resets.',
+    symbol: 'PB',
+    category: 'connection',
+    icon: 'switch',
+    connections: 2,
+    properties: [
+      { name: 'Type', value: 'Normally Open', unit: '', editable: true },
+      { name: 'State', value: 'Released', unit: '', editable: true },
     ],
   },
 
@@ -260,6 +331,34 @@ export const circuitComponents: CircuitComponent[] = [
     properties: [
       { name: 'Voltage', value: 6, unit: 'V', editable: true },
       { name: 'Speed', value: 3000, unit: 'RPM', editable: false },
+    ],
+  },
+  {
+    id: 'speaker',
+    type: 'speaker',
+    name: 'Speaker',
+    description: 'Converts electrical signals into sound waves. Used for audio output in radios, phones, and more.',
+    symbol: 'SP',
+    category: 'output',
+    icon: 'buzzer',
+    connections: 2,
+    properties: [
+      { name: 'Impedance', value: 8, unit: 'Ω', editable: false },
+      { name: 'Power', value: 2, unit: 'W', editable: true },
+    ],
+  },
+  {
+    id: '7segment',
+    type: '7segment',
+    name: '7-Segment Display',
+    description: 'A numeric display with 7 LEDs arranged to show digits 0-9. Common in clocks and counters.',
+    symbol: 'DSP',
+    category: 'output',
+    icon: 'led',
+    connections: 8,
+    properties: [
+      { name: 'Type', value: 'Common Cathode', unit: '', editable: false },
+      { name: 'Color', value: 'Red', unit: '', editable: true },
     ],
   },
 

@@ -8,7 +8,7 @@ npm install
 npm run dev
 ```
 
-### 2. Open CircuitCo
+### 2. Open Amperon
 - Navigate to http://localhost:5173 (or your dev server URL)
 - Chat panel should load on the right side
 
@@ -16,7 +16,7 @@ npm run dev
 **First Load:**
 - Open browser DevTools (F12)
 - Go to Storage/Application → LocalStorage
-- Look for `circuitco_kicad_symbols` key
+- Look for `amperon_kicad_symbols` key
 - On first load, it might be empty (being fetched)
 - Reload page after 2 seconds
 - You should now see cached symbols in localStorage
@@ -55,7 +55,7 @@ Expected: Components added to canvas
 
 ### 5. Check Cache Persistence
 - Open DevTools → Application → LocalStorage
-- Look for `circuitco_kicad_symbols` entry
+- Look for `amperon_kicad_symbols` entry
 - Close and reopen app
 - Symbols still there? ✅ Cache works!
 
@@ -97,8 +97,8 @@ Expected: Components added to canvas
 3. Manually clear cache: 
    ```javascript
    // In DevTools console:
-   localStorage.removeItem('circuitco_kicad_symbols');
-   localStorage.removeItem('circuitco_kicad_symbols_expiry');
+   localStorage.removeItem('amperon_kicad_symbols');
+   localStorage.removeItem('amperon_kicad_symbols_expiry');
    location.reload();
    ```
 
@@ -118,7 +118,7 @@ Expected: Components added to canvas
 Open DevTools console and run:
 ```javascript
 // See all loaded symbols
-const stored = localStorage.getItem('circuitco_kicad_symbols');
+const stored = localStorage.getItem('amperon_kicad_symbols');
 const symbols = JSON.parse(stored);
 console.log('Total symbols:', symbols.length);
 console.log('Categories:', [...new Set(symbols.map(s => s.category))]);
@@ -127,7 +127,7 @@ symbols.forEach(s => console.log(`${s.name} (${s.category})`));
 
 ### Check Cache Validity
 ```javascript
-const expiry = localStorage.getItem('circuitco_kicad_symbols_expiry');
+const expiry = localStorage.getItem('amperon_kicad_symbols_expiry');
 const now = Date.now();
 const isValid = now < parseInt(expiry);
 const daysLeft = (parseInt(expiry) - now) / (1000 * 60 * 60 * 24);
@@ -138,8 +138,8 @@ console.log('Days remaining:', daysLeft.toFixed(1));
 ### Force Refresh Symbols
 ```javascript
 // Clear cache
-localStorage.removeItem('circuitco_kicad_symbols');
-localStorage.removeItem('circuitco_kicad_symbols_expiry');
+localStorage.removeItem('amperon_kicad_symbols');
+localStorage.removeItem('amperon_kicad_symbols_expiry');
 
 // Reload app
 location.reload();

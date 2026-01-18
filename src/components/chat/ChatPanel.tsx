@@ -23,7 +23,7 @@ const quickActions = [
 
 const ChatPanel: React.FC = () => {
   const { messages, addMessage, isOpen, setIsOpen, isLoading, setIsLoading, clearMessages, lastCircuitAction, setLastCircuitAction } = useChatStore();
-  const { nodes, edges, addNode, addEdge, clearCanvas } = useCircuitStore();
+  const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView } = useCircuitStore();
   const [input, setInput] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,108 +78,187 @@ const ChatPanel: React.FC = () => {
     }
   };
 
-  // Layout components in a clean series arrangement:
-  // Battery on left, components flow right, ground below last component far right
-  // Return path goes along bottom back to battery (avoiding component overlap)
+  // Layout components in a proper circuit loop following connection topology
   const computeLayout = (
     components: Array<{ type: string }>,
-    _connections: Array<{ from: number; to: number }>
+    connections: Array<{ from: number; to: number }>
   ) => {
-    const baseX = 160;
-    const baseY = 160;
-    const xSpacing = 220;  // Increased spacing to prevent wire overlap
-    const ySpacing = 220;  // Increased vertical spacing for return path
+    const baseX = 200;
+    const baseY = 200;
+    const spacing = 320;
     const snap = (value: number) => Math.round(value / 20) * 20;
 
     const nodeCount = components.length;
+    const positions: Array<{ x: number; y: number }> = new Array(nodeCount);
+    
+    if (nodeCount === 0) return positions;
+
+    // Find battery as starting point
     const batteryIdx = components.findIndex((c) => c.type === 'battery');
-    const groundIdx = components.findIndex((c) => c.type === 'ground');
 
-    // Get intermediate components (not battery, not ground) in order
-    const intermediates = components
-      .map((_, idx) => idx)
-      .filter((idx) => idx !== batteryIdx && idx !== groundIdx);
-
-    const positions: Array<{ x: number; y: number }> = new Array(nodeCount).fill({ x: 0, y: 0 });
-
-    // Battery goes at far left, top row
-    if (batteryIdx >= 0) {
-      positions[batteryIdx] = { x: snap(baseX), y: snap(baseY) };
-    }
-
-    // Intermediate components flow left-to-right on top row with sufficient spacing
-    intermediates.forEach((idx, i) => {
-      positions[idx] = {
-        x: snap(baseX + (i + 1) * xSpacing),
-        y: snap(baseY),
-      };
+    // Build adjacency list from connections to understand circuit flow
+    const adjacency = new Map<number, number[]>();
+    connections.forEach(({ from, to }) => {
+      if (!adjacency.has(from)) adjacency.set(from, []);
+      adjacency.get(from)!.push(to);
     });
 
-    // Ground goes to the FAR RIGHT below the last component for clean wire routing
-    // This ensures the return wire has room to come back along the bottom
-    if (groundIdx >= 0) {
-      const lastComponentX = intermediates.length > 0
-        ? baseX + (intermediates.length + 1) * xSpacing
-        : baseX + xSpacing;
-      positions[groundIdx] = {
-        x: snap(lastComponentX),
-        y: snap(baseY + ySpacing),
-      };
+    // Trace the circuit path starting from battery
+    const circuitPath: number[] = [];
+    const visited = new Set<number>();
+    
+    let current = batteryIdx >= 0 ? batteryIdx : 0;
+    while (current !== undefined && !visited.has(current)) {
+      circuitPath.push(current);
+      visited.add(current);
+      
+      const neighbors = adjacency.get(current) || [];
+      const nextUnvisited = neighbors.find(n => !visited.has(n));
+      current = nextUnvisited !== undefined ? nextUnvisited : -1;
+      if (current === -1) break;
+    }
+
+    // Add any remaining components not in the main path
+    for (let i = 0; i < nodeCount; i++) {
+      if (!visited.has(i)) {
+        circuitPath.push(i);
+      }
+    }
+
+    // Layout components in a rectangular loop - ALWAYS use rectangle even for small circuits
+    const pathLength = circuitPath.length;
+    
+    if (pathLength === 1) {
+      positions[circuitPath[0]] = { x: snap(baseX), y: snap(baseY) };
+    } else if (pathLength === 2) {
+      // 2 components: horizontal line
+      positions[circuitPath[0]] = { x: snap(baseX), y: snap(baseY) };
+      positions[circuitPath[1]] = { x: snap(baseX + spacing), y: snap(baseY) };
+    } else {
+      // 3+ components: rectangular layout
+      // Calculate how many on each side to make it as square as possible
+      const cols = Math.ceil(pathLength / 2);
+      
+      circuitPath.forEach((idx, i) => {
+        let x: number, y: number;
+        
+        if (i < cols) {
+          // Top row: left to right
+          x = baseX + i * spacing;
+          y = baseY;
+        } else {
+          // Bottom row: right to left (creates the loop)
+          const bottomIdx = i - cols;
+          x = baseX + (cols - 1 - bottomIdx) * spacing;
+          y = baseY + spacing;
+        }
+        
+        positions[idx] = { x: snap(x), y: snap(y) };
+      });
     }
 
     return positions;
   };
 
-  // Determine which handles to use based on component positions and circuit role
-  // Key rules:
-  // - Battery: output from RIGHT, return input to LEFT
-  // - Series components: input on LEFT, output on RIGHT
-  // - Ground: input from TOP (since it's below), output from LEFT back to battery
+  // Determine which handles to use based on relative positions
+  // Uses simple directional logic: wire goes OUT from source side facing target, IN to target side facing source
+  // Tracks used sides to prevent overlapping wires
   const getHandleIdsForConnection = (
     fromIdx: number,
     toIdx: number,
     positions: Array<{ x: number; y: number }>,
-    components: Array<{ type: string }>,
-    batteryIdx: number
+    _components: Array<{ type: string }>,
+    _batteryIdx: number,
+    usedSides: Map<number, Set<string>>
   ) => {
     const sourcePos = positions[fromIdx];
     const targetPos = positions[toIdx];
-    const fromType = components[fromIdx]?.type;
-    const toType = components[toIdx]?.type;
     
-    // Connection returning TO battery (the loop-closing wire)
-    if (toIdx === batteryIdx) {
-      // Return path enters battery from the LEFT
-      if (fromType === 'ground') {
-        // Ground is below and to the right, so exit from ground's LEFT, enter battery's LEFT
-        return { sourceHandle: 'sourceLeft', targetHandle: 'target' };
-      }
-      // Other component returning to battery
-      return { sourceHandle: 'sourceLeft', targetHandle: 'target' };
-    }
+    // Initialize tracking sets
+    if (!usedSides.has(fromIdx)) usedSides.set(fromIdx, new Set());
+    if (!usedSides.has(toIdx)) usedSides.set(toIdx, new Set());
     
-    // Connection FROM battery (outgoing power)
-    if (fromIdx === batteryIdx) {
-      // Battery outputs from RIGHT to next component's LEFT
-      return { sourceHandle: 'source', targetHandle: 'target' };
-    }
+    const sourceUsedSides = usedSides.get(fromIdx)!;
+    const targetUsedSides = usedSides.get(toIdx)!;
     
-    // Connection TO ground (downward)
-    if (toType === 'ground') {
-      // Last component connects down to ground
-      // Exit from source's BOTTOM, enter ground's TOP
-      return { sourceHandle: 'sourceBottom', targetHandle: 'targetTop' };
-    }
-    
-    // Standard series connection: component to component (left to right)
+    // Calculate direction from source to target
     const dx = targetPos.x - sourcePos.x;
-    if (dx >= 0) {
-      // Target is to the right: exit RIGHT, enter LEFT
-      return { sourceHandle: 'source', targetHandle: 'target' };
-    } else {
-      // Target is to the left: exit LEFT, enter RIGHT
-      return { sourceHandle: 'sourceLeft', targetHandle: 'targetRight' };
+    const dy = targetPos.y - sourcePos.y;
+    
+    // Determine the best side to exit from and enter to based on direction
+    // Priority: direction toward target, then perpendicular, then opposite
+    const getPreferredSides = (deltaX: number, deltaY: number, isSource: boolean) => {
+      const sides: string[] = [];
+      
+      if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+        // Primarily horizontal
+        if (deltaX > 0) {
+          sides.push(isSource ? 'right' : 'left');
+          sides.push('bottom', 'top');
+          sides.push(isSource ? 'left' : 'right');
+        } else {
+          sides.push(isSource ? 'left' : 'right');
+          sides.push('bottom', 'top');
+          sides.push(isSource ? 'right' : 'left');
+        }
+      } else {
+        // Primarily vertical
+        if (deltaY > 0) {
+          sides.push(isSource ? 'bottom' : 'top');
+          sides.push('right', 'left');
+          sides.push(isSource ? 'top' : 'bottom');
+        } else {
+          sides.push(isSource ? 'top' : 'bottom');
+          sides.push('right', 'left');
+          sides.push(isSource ? 'bottom' : 'top');
+        }
+      }
+      return sides;
+    };
+    
+    // Map side to handle names
+    const sideToSourceHandle: Record<string, string> = {
+      'right': 'source',
+      'left': 'sourceLeft',
+      'top': 'sourceTop',
+      'bottom': 'sourceBottom'
+    };
+    
+    const sideToTargetHandle: Record<string, string> = {
+      'right': 'targetRight',
+      'left': 'target',
+      'top': 'targetTop',
+      'bottom': 'targetBottom'
+    };
+    
+    // Find best available source side
+    const sourceSides = getPreferredSides(dx, dy, true);
+    let sourceSide = sourceSides[0];
+    for (const side of sourceSides) {
+      if (!sourceUsedSides.has(side)) {
+        sourceSide = side;
+        break;
+      }
     }
+    
+    // Find best available target side
+    const targetSides = getPreferredSides(dx, dy, false);
+    let targetSide = targetSides[0];
+    for (const side of targetSides) {
+      if (!targetUsedSides.has(side)) {
+        targetSide = side;
+        break;
+      }
+    }
+    
+    // Mark as used
+    sourceUsedSides.add(sourceSide);
+    targetUsedSides.add(targetSide);
+    
+    return {
+      sourceHandle: sideToSourceHandle[sourceSide],
+      targetHandle: sideToTargetHandle[targetSide]
+    };
   };
 
   const repairConnections = (
@@ -241,9 +320,13 @@ const ChatPanel: React.FC = () => {
     }
 
     console.log('Adding components to canvas:', components);
+    console.log('Mode:', mode);
+    console.log('Current nodes on canvas:', nodes.length);
     console.log('Adding connections:', connections);
     
-    if (mode === 'replace') {
+    // Clear canvas if replacing OR if we have existing components (to prevent overlap)
+    if (mode === 'replace' || nodes.length > 0) {
+      console.log('Clearing canvas to prevent overlap');
       clearCanvas();
     }
 
@@ -255,6 +338,10 @@ const ChatPanel: React.FC = () => {
     const labelCounters = new Map<string, number>();
 
     const positions = computeLayout(components, repairedConnections);
+    console.log('Computed positions:', positions.map((p, i) => `${i}: (${p.x}, ${p.y})`).join(', '));
+
+    // Use timestamp to ensure unique IDs
+    const baseTimestamp = Date.now();
 
     components.forEach((comp, idx) => {
       const componentData = circuitComponents.find(c => c.type === comp.type);
@@ -263,14 +350,14 @@ const ChatPanel: React.FC = () => {
         return;
       }
 
-      console.log(`Adding component: ${componentData.name} (${componentData.type})`);
+      console.log(`Adding component ${idx}: ${componentData.name} at (${positions[idx].x}, ${positions[idx].y})`);
 
       const count = (labelCounters.get(componentData.type) || 0) + 1;
       labelCounters.set(componentData.type, count);
       const labelPrefix = getLabelPrefix(componentData.type);
       const nodeLabel = componentData.type === 'ground' ? 'GND' : `${labelPrefix}${count}`;
 
-      const nodeId = `${componentData.type}-${Date.now()}-${Math.random()}`;
+      const nodeId = `${componentData.type}-${baseTimestamp}-${idx}`;
       nodeIds.push(nodeId);
       
       const newNode = {
@@ -292,6 +379,8 @@ const ChatPanel: React.FC = () => {
     // Add connections/edges
     if (repairedConnections && repairedConnections.length > 0) {
       const batteryIdx = components.findIndex((c) => c.type === 'battery');
+      const usedSides = new Map<number, Set<string>>(); // Track used SIDES (not handles) to prevent overlap
+      
       console.log('Creating edges from', repairedConnections.length, 'connections');
       repairedConnections.forEach((conn, idx) => {
         console.log(`Processing connection ${idx}: ${conn.from} → ${conn.to}`);
@@ -301,7 +390,8 @@ const ChatPanel: React.FC = () => {
             conn.to,
             positions,
             components,
-            batteryIdx
+            batteryIdx,
+            usedSides
           );
           const edgeId = `e${nodeIds[conn.from]}-${nodeIds[conn.to]}`;
           const newEdge: CanvasEdge = {
@@ -325,6 +415,11 @@ const ChatPanel: React.FC = () => {
         }
       });
     }
+
+    // Trigger auto-fit after adding all components
+    setTimeout(() => {
+      triggerFitView();
+    }, 150);
   };
 
   const handleSend = async () => {
@@ -364,7 +459,12 @@ const ChatPanel: React.FC = () => {
       if (aiResponse.components && aiResponse.components.length > 0) {
         console.log('Processing components:', aiResponse.components);
         console.log('Processing connections:', aiResponse.connections);
+        console.log('AI response type:', aiResponse.type, 'mode:', aiResponse.mode);
+        
+        // Always use 'replace' mode for build_circuit to prevent overlaps
         const mode = aiResponse.mode || (aiResponse.type === 'build_circuit' ? 'replace' : 'merge');
+        console.log('Final mode:', mode);
+        
         addComponentsToCanvas(aiResponse.components, aiResponse.connections, mode);
         if (aiResponse.type === 'build_circuit' || aiResponse.type === 'add_component') {
           setLastCircuitAction(aiResponse);
@@ -526,19 +626,16 @@ const ChatPanel: React.FC = () => {
             placeholder="Ask to build a circuit..."
             rows={2}
             disabled={isLoading}
-            className="w-full px-3 py-2 pr-10 bg-dark-850 border border-dark-700 rounded-lg text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-forest-600 focus:ring-1 focus:ring-forest-600/50 resize-none transition-colors disabled:opacity-50"
+            className="w-full px-3 py-3 pr-14 bg-dark-850 border border-dark-700 rounded-lg text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-forest-600 focus:ring-1 focus:ring-forest-600/50 resize-none transition-colors disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 bottom-2 p-1.5 bg-forest-600 hover:bg-forest-500 disabled:bg-dark-700 disabled:text-dark-500 rounded text-white transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-forest-600 hover:bg-forest-500 disabled:bg-dark-700 disabled:text-dark-500 rounded-md text-white transition-colors"
           >
             {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
-        <p className="text-[10px] text-dark-500 mt-1.5 text-center">
-          Powered by Gemini AI
-        </p>
       </div>
     </div>
   );

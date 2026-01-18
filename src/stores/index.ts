@@ -5,8 +5,7 @@ import type {
   CanvasEdge, 
   Project, 
   ChatMessage, 
-  Collaborator,
-  Tutorial
+  Collaborator
 } from '../types';
 import type { ExtractedSymbol } from '../services/symbolsService';
 import type { SimulationResult } from '../services/circuitSimulator';
@@ -22,6 +21,7 @@ interface CircuitState {
   viewMode: 'schematic' | 'breadboard';
   isSimulating: boolean;
   simulationResult: SimulationResult | null;
+  shouldFitView: boolean;
   
   // Actions
   addNode: (node: CanvasNode) => void;
@@ -40,6 +40,8 @@ interface CircuitState {
   setIsSimulating: (isSimulating: boolean) => void;
   setSimulationResult: (result: SimulationResult | null) => void;
   setAllEdgesAnimated: (animated: boolean) => void;
+  triggerFitView: () => void;
+  resetFitView: () => void;
 }
 
 export const useCircuitStore = create<CircuitState>((set) => ({
@@ -51,6 +53,7 @@ export const useCircuitStore = create<CircuitState>((set) => ({
   viewMode: 'schematic',
   isSimulating: false,
   simulationResult: null,
+  shouldFitView: false,
 
   addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
   
@@ -86,6 +89,8 @@ export const useCircuitStore = create<CircuitState>((set) => ({
   setAllEdgesAnimated: (animated) => set((state) => ({
     edges: state.edges.map((edge) => ({ ...edge, animated })),
   })),
+  triggerFitView: () => set({ shouldFitView: true }),
+  resetFitView: () => set({ shouldFitView: false }),
 }));
 
 // Chat Store
@@ -107,7 +112,7 @@ export const useChatStore = create<ChatState>((set) => ({
     {
       id: '1',
       role: 'assistant',
-      content: "Welcome to CircuitCo. I can help you build circuits, explain components, and teach you electronics concepts.\n\nTry asking me to:\n• Build an LED circuit\n• Explain how resistors work\n• Teach you Ohm's Law\n\nWhat would you like to learn?",
+      content: "Welcome to Amperon. I can help you build circuits, explain components, and teach you electronics concepts.\n\nTry asking me to:\n• Build an LED circuit\n• Explain how resistors work\n• Teach you Ohm's Law\n\nWhat would you like to learn?",
       timestamp: new Date(),
     },
   ],
@@ -163,7 +168,7 @@ export const useSymbolsStore = create<SymbolsState>()(
       updateLastUpdated: () => set({ lastUpdated: Date.now() }),
     }),
     {
-      name: 'circuitco-symbols',
+      name: 'amperon-symbols',
     }
   )
 );
@@ -258,7 +263,7 @@ export const useTutorialStore = create<TutorialState>()(
       }),
     }),
     {
-      name: 'circuitco-tutorials',
+      name: 'amperon-tutorials',
       partialize: (state) => ({
         completedTutorials: Array.from(state.completedTutorials),
         tutorialProgress: state.tutorialProgress,
@@ -305,7 +310,7 @@ export const useUIStore = create<UIState>()(
       setHoveredComponent: (id) => set({ hoveredComponent: id }),
     }),
     {
-      name: 'circuitco-ui',
+      name: 'amperon-ui',
     }
   )
 );

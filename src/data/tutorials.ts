@@ -1,4 +1,1017 @@
-import type { Tutorial } from '../types';
+import type { Tutorial, CircuitDiagram } from '../types';
+
+// ============================================================================
+// CIRCUIT DIAGRAM DEFINITIONS
+// ============================================================================
+
+// Simple Series Circuit: Battery -> Resistor -> LED -> Ground (complete loop)
+const simpleSeriesCircuit: CircuitDiagram = {
+  title: 'Simple Series Circuit',
+  description: 'A basic circuit with a battery, resistor, and LED in series',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-1',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: 'Power source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Type', value: 'DC', unit: '', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-1',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor',
+          description: 'Protects LED',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+            { name: 'Power Rating', value: 0.25, unit: 'W', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-1',
+      type: 'circuit',
+      position: { x: 450, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Light output',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+            { name: 'Max Current', value: 20, unit: 'mA', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-1',
+      type: 'circuit',
+      position: { x: 450, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return path',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-1', source: 'battery-1', target: 'resistor-1' },
+    { id: 'edge-2', source: 'resistor-1', target: 'led-1' },
+    { id: 'edge-3', source: 'led-1', target: 'ground-1' },
+    { id: 'edge-4', source: 'ground-1', target: 'battery-1' },
+  ],
+};
+
+// Parallel Circuit: Two independent LED branches from same battery
+const parallelCircuit: CircuitDiagram = {
+  title: 'Parallel Circuit',
+  description: 'Two LED branches that can operate independently',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-p',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: 'Power source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+            { name: 'Type', value: 'DC', unit: '', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-p1',
+      type: 'circuit',
+      position: { x: 300, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED 1',
+          description: 'Red Light',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Red', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'res-p1',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor 1',
+          description: 'Path 1 protection',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-p2',
+      type: 'circuit',
+      position: { x: 300, y: 250 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED 2',
+          description: 'Green Light',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [
+            { name: 'Color', value: 'Green', unit: '', editable: true },
+            { name: 'Forward Voltage', value: 2, unit: 'V', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'res-p2',
+      type: 'circuit',
+      position: { x: 200, y: 250 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor 2',
+          description: 'Path 2 protection',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [
+            { name: 'Resistance', value: 330, unit: 'Ω', editable: true },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-p',
+      type: 'circuit',
+      position: { x: 400, y: 150 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Common return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    // Top branch: Battery -> Resistor 1 -> LED 1 -> Ground
+    { id: 'edge-p1', source: 'battery-p', target: 'res-p1' },
+    { id: 'edge-p2', source: 'res-p1', target: 'led-p1' },
+    { id: 'edge-p3', source: 'led-p1', target: 'ground-p' },
+    // Bottom branch: Battery -> Resistor 2 -> LED 2 -> Ground
+    { id: 'edge-p4', source: 'battery-p', target: 'res-p2' },
+    { id: 'edge-p5', source: 'res-p2', target: 'led-p2' },
+    { id: 'edge-p6', source: 'led-p2', target: 'ground-p' },
+    // Return: Ground -> Battery
+    { id: 'edge-p7', source: 'ground-p', target: 'battery-p' },
+  ],
+};
+
+// Switch Circuit: Battery -> Switch -> Resistor -> LED -> Ground
+const switchCircuit: CircuitDiagram = {
+  title: 'Switch-Controlled LED',
+  description: 'Using a switch to control circuit operation',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-s',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: 'Power source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [
+            { name: 'Voltage', value: 9, unit: 'V', editable: true },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'switch-1',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'switch',
+          type: 'switch',
+          name: 'Switch',
+          description: 'Control flow',
+          symbol: 'SW',
+          category: 'passive',
+          icon: 'switch',
+          connections: 2,
+          properties: [{ name: 'State', value: 'Open', unit: '', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-s',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor',
+          description: 'LED protection',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-s',
+      type: 'circuit',
+      position: { x: 500, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Indicator',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-s',
+      type: 'circuit',
+      position: { x: 500, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return path',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-s1', source: 'battery-s', target: 'switch-1' },
+    { id: 'edge-s2', source: 'switch-1', target: 'resistor-s' },
+    { id: 'edge-s3', source: 'resistor-s', target: 'led-s' },
+    { id: 'edge-s4', source: 'led-s', target: 'ground-s' },
+    { id: 'edge-s5', source: 'ground-s', target: 'battery-s' },
+  ],
+};
+
+// Diode Protection Circuit
+const diodeCircuit: CircuitDiagram = {
+  title: 'Diode-Protected Circuit',
+  description: 'Diode protecting circuit from reverse polarity',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-d',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: 'Power source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'diode-1',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'diode',
+          type: 'diode',
+          name: 'Diode',
+          description: 'Protection',
+          symbol: 'D',
+          category: 'passive',
+          icon: 'diode',
+          connections: 2,
+          properties: [
+            { name: 'Type', value: '1N4007', unit: '', editable: true },
+            { name: 'Max Current', value: 1, unit: 'A', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-d',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor',
+          description: 'LED protection',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-d',
+      type: 'circuit',
+      position: { x: 500, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Output',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-d',
+      type: 'circuit',
+      position: { x: 500, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-d1', source: 'battery-d', target: 'diode-1' },
+    { id: 'edge-d2', source: 'diode-1', target: 'resistor-d' },
+    { id: 'edge-d3', source: 'resistor-d', target: 'led-d' },
+    { id: 'edge-d4', source: 'led-d', target: 'ground-d' },
+    { id: 'edge-d5', source: 'ground-d', target: 'battery-d' },
+  ],
+};
+
+// Voltage Divider Circuit with Voltmeter
+const voltageDividerCircuit: CircuitDiagram = {
+  title: 'Voltage Divider',
+  description: 'Using resistors to divide voltage',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-v',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-v1',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'R1',
+          description: 'Upper resistor',
+          symbol: 'R1',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-v2',
+      type: 'circuit',
+      position: { x: 250, y: 150 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'R2',
+          description: 'Lower resistor',
+          symbol: 'R2',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'voltmeter-1',
+      type: 'circuit',
+      position: { x: 450, y: 100 },
+      data: {
+        component: {
+          id: 'voltmeter',
+          type: 'voltmeter',
+          name: 'Voltmeter',
+          description: 'Measure output',
+          symbol: 'V',
+          category: 'measurement',
+          icon: 'voltmeter',
+          connections: 2,
+          properties: [{ name: 'Range', value: '20V', unit: '', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-v',
+      type: 'circuit',
+      position: { x: 250, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Reference',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-v1', source: 'battery-v', target: 'resistor-v1' },
+    { id: 'edge-v2', source: 'resistor-v1', target: 'resistor-v2' },
+    { id: 'edge-v3', source: 'resistor-v2', target: 'ground-v' },
+    { id: 'edge-v4', source: 'ground-v', target: 'battery-v' },
+    // Voltmeter probe to junction
+    { id: 'edge-v5', source: 'voltmeter-1', target: 'resistor-v1' },
+    { id: 'edge-v6', source: 'voltmeter-1', target: 'resistor-v2' },
+  ],
+};
+
+// Ohm's Law Circuit with Ammeter
+const ohmsLawCircuit: CircuitDiagram = {
+  title: "Ohm's Law Demonstration",
+  description: 'Using ammeter to demonstrate V=IR',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-o',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ammeter-1',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'ammeter',
+          type: 'ammeter',
+          name: 'Ammeter',
+          description: 'Measure current',
+          symbol: 'A',
+          category: 'measurement',
+          icon: 'ammeter',
+          connections: 2,
+          properties: [{ name: 'Range', value: '1A', unit: '', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-o',
+      type: 'circuit',
+      position: { x: 400, y: 50 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'Resistor',
+          description: 'Variable load',
+          symbol: 'R',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 1000, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-o',
+      type: 'circuit',
+      position: { x: 400, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-o1', source: 'battery-o', target: 'ammeter-1' },
+    { id: 'edge-o2', source: 'ammeter-1', target: 'resistor-o' },
+    { id: 'edge-o3', source: 'resistor-o', target: 'ground-o' },
+    { id: 'edge-o4', source: 'ground-o', target: 'battery-o' },
+  ],
+};
+
+// Transistor Switch Circuit
+const transistorSwitchCircuit: CircuitDiagram = {
+  title: 'Transistor Switch',
+  description: 'Using transistor to switch LED on/off',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-t',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V main power',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'transistor-1',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'transistor',
+          type: 'transistor',
+          name: 'Transistor',
+          description: 'NPN switch',
+          symbol: 'Q1',
+          category: 'active',
+          icon: 'transistor',
+          connections: 3,
+          properties: [{ name: 'Type', value: 'NPN 2N2222', unit: '', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'resistor-t',
+      type: 'circuit',
+      position: { x: 250, y: 150 },
+      data: {
+        component: {
+          id: 'resistor',
+          type: 'resistor',
+          name: 'LED Resistor',
+          description: 'Protection',
+          symbol: 'R1',
+          category: 'passive',
+          icon: 'resistor',
+          connections: 2,
+          properties: [{ name: 'Resistance', value: 330, unit: 'Ω', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'led-t',
+      type: 'circuit',
+      position: { x: 400, y: 50 },
+      data: {
+        component: {
+          id: 'led',
+          type: 'led',
+          name: 'LED',
+          description: 'Output',
+          symbol: 'LED',
+          category: 'output',
+          icon: 'lightbulb',
+          connections: 2,
+          properties: [{ name: 'Color', value: 'Red', unit: '', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-t',
+      type: 'circuit',
+      position: { x: 400, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-t1', source: 'battery-t', target: 'transistor-1' },
+    { id: 'edge-t2', source: 'transistor-1', target: 'resistor-t' },
+    { id: 'edge-t3', source: 'resistor-t', target: 'led-t' },
+    { id: 'edge-t4', source: 'led-t', target: 'ground-t' },
+    { id: 'edge-t5', source: 'ground-t', target: 'battery-t' },
+  ],
+};
+
+// Motor Control Circuit with Flyback Diode
+const motorCircuit: CircuitDiagram = {
+  title: 'Motor Control with Diode Protection',
+  description: 'Transistor controlling motor with flyback diode protection',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-m',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V main power',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'transistor-m',
+      type: 'circuit',
+      position: { x: 250, y: 50 },
+      data: {
+        component: {
+          id: 'transistor',
+          type: 'transistor',
+          name: 'Transistor',
+          description: 'Motor driver',
+          symbol: 'Q1',
+          category: 'active',
+          icon: 'transistor',
+          connections: 3,
+          properties: [{ name: 'Type', value: 'NPN 2N2222', unit: '', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'motor-1',
+      type: 'circuit',
+      position: { x: 400, y: 50 },
+      data: {
+        component: {
+          id: 'motor',
+          type: 'motor',
+          name: 'Motor',
+          description: 'Load',
+          symbol: 'M',
+          category: 'output',
+          icon: 'motor',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'diode-m',
+      type: 'circuit',
+      position: { x: 400, y: 150 },
+      data: {
+        component: {
+          id: 'diode',
+          type: 'diode',
+          name: 'Flyback Diode',
+          description: 'Protection',
+          symbol: 'D1',
+          category: 'passive',
+          icon: 'diode',
+          connections: 2,
+          properties: [{ name: 'Type', value: '1N4007', unit: '', editable: false }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-m',
+      type: 'circuit',
+      position: { x: 400, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-m1', source: 'battery-m', target: 'transistor-m' },
+    { id: 'edge-m2', source: 'transistor-m', target: 'motor-1' },
+    { id: 'edge-m3', source: 'motor-1', target: 'diode-m' },
+    { id: 'edge-m4', source: 'diode-m', target: 'ground-m' },
+    { id: 'edge-m5', source: 'ground-m', target: 'battery-m' },
+  ],
+};
+
+// Buzzer Alarm Circuit
+const buzzerCircuit: CircuitDiagram = {
+  title: 'Buzzer Alarm',
+  description: 'Switch-controlled buzzer with visual indicator',
+  isReadOnly: true,
+  showSimulation: true,
+  nodes: [
+    {
+      id: 'battery-b',
+      type: 'circuit',
+      position: { x: 50, y: 150 },
+      data: {
+        component: {
+          id: 'battery',
+          type: 'battery',
+          name: 'Battery',
+          description: '9V source',
+          symbol: 'Battery',
+          category: 'source',
+          icon: 'battery',
+          connections: 2,
+          properties: [{ name: 'Voltage', value: 9, unit: 'V', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'switch-b',
+      type: 'circuit',
+      position: { x: 200, y: 50 },
+      data: {
+        component: {
+          id: 'switch',
+          type: 'switch',
+          name: 'Switch',
+          description: 'Trigger',
+          symbol: 'SW',
+          category: 'passive',
+          icon: 'switch',
+          connections: 2,
+          properties: [{ name: 'State', value: 'Open', unit: '', editable: true }],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'buzzer-1',
+      type: 'circuit',
+      position: { x: 350, y: 50 },
+      data: {
+        component: {
+          id: 'buzzer',
+          type: 'buzzer',
+          name: 'Buzzer',
+          description: 'Audio output',
+          symbol: 'BZ',
+          category: 'output',
+          icon: 'buzzer',
+          connections: 2,
+          properties: [
+            { name: 'Type', value: 'Active', unit: '', editable: false },
+            { name: 'Frequency', value: 4000, unit: 'Hz', editable: false },
+          ],
+        },
+        rotation: 0,
+      },
+    },
+    {
+      id: 'ground-b',
+      type: 'circuit',
+      position: { x: 350, y: 250 },
+      data: {
+        component: {
+          id: 'ground',
+          type: 'ground',
+          name: 'Ground',
+          description: 'Return',
+          symbol: 'GND',
+          category: 'connection',
+          icon: 'ground',
+          connections: 1,
+          properties: [],
+        },
+        rotation: 0,
+      },
+    },
+  ],
+  edges: [
+    { id: 'edge-b1', source: 'battery-b', target: 'switch-b' },
+    { id: 'edge-b2', source: 'switch-b', target: 'buzzer-1' },
+    { id: 'edge-b3', source: 'buzzer-1', target: 'ground-b' },
+    { id: 'edge-b4', source: 'ground-b', target: 'battery-b' },
+  ],
+};
+
+// ============================================================================
+// TUTORIALS ARRAY
+// ============================================================================
 
 export const tutorials: Tutorial[] = [
   // Beginner Level
@@ -234,8 +1247,11 @@ In a **series circuit**, components are connected one after another.
 - If one component breaks, the whole circuit stops!
 
 ## Real Example:
-Old Christmas lights were series circuits - one bulb burns out, they ALL go dark! 🎄`,
-        type: 'text',
+Old Christmas lights were series circuits - one bulb burns out, they ALL go dark! 🎄
+
+👉 **See a simple series circuit below:**`,
+        type: 'diagram',
+        circuit: simpleSeriesCircuit,
         completed: false,
       },
       {
@@ -251,8 +1267,11 @@ In a **parallel circuit**, components have their own separate paths.
 - If one component breaks, others keep working!
 
 ## Real Example:
-Your house wiring is parallel - turning off one light doesn't affect others!`,
-        type: 'text',
+Your house wiring is parallel - turning off one light doesn't affect others!
+
+👉 **Notice the difference - now we have TWO independent paths!**`,
+        type: 'diagram',
+        circuit: parallelCircuit,
         completed: false,
       },
       {
@@ -268,8 +1287,19 @@ Now connect 2 LEDs in parallel - notice they're brighter!
 
 **Why?** In series, the voltage is shared. In parallel, each LED gets full voltage!
 
-Try both in the canvas and compare!`,
+Try building different configurations in the canvas!`,
         type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'led'],
+          requireMinConnections: 3,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -302,8 +1332,11 @@ Put V at top, I and R at bottom. Cover what you want to find!
 
 - Want V? It's I × R
 - Want I? It's V ÷ R
-- Want R? It's V ÷ I`,
-        type: 'text',
+- Want R? It's V ÷ I
+
+👉 **See Ohm's Law in action below with an ammeter measuring real current:**`,
+        type: 'diagram',
+        circuit: ohmsLawCircuit,
         completed: false,
       },
       {
@@ -322,8 +1355,22 @@ An LED needs 20mA at 2V. The battery is 9V. What resistor do you need?
 Voltage across resistor = 9V - 2V = 7V
 R = V ÷ I = 7 ÷ 0.02 = **350Ω**
 
-Use a 330Ω or 470Ω (these are standard values)`,
-        type: 'text',
+Use a 330Ω or 470Ω (these are standard values)
+
+### Build Your Own Circuit:
+Create different resistor values and use the ammeter to verify your Ohm's Law calculations!`,
+        type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'resistor'],
+          requireMinConnections: 2,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -357,8 +1404,43 @@ Switches let you turn circuits ON and OFF!
 
 ### SPST, SPDT, DPDT
 - Single/Double Pole (how many circuits)
-- Single/Double Throw (how many positions)`,
-        type: 'text',
+- Single/Double Throw (how many positions)
+
+👉 **See a switch controlling an LED in the circuit below:**`,
+        type: 'diagram',
+        circuit: switchCircuit,
+        completed: false,
+      },
+      {
+        id: 'step-2',
+        title: 'Build a Switch Circuit',
+        content: `# Try It Yourself! 🎮
+
+Now build your own switch-controlled circuit:
+
+1. **Add a Battery** (9V)
+2. **Add a Switch** (controls current)
+3. **Add a Resistor** (330Ω protection)
+4. **Add an LED** (output)
+5. **Connect them in series**
+6. **Click Simulate** and toggle the switch!
+
+### Remember:
+- Switches **break** the circuit when OFF (no current)
+- Switches **complete** the circuit when ON (current flows)
+- With no switch, current always flows!`,
+        type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'switch', 'led', 'resistor'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -392,8 +1474,11 @@ Your phone has BILLIONS of transistors, each smaller than a virus! 🤯
 A transistor has 3 pins:
 - **Base (B)** - The control pin
 - **Collector (C)** - Current flows IN
-- **Emitter (E)** - Current flows OUT`,
-        type: 'text',
+- **Emitter (E)** - Current flows OUT
+
+👉 **See a transistor switching an LED on and off:**`,
+        type: 'diagram',
+        circuit: transistorSwitchCircuit,
         completed: false,
       },
       {
@@ -423,17 +1508,28 @@ For beginners, NPN (like 2N2222) is easier to use!`,
 
 Let's use a transistor to make an LED that turns on when you touch it!
 
-## How It Works:
-Your body has a tiny amount of electrical resistance. When you touch the base, a tiny current flows - the transistor amplifies this and turns on the LED!
+## Build a Circuit With:
+1. **Battery** (9V main power)
+2. **Transistor** (NPN, acts as switch)
+3. **LED** (output when triggered)
+4. **Resistor** (330Ω for LED, 10kΩ for base)
+5. **Signal source** (simulates finger touch on base)
 
-## Components Needed:
-- 1x NPN Transistor
-- 1x LED
-- 1x 330Ω Resistor
-- 1x 9V Battery
+When base signal is HIGH → tiny base current → transistor amplifies it → LED turns ON ✅
 
-**Try building this in the canvas!**`,
+**Your phone, your computer, your gaming console - all use billions of transistors like this!**`,
         type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'transistor', 'led', 'resistor'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -551,8 +1647,11 @@ A **diode** lets electricity flow in ONE direction only - like a check valve in 
 Current flows from Anode → Cathode
 Current is BLOCKED from Cathode → Anode
 
-Look for the stripe on the diode - that's the cathode side!`,
-        type: 'text',
+Look for the stripe on the diode - that's the cathode side!
+
+👉 **See a diode protecting a circuit below:**`,
+        type: 'diagram',
+        circuit: diodeCircuit,
         completed: false,
       },
       {
@@ -587,17 +1686,32 @@ Radio circuits use diodes to detect radio waves
         title: 'Build a Protected Circuit',
         content: `# Safety First! ⚠️
 
-Add a diode to protect your circuit from reverse voltage!
+Build a diode-protected circuit that stays safe even when battery is reversed!
 
-## The Setup:
-1. Add a diode right after the battery
-2. Connect the anode to battery positive
-3. Connect the cathode to your circuit
+## Challenge:
+Build a circuit with:
+1. **Battery** (9V)
+2. **Diode** (protection, anode → cathode direction)
+3. **Resistor** (330Ω)
+4. **LED**
 
-Now if someone connects the battery backwards, the diode blocks the current and saves your components!
+### Try reversing the battery:
+- WITH diode: LED stays OFF (protected) ✅
+- WITHOUT diode: LED burns out ❌
 
-**Try adding protection to your LED circuit!**`,
+**Note:** Motors need diodes too - they create HUGE voltage spikes when turned off!`,
         type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'diode', 'led', 'resistor'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -628,8 +1742,11 @@ Two resistors in series split the voltage between them!
 - Vin = Input voltage
 - R1 = First resistor
 - R2 = Second resistor
-- Vout = Output voltage (across R2)`,
-        type: 'text',
+- Vout = Output voltage (across R2)
+
+👉 **See a voltage divider with a voltmeter probe measuring the output:**`,
+        type: 'diagram',
+        circuit: voltageDividerCircuit,
         completed: false,
       },
       {
@@ -701,8 +1818,11 @@ A **DC motor** converts electrical energy into spinning motion using magnetism!
 When current flows, magnetic forces make the coil spin!
 
 ## Direction Control:
-Reverse the voltage = reverse the spin direction! 🔄`,
-        type: 'text',
+Reverse the voltage = reverse the spin direction! 🔄
+
+👉 **See a transistor-controlled motor with flyback protection:**`,
+        type: 'diagram',
+        circuit: motorCircuit,
         completed: false,
       },
       {
@@ -734,20 +1854,35 @@ Battery → Transistor → Motor
         title: 'Build a Motor Controller',
         content: `# Control a Motor! 🎮
 
-Build a transistor-controlled motor circuit:
+Build a transistor-controlled motor circuit with full protection:
 
 ## Components:
-- 1x DC Motor
-- 1x NPN Transistor (2N2222)
-- 1x Resistor (1kΩ) - for transistor base
-- 1x Diode (1N4007) - flyback protection
 - 1x Battery (6-9V)
-- 1x Switch
+- 1x Transistor (NPN, 2N2222)
+- 1x Motor (DC motor)
+- 1x Resistor (1kΩ for base)
+- 1x Diode (1N4007 flyback protection)
+- 1x Switch (to control)
 
-When you close the switch, a small current flows into the transistor base, allowing a large current to flow through the motor!
+### How it works:
+- Switch opens/closes the base circuit
+- Small current through base resistor
+- Transistor amplifies current to motor
+- **CRITICAL:** Diode protects transistor from motor's back EMF!
 
-**Build this and make it spin!**`,
+Close the switch and watch it spin! 🌀`,
         type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'transistor', 'motor', 'diode'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],
@@ -781,8 +1916,11 @@ A **buzzer** creates sound using vibrations!
 - Can make different tones
 - More flexible!
 
-Most hobby projects use active buzzers - super simple!`,
-        type: 'text',
+Most hobby projects use active buzzers - super simple!
+
+👉 **See an active buzzer with switch control:**`,
+        type: 'diagram',
+        circuit: buzzerCircuit,
         completed: false,
       },
       {
@@ -798,7 +1936,7 @@ Most buzzers have polarity (+ and -):
 - + symbol on the buzzer
 
 ## What Happens If Wrong?
-- Active buzzer: Won't make sound
+- Active buzzer: Won't make sound ❌
 - Passive buzzer: Might work, might not
 
 Always check the datasheet if unsure!`,
@@ -810,18 +1948,34 @@ Always check the datasheet if unsure!`,
         title: 'Build an Alarm',
         content: `# Create a Simple Alarm! 🚨
 
-Build a switch-controlled buzzer:
+Build a complete alarm circuit with visual and audio alerts!
 
-## Simple Circuit:
-Battery → Switch → Buzzer → Ground
+## Your Alarm System:
+1. **Battery** (9V)
+2. **Switch** (trigger)
+3. **Buzzer** (audio alarm)
+4. **LED** (visual indicator)
+5. **Resistor** (LED protection)
 
-When you press the switch, the buzzer sounds!
+### How it works:
+- Press switch → LED lights up
+- Press switch → Buzzer sounds
+- Both active at the same time!
 
-## Challenge:
-Add an LED that lights up when the buzzer sounds. This teaches you about parallel circuits!
-
-**Try building your alarm system!**`,
+### Challenge:
+Use a transistor to control the buzzer with a tiny signal. Perfect for security systems!`,
         type: 'interactive',
+        circuit: {
+          isReadOnly: false,
+          showSimulation: true,
+          nodes: [],
+          edges: [],
+        },
+        validationCriteria: {
+          requireComponents: ['battery', 'switch', 'buzzer', 'led'],
+          requireMinConnections: 4,
+          requirePowerSource: true,
+        },
         completed: false,
       },
     ],

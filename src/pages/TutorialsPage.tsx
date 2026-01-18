@@ -5,19 +5,16 @@ import remarkGfm from 'remark-gfm';
 import { 
   BookOpen, 
   Clock, 
-  ChevronRight, 
   Play, 
   CheckCircle2, 
-  Lock,
-  Star,
   Zap,
   Search,
-  Filter,
   Trophy
 } from 'lucide-react';
-import { tutorials, getTutorialsByDifficulty } from '../data/tutorials';
+import { tutorials } from '../data/tutorials';
 import { useTutorialStore } from '../stores';
 import type { Tutorial } from '../types';
+import InteractiveTutorialCanvas from '../components/tutorials/InteractiveTutorialCanvas';
 
 const TutorialsPage: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -69,15 +66,6 @@ const TutorialsPage: React.FC = () => {
   });
 
   const completedCount = completedTutorials.size;
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner': return 'text-green-400 bg-green-400/10 border-green-400/30';
-      case 'intermediate': return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
-      case 'advanced': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      default: return 'text-dark-400 bg-dark-400/10 border-dark-400/30';
-    }
-  };
 
   if (activeTutorial) {
     return (
@@ -426,15 +414,31 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
                 <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                   step.type === 'interactive' 
                     ? 'bg-forest-600/20 text-forest-400' 
+                    : step.type === 'diagram'
+                    ? 'bg-blue-600/20 text-blue-400'
                     : step.type === 'quiz'
                     ? 'bg-amber-600/20 text-amber-400'
                     : 'bg-dark-700 text-dark-400'
                 }`}>
-                  {step.type === 'interactive' ? '🎮 Interactive' : step.type === 'quiz' ? '❓ Quiz' : '📖 Lesson'}
+                  {step.type === 'interactive' ? '🎮 Interactive' : step.type === 'diagram' ? '📊 Circuit' : step.type === 'quiz' ? '❓ Quiz' : '📖 Lesson'}
                 </span>
               </div>
               
               <h2 className="text-2xl font-bold text-dark-100 mb-6">{step.title}</h2>
+              
+              {/* Render circuit diagram if present */}
+              {(step.type === 'diagram' || step.type === 'interactive') && step.circuit && (
+                <div className="mb-8">
+                  <InteractiveTutorialCanvas
+                    key={`circuit-${currentStep}`}
+                    initialNodes={step.circuit.nodes || []}
+                    initialEdges={step.circuit.edges || []}
+                    isReadOnly={step.type === 'diagram' || step.circuit.isReadOnly}
+                    showSimulation={step.circuit.showSimulation !== false}
+                    height="h-96"
+                  />
+                </div>
+              )}
               
               <div className="prose prose-invert prose-lg max-w-none markdown-content">
                 <ReactMarkdown
@@ -460,7 +464,7 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
                 </ReactMarkdown>
               </div>
 
-              {step.type === 'interactive' && (
+              {step.type === 'interactive' && !step.circuit && (
                 <div className="mt-8 p-6 bg-forest-600/10 border border-forest-600/30 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
                     <Zap className="text-forest-400" size={20} />

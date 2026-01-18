@@ -40,7 +40,7 @@ export interface CurrentCircuitState {
   }>;
 }
 
-const SYSTEM_PROMPT = `You are an expert circuit design assistant for CircuitCo, an educational circuit design application.
+const SYSTEM_PROMPT = `You are an expert circuit design assistant for Amperon, an educational circuit design application.
 
 You help users build and understand electronic circuits. When a user asks you to build something, you MUST respond with actual component actions.
 
@@ -49,6 +49,9 @@ AVAILABLE COMPONENTS (use exact type names):
 - resistor: Limits current flow (1000Ω default)
 - capacitor: Stores electrical energy (100µF)
 - inductor: Stores energy in magnetic field (10mH)
+- potentiometer: Variable resistor (adjustable, 10kΩ)
+- fuse: Safety device, breaks on overcurrent
+- transformer: AC voltage converter
 - opamp: Operational amplifier (LM358) for analog signal processing
 - and-gate: Logic AND gate (2 inputs, 1 output)
 - or-gate: Logic OR gate (2 inputs, 1 output)
@@ -57,12 +60,16 @@ AVAILABLE COMPONENTS (use exact type names):
 - nor-gate: Logic NOR gate (2 inputs, 1 output)
 - xor-gate: Logic XOR gate (2 inputs, 1 output)
 - led: Light Emitting Diode (needs resistor protection)
-- diode: One-way current flow
+- diode: One-way current flow (1N4007)
 - transistor: Electronic switch/amplifier (NPN 2N2222)
-- switch: Opens/closes circuit
+- relay: Electromagnetic switch for high current loads
+- switch: Toggle switch (SPST)
+- pushbutton: Momentary switch
 - lightbulb: Incandescent light (5W)
-- buzzer: Produces sound
+- buzzer: Produces sound (2.3kHz)
 - motor: DC motor (6V)
+- speaker: Audio output (8Ω, 2W)
+- 7segment: 7-segment numeric display
 - voltmeter: Measures voltage
 - ammeter: Measures current
 - ground: Reference point (0V)
@@ -173,7 +180,7 @@ IMPORTANT REMINDERS:
 5. Respond with ONLY valid JSON - no markdown, no explanation outside JSON
 6. When modifying existing circuits, ALWAYS return the FULL updated circuit with ALL components`;
 
-const INSIGHT_SYSTEM_PROMPT = `You are a friendly electronics tutor for CircuitCo. Explain components for beginners in <60 words.
+const INSIGHT_SYSTEM_PROMPT = `You are a friendly electronics tutor for Amperon. Explain components for beginners in <60 words.
 
 Return EXACTLY three short lines, each starting with a bold label:
 **Purpose:** ...
@@ -258,7 +265,7 @@ If user asks to add more, change quantities, or modify the circuit, return a com
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
-        "X-Title": "CircuitCo",
+        "X-Title": "Amperon",
       },
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",
@@ -732,7 +739,7 @@ export async function fetchComponentInsight(
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
-        "X-Title": "CircuitCo",
+        "X-Title": "Amperon",
       },
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",
@@ -833,7 +840,7 @@ async function fetchComponentInsightsBatch(
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
-        "X-Title": "CircuitCo",
+        "X-Title": "Amperon",
       },
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",

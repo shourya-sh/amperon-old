@@ -13,7 +13,7 @@
    - Added useSymbolsStore
    - Zustand store with persistence
    - 50 lines added
-   - localStorage key: `circuitco-symbols`
+   - localStorage key: `amperon-symbols`
 
 3. ✅ **src/components/chat/ChatPanel.tsx** (MODIFIED)
    - Symbol integration in chat

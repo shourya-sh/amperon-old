@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Check, Users, Link, Share2, QrCode } from 'lucide-react';
+import { X, Copy, Check, Users, Share2 } from 'lucide-react';
 import { useCollaborationStore } from '../../stores';
 import { useAuth } from '../../contexts/AuthContext';
 import { collaborationService } from '../../services/collaboration';
@@ -12,7 +12,7 @@ interface CollaborationModalProps {
 
 const CollaborationModal: React.FC<CollaborationModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { sessionId, collaborators, isConnected } = useCollaborationStore();
+  const { sessionId, collaborators } = useCollaborationStore();
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState('');
 

@@ -1,7 +1,7 @@
-# CircuitCo UI Modernization & Agent Capabilities
+# Amperon UI Modernization & Agent Capabilities
 
 ## Overview
-Complete transformation of CircuitCo into a professional circuit design tool with real electrical symbols, darker UI, and AI-powered agentic capabilities that automatically build circuits.
+Complete transformation of Amperon into a professional circuit design tool with real electrical symbols, darker UI, and AI-powered agentic capabilities that automatically build circuits.
 
 ## Changes Made
 

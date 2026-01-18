@@ -1,7 +1,7 @@
-# Firebase Setup for CircuitCo (100% FREE)
+# Firebase Setup for Amperon (100% FREE)
 
 ## What You Have Now
-✅ Firebase project "CircuitCo" created  
+✅ Firebase project "Amperon" created  
 ✅ Project linked to your local app  
 ⚠️ Data Connect set up (requires Blaze plan - PAID)
 
@@ -9,7 +9,7 @@
 You don't need Data Connect for this app. Use **Firestore** instead - it's 100% free for your use case.
 
 ## Step 1: Enable Firestore (FREE)
-1. Go to [Firebase Console](https://console.firebase.google.com/project/circuitco)
+1. Go to [Firebase Console](https://console.firebase.google.com/project/amperon)
 2. Click **Firestore Database** in left menu
 3. Click "Create database"
 4. Choose **"Start in test mode"** (for development)
@@ -21,15 +21,15 @@ You don't need Data Connect for this app. Use **Firestore** instead - it's 100% 
 2. Scroll to "Your apps" section
 3. Find your web app or create one:
    - Click **Web icon** (</>)
-   - Name it "circuitco"
+   - Name it "amperon"
    - Click "Register app"
 4. Copy the config values and add to your `.env` file:
 
 ```env
 VITE_FIREBASE_API_KEY=AIza...
-VITE_FIREBASE_AUTH_DOMAIN=circuitco.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=circuitco
-VITE_FIREBASE_STORAGE_BUCKET=circuitco.appspot.com
+VITE_FIREBASE_AUTH_DOMAIN=amperon.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=amperon
+VITE_FIREBASE_STORAGE_BUCKET=amperon.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456...
 VITE_FIREBASE_APP_ID=1:123456...:web:abc...
 ```

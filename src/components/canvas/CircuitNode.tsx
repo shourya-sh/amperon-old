@@ -227,11 +227,13 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         )}
       </div>
 
-      {/* Label - only visible on hover */}
-      <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 transition-opacity duration-200 ${hovering ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="bg-dark-900/90 border border-dark-700 rounded-md px-2 py-0.5 shadow"
+      {/* Label - always visible, positioned just below component with minimal spacing */}
+      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 pointer-events-none z-20">
+        <div className="bg-dark-900/95 border border-dark-700 rounded px-1.5 py-0.5 shadow-md backdrop-blur-sm"
              style={{ borderColor: componentColor }}>
-          <p className="text-[11px] text-dark-200 whitespace-nowrap">{data.label || component.name}</p>
+          <p className="text-[10px] text-dark-100 whitespace-nowrap font-medium leading-tight">
+            {data.label || component.name}
+          </p>
         </div>
       </div>
     </motion.div>

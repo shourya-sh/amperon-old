@@ -33,10 +33,7 @@ const Navbar: React.FC = () => {
     <nav className="h-12 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-4 sticky top-0 z-50">
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <div className="w-5 h-5 rounded bg-[#238636] flex items-center justify-center">
-          <Zap size={11} className="text-white" strokeWidth={2.5} />
-        </div>
-        <span className="text-sm font-semibold text-[#c9d1d9]">CircuitCo</span>
+        <span className="text-sm font-semibold text-[#c9d1d9]">Amperon</span>
       </Link>
 
       {/* Nav Links */}

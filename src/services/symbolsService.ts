@@ -1,11 +1,11 @@
 import type { CircuitComponent } from '../types';
 
 const KICAD_SYMBOLS_URL = 'https://raw.githubusercontent.com/KiCad/kicad-symbols/master';
-const CACHE_KEY = 'circuitco_kicad_symbols';
-const CACHE_EXPIRY_KEY = 'circuitco_kicad_symbols_expiry';
+const CACHE_KEY = 'amperon_kicad_symbols';
+const CACHE_EXPIRY_KEY = 'amperon_kicad_symbols_expiry';
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
-// Map of KiCad symbol categories to CircuitCo categories
+// Map of KiCad symbol categories to Amperon categories
 const CATEGORY_MAP: Record<string, string> = {
   'Device': 'passive',
   'Diode': 'active',

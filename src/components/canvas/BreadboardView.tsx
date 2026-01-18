@@ -6,7 +6,8 @@ interface BreadboardViewProps {
 }
 
 const BreadboardView: React.FC<BreadboardViewProps> = ({ onClose }) => {
-  const rows = 30;
+  // Note: These are used implicitly in the rendering logic
+  const rows = 30; void rows;
   const cols = 63;
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
 
@@ -30,11 +31,11 @@ const BreadboardView: React.FC<BreadboardViewProps> = ({ onClose }) => {
     return row === 7;
   };
 
-  const isConnected = (row: number, col: number): boolean => {
+  const isConnected = (): boolean => {
     // In a breadboard, holes in the same row (within a section) are connected
     // Power rails are connected horizontally
     return true;
-  };
+  }; void isConnected;
 
   const handleCellClick = (row: number, col: number) => {
     const key = `${row}-${col}`;

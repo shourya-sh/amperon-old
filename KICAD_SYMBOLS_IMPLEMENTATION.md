@@ -1,7 +1,7 @@
-# CircuitCo KiCad Symbols Integration - Implementation Summary
+# Amperon KiCad Symbols Integration - Implementation Summary
 
 ## Overview
-Successfully integrated KiCad symbol library into CircuitCo to provide users with access to professional electronic component symbols when generating circuits via AI prompts. The implementation includes smart caching with localStorage to prevent glitches and repeated network requests.
+Successfully integrated KiCad symbol library into Amperon to provide users with access to professional electronic component symbols when generating circuits via AI prompts. The implementation includes smart caching with localStorage to prevent glitches and repeated network requests.
 
 ## Components Created/Modified
 
@@ -18,15 +18,15 @@ Handles all KiCad symbols fetching and caching logic:
   - `symbolToComponent()` - Converts KiCad symbols to CircuitComponent format
 
 - **Caching Strategy:**
-  - Uses localStorage with `circuitco_kicad_symbols` key
-  - 7-day cache expiration via `circuitco_kicad_symbols_expiry` key
+  - Uses localStorage with `amperon_kicad_symbols` key
+  - 7-day cache expiration via `amperon_kicad_symbols_expiry` key
   - Automatically invalidates expired cache
   - Graceful fallback if localStorage unavailable
 
 - **Symbol Parsing:**
   - Parses KiCad .lib files from GitHub raw content
   - Extracts symbol names and pin counts
-  - Maps KiCad categories to CircuitCo categories
+  - Maps KiCad categories to Amperon categories
   - Fetches from common libraries: Device.lib, Diode.lib, LED.lib, etc.
 
 ### 2. **Updated: `src/stores/index.ts`**
@@ -45,7 +45,7 @@ Added new Zustand store for symbols state management:
   - `updateLastUpdated()` - Updates timestamp
 
 - **Persistence:**
-  - Automatically persists to localStorage as `circuitco-symbols`
+  - Automatically persists to localStorage as `amperon-symbols`
   - Survives page refreshes and browser closures
 
 ### 3. **Updated: `src/components/chat/ChatPanel.tsx`**
@@ -71,7 +71,7 @@ Integrated symbol fetching and AI response generation:
 ## How It Works
 
 ### User Flow:
-1. User opens CircuitCo app
+1. User opens Amperon app
 2. Chat panel mounts and checks localStorage for cached symbols
 3. If cache exists and valid → Use cached symbols (instant, no network)
 4. If cache missing/expired → Fetch from KiCad GitHub in background
@@ -125,9 +125,9 @@ Default educational response with symbol library info
 ## Technical Details
 
 ### localStorage Keys:
-- `circuitco_kicad_symbols` - JSON array of ExtractedSymbol objects
-- `circuitco_kicad_symbols_expiry` - Timestamp for cache expiry
-- `circuitco-symbols` - Zustand persisted store
+- `amperon_kicad_symbols` - JSON array of ExtractedSymbol objects
+- `amperon_kicad_symbols_expiry` - Timestamp for cache expiry
+- `amperon-symbols` - Zustand persisted store
 
 ### Symbol Format (ExtractedSymbol):
 ```typescript

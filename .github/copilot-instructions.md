@@ -1,7 +1,7 @@
-# CircuitCo - Development Instructions
+# Amperon - Development Instructions
 
 ## Project Overview
-CircuitCo is an educational circuit design web application built with React, TypeScript, and Tailwind CSS. It features an AI-powered chat assistant, real-time collaboration, and interactive tutorials.
+Amperon is an educational circuit design web application built with React, TypeScript, and Tailwind CSS. It features an AI-powered chat assistant, real-time collaboration, and interactive tutorials.
 
 ## Key Technologies
 - **React 19** - UI framework

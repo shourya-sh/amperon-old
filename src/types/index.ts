@@ -14,19 +14,26 @@ export interface CircuitComponent {
 export type ComponentType = 
   | 'resistor' 
   | 'capacitor' 
-  | 'inductor' 
-  | 'battery' 
+  | 'inductor'
+  | 'potentiometer'
+  | 'fuse'
+  | 'battery'
+  | 'transformer'
   | 'led' 
-  | 'switch' 
+  | 'switch'
+  | 'pushbutton'
   | 'wire' 
   | 'ground'
   | 'voltmeter'
   | 'ammeter'
   | 'transistor'
   | 'diode'
+  | 'relay'
   | 'buzzer'
   | 'motor'
   | 'lightbulb'
+  | 'speaker'
+  | '7segment'
   // Added analog + logic components
   | 'opamp'
   | 'and-gate'
@@ -130,6 +137,15 @@ export interface ChatAction {
 }
 
 // Tutorial types
+export interface CircuitDiagram {
+  title: string;
+  description: string;
+  isReadOnly: boolean;
+  showSimulation: boolean;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+}
+
 export interface Tutorial {
   id: string;
   title: string;
@@ -148,7 +164,13 @@ export interface TutorialStep {
   id: string;
   title: string;
   content: string;
-  type: 'text' | 'video' | 'interactive' | 'quiz';
+  type: 'text' | 'video' | 'interactive' | 'quiz' | 'diagram';
+  circuit?: CircuitDiagram | Partial<CircuitDiagram>;
+  validationCriteria?: {
+    requireComponents?: string[];
+    requireMinConnections?: number;
+    requirePowerSource?: boolean;
+  };
   action?: {
     type: string;
     component?: string;

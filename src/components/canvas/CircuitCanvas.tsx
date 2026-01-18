@@ -56,7 +56,9 @@ const CircuitCanvasInner: React.FC = () => {
     simulationResult,
     setSimulationResult,
     updateEdges,
-    updateNodes
+    updateNodes,
+    shouldFitView,
+    resetFitView
   } = useCircuitStore();
 
   const { collaborators, sessionId } = useCollaborationStore();
@@ -73,6 +75,22 @@ const CircuitCanvasInner: React.FC = () => {
   useEffect(() => {
     setEdges(storeEdges);
   }, [storeEdges, setEdges]);
+
+  // Trigger fitView when requested by the store
+  useEffect(() => {
+    if (shouldFitView) {
+      // Small delay to ensure nodes are rendered before fitting view
+      setTimeout(() => {
+        fitView({ 
+          padding: 0.4,
+          duration: 400,
+          maxZoom: 1.0,
+          minZoom: 0.2,
+        });
+        resetFitView();
+      }, 100);
+    }
+  }, [shouldFitView, fitView, resetFitView]);
 
   // Handle simulation play/pause
   const handleSimulation = useCallback(() => {
@@ -253,8 +271,9 @@ const CircuitCanvasInner: React.FC = () => {
               default: return '#374151';
             }
           }}
-          maskColor="rgba(26, 26, 31, 0.8)"
-          className="!bg-dark-900/80 !border-dark-700"
+          maskColor="rgba(26, 26, 31, 0.6)"
+          style={{ opacity: 0.7 }}
+          className="!bg-dark-900/50 !border-dark-700 !backdrop-blur-sm"
         />
 
         {/* Custom Controls Panel */}

@@ -4,7 +4,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       CircuitCo Application                     │
+│                       Amperon Application                        │
 └─────────────────────────────────────────────────────────────────┘
                                   ↓
                     ┌─────────────────────────┐
@@ -67,8 +67,8 @@ fetchSymbolsFromKiCad() → Fetch from GitHub
     └─ Error → Log and return empty
     ↓
 setCachedSymbols() → Save to localStorage
-    ├─ Sets circuitco_kicad_symbols (data)
-    └─ Sets circuitco_kicad_symbols_expiry (7 days)
+    ├─ Sets amperon_kicad_symbols (data)
+    └─ Sets amperon_kicad_symbols_expiry (7 days)
     ↓
 setSymbols(loadedSymbols) → Update store
     ↓
@@ -120,8 +120,8 @@ DAY 0-6:
 ┌──────────────────────────────────────┐
 │ Cached symbols in localStorage       │
 │ Every load uses cache (instant)      │
-│ Cache key: circuitco_kicad_symbols   │
-│ Expiry key: circuitco_kicad_symbols_ │
+│ Cache key: amperon_kicad_symbols     │
+│ Expiry key: amperon_kicad_symbols_   │
 │           expiry                     │
 └──────────────────────────────────────┘
                     ↓
@@ -175,18 +175,18 @@ DAY 7+ (New Cycle):
 
 ### localStorage Structure:
 ```
-Key: circuitco_kicad_symbols
+Key: amperon_kicad_symbols
 Value: [
   {"id":"...","name":"...","category":"...","description":"...","connections":2,"symbol":"⚪","source":"kicad"},
   // ... 50+ more symbols
 ]
 Size: ~1MB
 
-Key: circuitco_kicad_symbols_expiry
+Key: amperon_kicad_symbols_expiry
 Value: 1705606000 (Unix timestamp)
 Size: ~10 bytes
 
-Key: circuitco-symbols
+Key: amperon-symbols
 Value: {"symbols":[...],"isLoading":false,"error":null,"lastUpdated":...}
 Size: ~1MB
 ```
@@ -291,11 +291,11 @@ Fetch from GitHub
 ### DevTools Console Commands:
 ```javascript
 // View all symbols
-const s = JSON.parse(localStorage.getItem('circuitco_kicad_symbols'));
+const s = JSON.parse(localStorage.getItem('amperon_kicad_symbols'));
 console.table(s);
 
 // Check cache validity
-const exp = localStorage.getItem('circuitco_kicad_symbols_expiry');
+const exp = localStorage.getItem('amperon_kicad_symbols_expiry');
 console.log('Expires:', new Date(parseInt(exp)));
 
 // View store state

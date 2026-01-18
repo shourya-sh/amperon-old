@@ -49,7 +49,7 @@ interface SymbolsState {
 
 **Store Features:**
 - Zustand create function with persist middleware
-- localStorage persistence as `circuitco-symbols`
+- localStorage persistence as `amperon-symbols`
 - Full CRUD operations for symbols
 - Loading and error state management
 - Timestamp tracking
@@ -264,7 +264,7 @@ Before deploying, verify:
 
 ### If Users Report Issues:
 1. Check console for error messages
-2. Clear cache: DevTools > Storage > LocalStorage > Delete `circuitco_kicad_symbols`
+2. Clear cache: DevTools > Storage > LocalStorage > Delete `amperon_kicad_symbols`
 3. Reload page and test again
 4. Check network tab for GitHub requests
 
@@ -273,8 +273,8 @@ Before deploying, verify:
 2. Auto-recovers in 7 days
 3. Can manually clear via:
    ```javascript
-   localStorage.removeItem('circuitco_kicad_symbols');
-   localStorage.removeItem('circuitco_kicad_symbols_expiry');
+   localStorage.removeItem('amperon_kicad_symbols');
+   localStorage.removeItem('amperon_kicad_symbols_expiry');
    ```
 
 ### For Updates:

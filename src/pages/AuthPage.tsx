@@ -52,7 +52,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
             <div className="w-8 h-8 rounded bg-forest-600 flex items-center justify-center">
               <Zap size={16} className="text-white" />
             </div>
-            <span className="text-sm font-semibold text-dark-200">CircuitCo</span>
+            <span className="text-sm font-semibold text-dark-200">Amperon</span>
           </Link>
           <h1 className="text-lg font-semibold text-dark-100 mt-6">
             {isLogin ? 'Sign in to your account' : 'Create your account'}

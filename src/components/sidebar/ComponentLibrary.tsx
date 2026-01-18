@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
-  ChevronDown, 
+import React, { useEffect, useState } from 'react';
+import {
+  Search,
+  ChevronDown,
   ChevronRight,
   Zap,
   CircuitBoard,
@@ -9,10 +9,20 @@ import {
   Lightbulb,
   Gauge,
   Link,
-  GripVertical
+  GripVertical,
 } from 'lucide-react';
 import { circuitComponents, componentCategories } from '../../data/components';
+import { getKiCadSvg } from '../../services/kicadSvgService';
 import type { CircuitComponent } from '../../types';
+// Match the canvas palette so sidebar and board stay visually consistent.
+const categoryColorMap: Record<string, string> = {
+  source: '#ef4444',
+  passive: '#a855f7',
+  active: '#3b82f6',
+  output: '#f59e0b',
+  measurement: '#06b6d4',
+  connection: '#9ca3af',
+};
 
 const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
   Zap,
@@ -21,6 +31,56 @@ const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> =
   Lightbulb,
   Gauge,
   Link,
+};
+
+const recolorAndThicken = (svg: string, color: string): string => {
+  const recolored = svg.replace(/#22c55e/gi, color);
+  return recolored.replace(/stroke-width="([\d.]+)"/g, (_m, w) => {
+    const numeric = Number.parseFloat(w);
+    const scaled = Number.isFinite(numeric) ? Math.max(numeric * 1.6, 1.6) : 2;
+    return `stroke-width="${scaled.toFixed(2)}"`;
+  });
+};
+
+const ComponentIcon: React.FC<{ component: CircuitComponent; color: string }> = ({ component, color }) => {
+  const [svgContent, setSvgContent] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getKiCadSvg(component.type)
+      .then((svg) => {
+        if (cancelled) return;
+        setSvgContent(recolorAndThicken(svg, color));
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSvgContent('');
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [component.type, color]);
+
+  if (loading) {
+    return <div className="w-5 h-5 border-2 border-dark-600 border-t-transparent rounded-full animate-spin" />;
+  }
+
+  if (!svgContent) {
+    return <div className="w-5 h-5 border border-dark-600 rounded-sm" />;
+  }
+
+  return (
+    <div
+      className="w-5 h-5 flex items-center justify-center [&>svg]:block [&>svg]:mx-auto [&>svg]:my-auto [&>svg]:h-5 [&>svg]:w-5 [&>svg]:overflow-visible"
+      dangerouslySetInnerHTML={{ __html: svgContent }}
+      style={{ color }}
+    />
+  );
 };
 
 const ComponentLibrary: React.FC = () => {
@@ -112,7 +172,7 @@ const ComponentLibrary: React.FC = () => {
                   </button>
 
                   {isExpanded && (
-                    <div className="pl-3 space-y-0.5 mt-0.5 mb-1">
+                    <div className="pl-0 space-y-0.5 mt-0.5 mb-1">
                       {categoryComponents.map((component) => (
                         <ComponentItem
                           key={component.id}
@@ -167,17 +227,26 @@ interface ComponentItemProps {
 }
 
 const ComponentItem: React.FC<ComponentItemProps> = ({ component, onDragStart, onHover }) => {
+  const accent = categoryColorMap[component.category] || '#22c55e';
+
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, component)}
       onMouseEnter={() => onHover(component)}
       onMouseLeave={() => onHover(null)}
-      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-dark-800 cursor-grab active:cursor-grabbing transition-colors group"
+      className="flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-dark-800 cursor-grab active:cursor-grabbing transition-colors group"
     >
-      <GripVertical size={10} className="text-dark-600 group-hover:text-dark-500" />
-      <span className="text-sm">{component.symbol}</span>
-      <span className="flex-1 text-sm text-dark-400 group-hover:text-dark-300">{component.name}</span>
+      <GripVertical size={12} className="text-dark-600 group-hover:text-dark-500" />
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-9 h-9 rounded-md bg-dark-850 border border-dark-700 shadow-inner flex items-center justify-center">
+          <ComponentIcon component={component} color={accent} />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm text-dark-200 truncate">{component.name}</span>
+          <span className="text-xs text-dark-500">{component.symbol}</span>
+        </div>
+      </div>
     </div>
   );
 };
