@@ -23,16 +23,7 @@ You don't need Data Connect for this app. Use **Firestore** instead - it's 100% 
    - Click **Web icon** (</>)
    - Name it "amperon"
    - Click "Register app"
-4. Copy the config values and add to your `.env` file:
-
-```env
-VITE_FIREBASE_API_KEY=AIza...
-VITE_FIREBASE_AUTH_DOMAIN=amperon.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=amperon
-VITE_FIREBASE_STORAGE_BUCKET=amperon.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456...
-VITE_FIREBASE_APP_ID=1:123456...:web:abc...
-```
+4. Copy the config values into a local `.env` file (do not commit). Keep secrets out of docs and version control.
 
 ## Step 3: Set Up Authentication (Already Done)
 Based on the init, you likely already have:

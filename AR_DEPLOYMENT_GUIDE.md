@@ -129,6 +129,7 @@ Now the QR code will work from anywhere! No local network needed.
 
 ## Environment Variables
 
+<<<<<<< HEAD
 Make sure you have these in your `.env` file:
 
 ```env
@@ -142,3 +143,6 @@ VITE_FIREBASE_AUTH_DOMAIN=your_domain_here
 ```
 
 The Overshoot API key is already set in the code, but for security in production, you should move it to environment variables.
+=======
+Add required environment variables in a local `.env` file and never commit them to git. Refer to your Firebase console and secret manager for values.
+>>>>>>> bf8435a081e5088198159c3022e17fdcb016d61f
