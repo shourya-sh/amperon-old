@@ -1,10 +1,11 @@
-import React, { memo, useState, useEffect, useMemo } from 'react';
-import { Handle, Position } from 'reactflow';
+import React, { memo, useState, useEffect, useMemo, useRef } from 'react';
+import { Handle, Position, useReactFlow } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { motion } from 'framer-motion';
 import { getKiCadSvg } from '../../services/kicadSvgService';
 import { fetchComponentInsight } from '../../services/aiService';
 import type { CircuitComponent } from '../../types';
+import { createPortal } from 'react-dom';
 
 interface CircuitNodeData {
   component: CircuitComponent;
@@ -14,14 +15,18 @@ interface CircuitNodeData {
   isActive?: boolean;
 }
 
-const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) => {
+const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected, id }) => {
   const { component, rotation = 0, isActive = false } = data;
   const [svgContent, setSvgContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [hovering, setHovering] = useState(false);
   const [insight, setInsight] = useState('');
-  const [insightExpanded, setInsightExpanded] = useState(false);
   const [insightStatus, setInsightStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Live graph state from React Flow so we can describe connections in the insight prompt
+  const { getEdges, getNodes } = useReactFlow();
 
   // Check if a connection is being dragged by looking at connection line
   const isDraggingConnection = useMemo(() => {
@@ -87,131 +92,152 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
     });
   }, [component.type, componentColor]);
 
+  const connectionSummary = useMemo(() => {
+    const edges = getEdges();
+    const nodes = getNodes();
+    const connected = edges.filter((edge) => edge.source === id || edge.target === id);
+    if (connected.length === 0) return 'Not yet wired to other parts of the circuit.';
+
+    const parts = connected.map((edge) => {
+      const neighborId = edge.source === id ? edge.target : edge.source;
+      const direction = edge.source === id ? 'feeds' : 'receives from';
+      const neighborNode = nodes.find((n) => n.id === neighborId);
+      const neighborComp = neighborNode?.data?.component as CircuitComponent | undefined;
+      const neighborLabel = neighborComp
+        ? `${neighborComp.name} (${neighborComp.category})`
+        : `node ${neighborId}`;
+      return `${direction} ${neighborLabel}`;
+    });
+
+    return parts.join('; ');
+  }, [getEdges, getNodes, id]);
+
   useEffect(() => {
     if (!hovering || insightStatus !== 'idle') return;
     let cancelled = false;
-    setInsightStatus('loading');
 
-    fetchComponentInsight(component)
+    const localFallback = `**Purpose:** ${component.description}\n**In this circuit:** ${connectionSummary}\n**Connection tips:** Follow the symbol; keep polarity where marked.`;
+    setInsight(localFallback);
+    setInsightStatus('ready');
+
+    fetchComponentInsight(component, connectionSummary)
       .then((text) => {
         if (cancelled) return;
-        setInsight(text);
-        setInsightStatus('ready');
+        setInsight(text || localFallback);
       })
       .catch(() => {
-        if (cancelled) return;
-        setInsightStatus('error');
+        /* keep local fallback */
       });
 
     return () => {
       cancelled = true;
     };
-  }, [hovering, insightStatus, component]);
+  }, [hovering, insightStatus, component, connectionSummary]);
+
+  // Update tooltip position when hovering
+  useEffect(() => {
+    if (hovering && nodeRef.current) {
+      const rect = nodeRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8
+      });
+    }
+  }, [hovering]);
 
   return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className={`relative group w-16 h-16 flex items-center justify-center ${selected ? 'z-10' : ''}`}
-      style={{ transform: `rotate(${rotation}deg)` }}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => { setHovering(false); setInsightExpanded(false); }}
-    >
-      {/* Hover insight card pulled from Gemini with local fallback */}
-      <div className={`pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 w-64 transition-all duration-200 ${hovering ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
-        <div className="bg-dark-900/95 border border-dark-700 rounded-lg shadow-xl px-3 py-2 glass">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[11px] text-dark-100 font-semibold" style={{ color: componentColor }}>
-              {component.name} insight
-            </p>
-            <button
-              onClick={() => setInsightExpanded(!insightExpanded)}
-              className="flex-shrink-0 text-dark-400 hover:text-duo-green transition-colors"
-              title={insightExpanded ? 'Collapse' : 'Expand'}
-            >
-              <svg className={`w-4 h-4 transition-transform ${insightExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 8l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-          {insightExpanded && (
-            <>
-              {insightStatus === 'loading' && (
-                <div className="flex items-center gap-2 text-[11px] text-dark-300 mt-2">
-                  <div className="w-3 h-3 border-2 border-dark-500 border-t-transparent rounded-full animate-spin" />
-                  <span>Asking Gemini...</span>
-                </div>
-              )}
-              {insightStatus !== 'loading' && (
-                <p
-                  className="text-[11px] text-dark-200 leading-relaxed whitespace-pre-line mt-2"
-                  dangerouslySetInnerHTML={{ __html: formattedInsight }}
-                />
-              )}
-            </>
-          )}
-        </div>
-      </div>
+    <>
+      <motion.div
+        ref={nodeRef}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className={`relative group w-16 h-16 flex items-center justify-center ${selected ? 'z-10' : ''}`}
+        style={{ transform: `rotate(${rotation}deg)` }}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      >
 
-      {/* Primary left-right handles for series circuits */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="target"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="source"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      {/* Alternative handles for different routing, only when needed */}
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="sourceLeft"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="targetRight"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      {/* Vertical handles - visible but smaller for cleaner look */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="targetTop"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="sourceBottom"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="sourceTop"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        id="targetBottom"
-        className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
-        style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
-      />
+      {/* Handles: restrict battery to only left (target) and right (source) */}
+      {component.type === 'battery' ? (
+        <>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="target"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="source"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Primary left-right handles for series circuits */}
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="target"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="source"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          {/* Alternative handles for different routing, only when needed */}
+          <Handle
+            type="source"
+            position={Position.Left}
+            id="sourceLeft"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Right}
+            id="targetRight"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          {/* Vertical handles - visible but smaller for cleaner look */}
+          <Handle
+            type="target"
+            position={Position.Top}
+            id="targetTop"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            id="sourceBottom"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="source"
+            position={Position.Top}
+            id="sourceTop"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+          <Handle
+            type="target"
+            position={Position.Bottom}
+            id="targetBottom"
+            className="!w-2.5 !h-2.5 !rounded-full hover:!scale-125 transition-transform"
+            style={{ backgroundColor: '#22c55e', border: '2px solid white' }}
+          />
+        </>
+      )}
       {component.type === 'transistor' && (
         <Handle
           type="target"
@@ -269,6 +295,30 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
         </div>
       )}
     </motion.div>
+
+    {/* Portal tooltip outside React Flow - always on top */}
+    {hovering && createPortal(
+      <div 
+        className="pointer-events-none fixed transition-all duration-200 z-[99999]"
+        style={{
+          left: tooltipPosition.x,
+          top: tooltipPosition.y,
+          transform: 'translate(-50%, -100%)'
+        }}
+      >
+        <div className="bg-dark-900/95 border border-dark-700 rounded-lg shadow-xl px-3 py-2 glass w-64">
+          <p className="text-[11px] text-dark-100 font-semibold" style={{ color: componentColor }}>
+            {component.name} insight
+          </p>
+          <p
+            className="text-[11px] text-dark-200 leading-relaxed whitespace-pre-line mt-2"
+            dangerouslySetInnerHTML={{ __html: formattedInsight }}
+          />
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 

@@ -40,10 +40,11 @@ const ChatPanel: React.FC = () => {
     isHistoryOpen,
     setIsHistoryOpen,
     createSession,
+    saveCircuitState,
     createCheckpoint,
     getCheckpoint
   } = useChatStore();
-  const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView, loadProject } = useCircuitStore();
+  const { nodes, edges, addNode, addEdge, clearCanvas, triggerFitView, loadProject, updateNodes, updateEdges } = useCircuitStore();
   
   // Live Share state
   const { 
@@ -96,6 +97,38 @@ const ChatPanel: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [displayMessages]);
+
+  // Track previous session ID to detect switches
+  const prevSessionIdRef = useRef<string | null>(null);
+
+  // Restore circuit state when session changes
+  useEffect(() => {
+    const currentSessionId = session?.id;
+    
+    // Only restore if we're switching to a different session (not on initial mount)
+    if (!isSharedMode && currentSessionId && prevSessionIdRef.current && 
+        prevSessionIdRef.current !== currentSessionId && session?.circuitState) {
+      const { nodes: savedNodes, edges: savedEdges } = session.circuitState;
+      loadProject(savedNodes, savedEdges);
+      if (savedNodes.length > 0) {
+        setTimeout(() => triggerFitView(), 100);
+      }
+    }
+    
+    // Update the ref
+    prevSessionIdRef.current = currentSessionId || null;
+  }, [session?.id, isSharedMode, session?.circuitState, loadProject, triggerFitView]);
+
+  // Save circuit state whenever nodes or edges change (debounced to avoid too many updates)
+  useEffect(() => {
+    if (!isSharedMode && session?.id) {
+      const timeoutId = setTimeout(() => {
+        saveCircuitState(nodes, edges);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [nodes, edges, session?.id, isSharedMode, saveCircuitState]);
 
   // Label mapping for clarity
   const getLabelPrefix = (type: string) => {
@@ -305,8 +338,22 @@ const ChatPanel: React.FC = () => {
     
     // Determine the best side to exit from and enter to based on direction
     // Priority: direction toward target, then perpendicular, then opposite
-    const getPreferredSides = (deltaX: number, deltaY: number, isSource: boolean) => {
+    const isSourceBattery = _components[fromIdx]?.type === 'battery';
+    const isTargetBattery = _components[toIdx]?.type === 'battery';
+
+    const getPreferredSides = (deltaX: number, deltaY: number, isSource: boolean, isBattery: boolean) => {
       const sides: string[] = [];
+      // For batteries, strictly use horizontal sides only (left/right)
+      if (isBattery) {
+        if (deltaX >= 0) {
+          sides.push(isSource ? 'right' : 'left');
+          sides.push(isSource ? 'left' : 'right');
+        } else {
+          sides.push(isSource ? 'left' : 'right');
+          sides.push(isSource ? 'right' : 'left');
+        }
+        return sides;
+      }
       
       if (Math.abs(deltaX) >= Math.abs(deltaY)) {
         // Primarily horizontal
@@ -350,7 +397,7 @@ const ChatPanel: React.FC = () => {
     };
     
     // Find best available source side
-    const sourceSides = getPreferredSides(dx, dy, true);
+    const sourceSides = getPreferredSides(dx, dy, true, isSourceBattery);
     let sourceSide = sourceSides[0];
     for (const side of sourceSides) {
       if (!sourceUsedSides.has(side)) {
@@ -360,7 +407,7 @@ const ChatPanel: React.FC = () => {
     }
     
     // Find best available target side
-    const targetSides = getPreferredSides(dx, dy, false);
+    const targetSides = getPreferredSides(dx, dy, false, isTargetBattery);
     let targetSide = targetSides[0];
     for (const side of targetSides) {
       if (!targetUsedSides.has(side)) {
@@ -576,7 +623,11 @@ const ChatPanel: React.FC = () => {
     // Clear canvas if replacing OR if we have existing components (to prevent overlap)
     if (mode === 'replace' || nodes.length > 0) {
       console.log('Clearing canvas to prevent overlap');
+      // Clear both store and ensure all wires are removed
       clearCanvas();
+      // Force immediate update to ensure React Flow state is synchronized
+      updateNodes([]);
+      updateEdges([]);
     }
 
     // Repair connections to ensure proper series circuit with battery loop closure
@@ -874,7 +925,13 @@ const ChatPanel: React.FC = () => {
           {/* New Chat - only in non-shared mode */}
           {!isSharedMode && (
             <button
-              onClick={() => createSession()}
+              onClick={() => {
+                createSession();
+                // Ensure complete canvas clearing - clear store and force React Flow sync
+                clearCanvas();
+                updateNodes([]);
+                updateEdges([]);
+              }}
               className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-duo-green transition-colors"
               title="New chat"
             >

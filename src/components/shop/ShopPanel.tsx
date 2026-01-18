@@ -13,6 +13,8 @@ import {
   Loader2,
   DollarSign,
   TrendingDown,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { useCircuitStore, useShopStore } from '../../stores';
 import { 
@@ -20,6 +22,8 @@ import {
   calculateTotalPrice, 
   exportToExcel,
   vendorDisplayNames,
+  refreshPrices as refreshPriceCache,
+  getApiStatus,
 } from '../../services/shopService';
 import { getKiCadSvg } from '../../services/kicadSvgService';
 import { circuitComponents } from '../../data/components';
@@ -45,10 +49,16 @@ const categoryColorMap: Record<string, string> = {
 
 // Vendor colors for visual distinction
 const vendorColors: Record<VendorName, string> = {
-  texas_instruments: '#cc0000',
   octopart: '#00a651',
-  findchips: '#0066cc',
+  findchips: '#4ecdc4',
   amazon: '#ff9900',
+};
+
+// Proper display names for vendors
+const vendorLabels: Record<VendorName, string> = {
+  octopart: 'Octopart',
+  findchips: 'FindChips',
+  amazon: 'Amazon',
 };
 
 // Component icon with KiCad SVG in category color
@@ -112,6 +122,10 @@ const ComponentIcon: React.FC<{ componentType: string }> = ({ componentType }) =
 
 // Vendor logos/icons
 const VendorBadge: React.FC<{ vendor: VendorName; isSelected?: boolean }> = ({ vendor, isSelected }) => {
+  // Use local labels for proper display names
+  const displayName = vendorLabels[vendor] || vendorDisplayNames[vendor] || vendor.charAt(0).toUpperCase() + vendor.slice(1);
+  const color = vendorColors[vendor] || '#888888';
+  
   return (
     <span 
       className={`px-2 py-0.5 text-xs font-medium rounded-md transition-all ${
@@ -120,52 +134,69 @@ const VendorBadge: React.FC<{ vendor: VendorName; isSelected?: boolean }> = ({ v
           : ''
       }`}
       style={{ 
-        backgroundColor: `${vendorColors[vendor]}20`,
-        color: vendorColors[vendor],
-        borderLeft: `3px solid ${vendorColors[vendor]}`,
+        backgroundColor: `${color}20`,
+        color: color,
+        borderLeft: `3px solid ${color}`,
       }}
     >
-      {vendorDisplayNames[vendor]}
+      {displayName}
     </span>
   );
 };
 
-// Price display component
+// Price display component with clear lowest price indication
 const PriceDisplay: React.FC<{ 
   price: VendorPrice; 
   isSelected: boolean;
   isBest: boolean;
   onSelect: () => void;
 }> = ({ price, isSelected, isBest, onSelect }) => {
+  const priceSource = (price as any).source;
+  const isNexarLive = priceSource === 'nexar-live';
+  const isLive = isNexarLive || priceSource === 'live' || priceSource?.includes('scrape');
+  
   return (
     <button
       onClick={onSelect}
-      className={`w-full flex items-center justify-between p-2 rounded-lg transition-all ${
-        isSelected 
-          ? 'bg-duo-green/20 border border-duo-green/50' 
-          : 'bg-dark-800 border border-dark-700 hover:border-dark-600'
+      className={`w-full flex items-center justify-between p-3 rounded-lg transition-all relative ${
+        isBest 
+          ? 'bg-gradient-to-r from-duo-green/30 to-duo-green/10 border-2 border-duo-green shadow-[0_0_25px_rgba(34,197,94,0.35)]' 
+          : isSelected 
+            ? 'bg-dark-750 border border-dark-600' 
+            : 'bg-dark-800 border border-dark-700 hover:border-dark-600'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <VendorBadge vendor={price.vendor} isSelected={isSelected} />
+      {/* Best price indicator ribbon */}
+      {isBest && (
+        <div className="absolute -top-1 -right-1 bg-duo-green text-dark-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg rounded-tr-lg shadow-lg">
+          BEST DEAL
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col items-start gap-1">
+          <VendorBadge vendor={price.vendor} isSelected={isSelected || isBest} />
+          <span className={`text-[10px] ${isNexarLive ? 'text-red-400' : isLive ? 'text-green-400' : 'text-dark-500'}`}>
+            {isNexarLive ? '🔴 Nexar Live' : isLive ? '● Live Price' : '○ Estimated'}
+          </span>
+        </div>
         {isBest && (
-          <span className="flex items-center gap-1 text-xs text-duo-green">
+          <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-semibold text-dark-900 bg-duo-green rounded-full">
             <TrendingDown size={12} />
-            Best
+            LOWEST PRICE
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        <span className={`font-mono font-semibold ${isSelected ? 'text-duo-green' : 'text-dark-200'}`}>
+      <div className="flex items-center gap-3">
+        <span className={`font-mono text-xl font-bold ${isBest ? 'text-duo-green' : isSelected ? 'text-dark-100' : 'text-dark-200'}`}>
           ${price.price.toFixed(2)}
         </span>
         {price.inStock ? (
-          <span className="flex items-center text-xs text-green-500">
-            <Check size={12} className="mr-0.5" />
-            In Stock
+          <span className="flex items-center text-xs text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+            <Check size={10} className="mr-1" />
+            {price.stockQuantity?.toLocaleString() || 'In Stock'}
           </span>
         ) : (
-          <span className="text-xs text-amber-500">Out of Stock</span>
+          <span className="text-xs text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Out of Stock</span>
         )}
       </div>
     </button>
@@ -228,17 +259,36 @@ const ComponentPriceCard: React.FC<{
           <ComponentIcon componentType={pricing.componentType} />
           <div className="text-left">
             <h4 className="font-medium text-dark-200">{pricing.componentName}</h4>
-            <p className="text-xs text-dark-500">
-              {pricing.componentType} × {quantity}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-dark-500">
+                {pricing.componentType} × {quantity}
+              </span>
+              {pricing.bestPrice && (
+                <a
+                  href={pricing.bestPrice.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-duo-green font-medium inline-flex items-center gap-1 hover:underline"
+                  title={`Open ${vendorDisplayNames[pricing.bestPrice.vendor]} link`}
+                >
+                  via {vendorDisplayNames[pricing.bestPrice.vendor]}
+                  <ExternalLink size={10} />
+                </a>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {activeVendor && (
             <div className="text-right">
-              <p className="font-mono font-semibold text-duo-green">
-                ${(activeVendor.price * quantity).toFixed(2)}
-              </p>
+              <div className="flex items-center gap-1 justify-end">
+                {activeVendor === pricing.bestPrice && (
+                  <TrendingDown size={14} className="text-duo-green" />
+                )}
+                <p className="font-mono text-lg font-bold text-duo-green">
+                  ${(activeVendor.price * quantity).toFixed(2)}
+                </p>
+              </div>
               <p className="text-xs text-dark-500">
                 ${activeVendor.price.toFixed(2)} each
               </p>
@@ -255,7 +305,14 @@ const ComponentPriceCard: React.FC<{
       {/* Expanded vendor options */}
       {expanded && (
         <div className="px-4 pb-4 space-y-2 border-t border-dark-700 pt-3">
-          <p className="text-xs text-dark-500 mb-2">Select vendor:</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-dark-500">Compare prices from {pricing.prices.length} vendors:</p>
+            {pricing.bestPrice && (
+              <p className="text-xs text-duo-green font-medium">
+                Lowest: ${pricing.bestPrice.price.toFixed(2)} at {vendorDisplayNames[pricing.bestPrice.vendor]}
+              </p>
+            )}
+          </div>
           {pricing.prices.map((price) => (
             <PriceDisplay
               key={price.vendor}
@@ -266,20 +323,24 @@ const ComponentPriceCard: React.FC<{
             />
           ))}
           
-          {/* Links */}
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-dark-700">
-            {pricing.prices.map((price) => (
-              <a
-                key={price.vendor}
-                href={price.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-dark-700 text-dark-300 hover:text-duo-green hover:bg-dark-600 transition-all"
-              >
-                <ExternalLink size={12} />
-                {vendorDisplayNames[price.vendor]}
-              </a>
-            ))}
+          {/* Part numbers and links */}
+          <div className="mt-4 pt-3 border-t border-dark-700">
+            <p className="text-xs text-dark-500 mb-2">Part Numbers & Links:</p>
+            <div className="space-y-1">
+              {pricing.prices.map((price) => (
+                <div key={price.vendor} className="flex items-center justify-between text-xs">
+                  <span className="text-dark-400">{vendorDisplayNames[price.vendor]}: <span className="font-mono text-dark-300">{price.partNumber}</span></span>
+                  <a
+                    href={price.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-duo-green hover:underline"
+                  >
+                    View <ExternalLink size={10} />
+                  </a>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -291,6 +352,16 @@ const ShopPanel: React.FC = () => {
   const { isOpen, setIsOpen, pricing, setPricing, isLoadingPrices, setIsLoadingPrices, selectedVendors, setSelectedVendor, clearPricing } = useShopStore();
   const { nodes } = useCircuitStore();
   const [lastFetchedNodes, setLastFetchedNodes] = useState<string>('');
+  const [apiStatus, setApiStatus] = useState<{ available: boolean; checked: boolean }>({ available: false, checked: false });
+  
+  // Check API status on mount
+  useEffect(() => {
+    if (isOpen && !apiStatus.checked) {
+      getApiStatus().then(status => {
+        setApiStatus({ available: status.available, checked: true });
+      });
+    }
+  }, [isOpen, apiStatus.checked]);
   
   // Get unique components from canvas
   const canvasComponents = useMemo(() => {
@@ -375,6 +446,16 @@ const ShopPanel: React.FC = () => {
   const handleExport = () => {
     exportToExcel(pricing, selectedVendors);
   };
+
+  // Force refresh prices from web scraping
+  const handleForceRefresh = async () => {
+    await refreshPriceCache();
+    setLastFetchedNodes(''); // Clear cached key to force re-fetch
+    await fetchPrices();
+    // Re-check API status
+    const status = await getApiStatus();
+    setApiStatus({ available: status.available, checked: true });
+  };
   
   if (!isOpen) return null;
   
@@ -387,7 +468,22 @@ const ShopPanel: React.FC = () => {
             <ShoppingCart size={20} className="text-duo-green" />
           </div>
           <div>
-            <h2 className="font-display font-bold text-dark-200">Shop Parts</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display font-bold text-dark-200">Shop Parts</h2>
+              {apiStatus.checked && (
+                <span 
+                  className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${
+                    apiStatus.available 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-amber-500/20 text-amber-400'
+                  }`}
+                  title={apiStatus.available ? 'Live prices from web scraping' : 'Using estimated prices'}
+                >
+                  {apiStatus.available ? <Wifi size={10} /> : <WifiOff size={10} />}
+                  {apiStatus.available ? 'Live' : 'Offline'}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-dark-500">
               {canvasComponents.length} components on canvas
             </p>
@@ -422,12 +518,12 @@ const ShopPanel: React.FC = () => {
           <>
             {/* Refresh button */}
             <button
-              onClick={fetchPrices}
+              onClick={apiStatus.available ? handleForceRefresh : fetchPrices}
               disabled={isLoadingPrices}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-dark-800 border border-dark-700 rounded-xl text-sm text-dark-300 hover:text-duo-green hover:border-duo-green/50 transition-all disabled:opacity-50"
             >
               <RefreshCw size={16} className={isLoadingPrices ? 'animate-spin' : ''} />
-              {isLoadingPrices ? 'Refreshing...' : 'Refresh Prices'}
+              {isLoadingPrices ? 'Fetching prices...' : apiStatus.available ? 'Refresh Live Prices' : 'Refresh Prices'}
             </button>
             
             {/* Summary stats */}
@@ -483,6 +579,38 @@ const ShopPanel: React.FC = () => {
       {/* Footer with total */}
       {canvasComponents.length > 0 && Object.keys(pricing).length > 0 && (
         <div className="p-4 border-t-2 border-dark-700 space-y-3">
+          {/* Best Price Summary */}
+          {(() => {
+            // Calculate potential savings
+            const lowestTotal = Object.values(pricing).reduce((sum, p) => {
+              const comp = canvasComponents.find(c => c.id === p.componentId);
+              const qty = comp?.count || 1;
+              return sum + (p.bestPrice?.price || 0) * qty;
+            }, 0);
+            
+            const highestTotal = Object.values(pricing).reduce((sum, p) => {
+              const comp = canvasComponents.find(c => c.id === p.componentId);
+              const qty = comp?.count || 1;
+              const highestPrice = Math.max(...p.prices.map(pr => pr.price), 0);
+              return sum + highestPrice * qty;
+            }, 0);
+            
+            const savings = highestTotal - lowestTotal;
+            
+            return (
+              <div className="p-3 bg-dark-800 rounded-xl border border-duo-green/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingDown size={16} className="text-duo-green" />
+                  <span className="text-xs font-medium text-duo-green">Using Lowest Prices</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-dark-400">You save:</span>
+                  <span className="font-mono font-bold text-duo-green">${savings.toFixed(2)}</span>
+                </div>
+              </div>
+            );
+          })()}
+          
           {/* Total price */}
           <div className="flex items-center justify-between p-3 bg-duo-green/10 rounded-xl border border-duo-green/30">
             <div className="flex items-center gap-2">
@@ -504,7 +632,9 @@ const ShopPanel: React.FC = () => {
           </button>
           
           <p className="text-xs text-dark-500 text-center">
-            Prices are estimates and may vary. Click component to see all vendor options.
+            {apiStatus.available 
+              ? 'Live prices from Octopart, ComponentsCSE, and Amazon. Click component to compare all vendors.' 
+              : 'Prices are estimates and may vary. Start the server for live prices.'}
           </p>
         </div>
       )}

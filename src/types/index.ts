@@ -220,6 +220,10 @@ export interface ChatSession {
   name: string;
   messages: ChatMessage[];
   checkpoints: ChatCheckpoint[];
+  circuitState?: {
+    nodes: CanvasNode[];
+    edges: CanvasEdge[];
+  }; // Stores the circuit state for this session
   createdAt: Date;
   updatedAt: Date;
   isArchived?: boolean;
@@ -367,7 +371,6 @@ export interface ARTutorialStep {
 
 // Shop/Pricing types
 export type VendorName =
-  | "texas_instruments"
   | "octopart"
   | "findchips"
   | "amazon";

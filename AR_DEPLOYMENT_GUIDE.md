@@ -129,20 +129,36 @@ Now the QR code will work from anywhere! No local network needed.
 
 ## Environment Variables
 
-<<<<<<< HEAD
-Make sure you have these in your `.env` file:
+Create `.env` from `.env.example` and fill values. Do not commit secrets.
 
 ```env
-# Overshoot AI (already configured)
-VITE_OVERSHOOT_API_KEY=ovs_3869c2f26aff295082c87e4a4fb75a3a
+# --- Hosted Site ---
+VITE_SITE_URL=https://circuitco.web.app
+CLIENT_ORIGIN=https://circuitco.web.app
 
-# Firebase (for deployment)
-VITE_FIREBASE_API_KEY=your_key_here
-VITE_FIREBASE_AUTH_DOMAIN=your_domain_here
-# ... other Firebase config
+# --- Firebase ---
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+
+# --- Collaboration Server ---
+VITE_SOCKET_URL=http://localhost:3001
+
+# --- AR Lab (WebRTC) ---
+# Leave empty in production (hosted origin is used)
+VITE_LAPTOP_IP=
+# Optional TURN servers for restrictive networks
+VITE_TURN_URLS=
+VITE_TURN_USERNAME=
+VITE_TURN_CREDENTIAL=
+
+# --- AI ---
+VITE_OPENROUTER_API_KEY=your_openrouter_key_here
 ```
 
-The Overshoot API key is already set in the code, but for security in production, you should move it to environment variables.
-=======
-Add required environment variables in a local `.env` file and never commit them to git. Refer to your Firebase console and secret manager for values.
->>>>>>> bf8435a081e5088198159c3022e17fdcb016d61f
+Notes:
+- In production hosting, do not set `VITE_LAPTOP_IP`; the QR code will use your hosted domain automatically.
+- If you run a hosted collaboration server, point `VITE_SOCKET_URL` to it and ensure CORS allows `CLIENT_ORIGIN`.

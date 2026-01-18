@@ -116,11 +116,16 @@ const CircuitCanvasInner: React.FC = () => {
 
   // Sync Zustand store nodes with React Flow nodes and add showLabels prop
   useEffect(() => {
-    const nodesWithLabels = storeNodes.map(node => ({
-      ...node,
-      data: { ...node.data, showLabels }
-    }));
-    setNodes(nodesWithLabels);
+    if (storeNodes.length === 0) {
+      // Ensure nodes are completely cleared
+      setNodes([]);
+    } else {
+      const nodesWithLabels = storeNodes.map(node => ({
+        ...node,
+        data: { ...node.data, showLabels }
+      }));
+      setNodes(nodesWithLabels);
+    }
     
     // Trigger fitView when labels are toggled
     if (storeNodes.length > 0) {
@@ -137,7 +142,13 @@ const CircuitCanvasInner: React.FC = () => {
 
   // Sync Zustand store edges with React Flow edges
   useEffect(() => {
-    setEdges(storeEdges);
+    // Ensure edges are completely cleared when store has no edges
+    // This is important to prevent orphaned wires from appearing
+    if (storeEdges.length === 0) {
+      setEdges([]);
+    } else {
+      setEdges(storeEdges);
+    }
   }, [storeEdges, setEdges]);
 
   // Initial fitView on mount and when shouldFitView changes

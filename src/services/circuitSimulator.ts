@@ -2,6 +2,7 @@
 // Simulates current flow and detects errors in circuits
 
 import type { CanvasNode, CanvasEdge } from '../types';
+import { validateCircuitConnections } from './circuitValidator';
 
 export interface SimulationResult {
   isValid: boolean;
@@ -161,6 +162,31 @@ export function simulateCircuit(nodes: CanvasNode[], edges: CanvasEdge[]): Simul
       totalCurrent: 0,
     };
   }
+  
+  // FIRST: Validate component connections using the circuit validator
+  const components = nodes.map(n => ({ type: n.data.component.type }));
+  const connections = edges.map((edge) => {
+    const fromNodeIdx = nodes.findIndex(n => n.id === edge.source);
+    const toNodeIdx = nodes.findIndex(n => n.id === edge.target);
+    return { from: fromNodeIdx, to: toNodeIdx };
+  }).filter(c => c.from >= 0 && c.to >= 0);
+  
+  const validation = validateCircuitConnections(components, connections);
+  
+  // Add component validation errors to simulation errors
+  if (!validation.isValid) {
+    validation.errors.forEach(error => {
+      errors.push({
+        type: 'component_error',
+        message: error,
+      });
+    });
+  }
+  
+  // Add warnings from validator
+  validation.warnings.forEach(warning => {
+    warnings.push(warning);
+  });
   
   // Check required components
   errors.push(...checkRequiredComponents(nodes));

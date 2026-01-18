@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ShoppingCart, MessageSquare, Share2, Users, X, Eye, Edit3, Check, Cloud } from 'lucide-react';
 import ComponentLibrary from '../components/sidebar/ComponentLibrary';
 import CircuitCanvas from '../components/canvas/CircuitCanvas';
@@ -11,6 +12,7 @@ import liveShareService from '../services/liveShareService';
 
 const DesignerPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const { isOpen: isChatOpen, setIsOpen: setIsChatOpen, sessions, currentSessionId } = useChatStore();
   const { isOpen: isShopOpen, setIsOpen: setIsShopOpen } = useShopStore();
   const { isLiveSession, activeUsers, permission } = useLiveShareStore();
@@ -28,8 +30,21 @@ const DesignerPage: React.FC = () => {
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaveRef = useRef<string>('');
+  const isOnDesignerPageRef = useRef(true);
 
   const currentProject = getCurrentProject();
+
+  // Track if we're on the designer page
+  useEffect(() => {
+    isOnDesignerPageRef.current = location.pathname === '/' || location.pathname === '/designer';
+    
+    // Clean up autosave timer when leaving designer page
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [location.pathname]);
 
   // Ensure chat is open on page load
   useEffect(() => {
@@ -48,7 +63,7 @@ const DesignerPage: React.FC = () => {
 
   // Autosave functionality
   useEffect(() => {
-    if (!autosaveEnabled || !currentProjectId) return;
+    if (!autosaveEnabled || !currentProjectId || !isOnDesignerPageRef.current) return;
 
     // Create a hash of current state to detect changes
     const currentStateHash = JSON.stringify({ nodes, edges });
@@ -173,8 +188,8 @@ const DesignerPage: React.FC = () => {
           </div>
         )}
         
-        {/* Toggle Buttons */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 z-10 items-end">
+        {/* Toggle Buttons - Left Side */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10 items-start">
           {/* Project Name & Autosave Indicator */}
           {currentProject && (
             <div className="flex items-center gap-2 px-3 py-2 bg-dark-800/90 backdrop-blur-sm border border-dark-700 rounded-xl">
@@ -207,7 +222,10 @@ const DesignerPage: React.FC = () => {
             {isLiveSession ? <Users size={18} /> : <Share2 size={18} />}
             <span>{isLiveSession ? 'Sharing' : 'Share'}</span>
           </button>
-          
+        </div>
+
+        {/* Toggle Buttons - Right Side */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-10 items-end">
           {/* Chat Toggle Button */}
           <button
             onClick={handleChatClick}

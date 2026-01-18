@@ -2,14 +2,102 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import dotenv from 'dotenv';
+import {
+  fetchComponentPrices,
+  fetchAllComponentPrices,
+  clearCache,
+  getCacheStats,
+  checkApiStatus,
+} from './priceScraperService.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const httpServer = createServer(app);
+
+// ===== PRICE SCRAPING API ENDPOINTS =====
+
+// Health check with API status
+app.get('/api/health', async (req, res) => {
+  const apiStatus = await checkApiStatus();
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    priceApi: apiStatus,
+  });
+});
+
+// Fetch price for a single component
+app.post('/api/prices/component', async (req, res) => {
+  try {
+    const { componentId, componentType, componentName, quantity, properties } = req.body;
+    
+    if (!componentId || !componentType || !componentName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: componentId, componentType, componentName' 
+      });
+    }
+
+    // Note: fetchComponentPrices signature is (id, name, type)
+    const pricing = await fetchComponentPrices(
+      componentId,
+      componentName,
+      componentType
+    );
+
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error fetching component price:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fetch prices for multiple components
+app.post('/api/prices/batch', async (req, res) => {
+  try {
+    const { components } = req.body;
+    
+    if (!components || !Array.isArray(components)) {
+      return res.status(400).json({ 
+        error: 'Missing required field: components (array)' 
+      });
+    }
+
+    const pricing = await fetchAllComponentPrices(components);
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error fetching batch prices:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get cache statistics
+app.get('/api/prices/cache/stats', (req, res) => {
+  const stats = getCacheStats();
+  res.json(stats);
+});
+
+// Clear price cache
+app.post('/api/prices/cache/clear', (req, res) => {
+  clearCache();
+  res.json({ message: 'Cache cleared successfully' });
+});
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://circuitco.web.app',
+  process.env.CLIENT_ORIGIN,
+  process.env.VITE_SITE_URL,
+].filter(Boolean);
+
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });

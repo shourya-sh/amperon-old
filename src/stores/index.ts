@@ -123,6 +123,10 @@ const createNewSession = (name?: string): ChatSession => ({
   name: name || `Chat ${new Date().toLocaleDateString()}`,
   messages: [createWelcomeMessage()],
   checkpoints: [],
+  circuitState: {
+    nodes: [],
+    edges: [],
+  },
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -153,6 +157,7 @@ interface ChatState {
   // Message actions
   addMessage: (message: ChatMessage) => void;
   clearMessages: () => void;
+  saveCircuitState: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
 
   // Checkpoint actions
   createCheckpoint: (
@@ -318,6 +323,24 @@ export const useChatStore = create<ChatState>()(
                 : s,
             ),
             lastCircuitAction: null,
+          }));
+        },
+
+        // Save circuit state to current session
+        saveCircuitState: (nodes, edges) => {
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === state.currentSessionId
+                ? {
+                    ...s,
+                    circuitState: {
+                      nodes: JSON.parse(JSON.stringify(nodes)),
+                      edges: JSON.parse(JSON.stringify(edges)),
+                    },
+                    updatedAt: new Date(),
+                  }
+                : s,
+            ),
           }));
         },
 

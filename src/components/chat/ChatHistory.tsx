@@ -12,7 +12,7 @@ import {
   Clock,
   Search
 } from 'lucide-react';
-import { useChatStore } from '../../stores';
+import { useChatStore, useCircuitStore } from '../../stores';
 import type { ChatSession } from '../../types';
 
 interface ChatHistoryProps {
@@ -30,6 +30,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onClose }) => {
     archiveSession,
     duplicateSession 
   } = useChatStore();
+
+  const { clearCanvas } = useCircuitStore();
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -46,6 +48,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ onClose }) => {
 
   const handleCreateNew = () => {
     createSession();
+    clearCanvas();
     onClose();
   };
 

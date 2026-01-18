@@ -223,7 +223,7 @@ const ARConnectPage: React.FC = () => {
                 autoPlay
                 playsInline
                 muted
-                className="w-full aspect-video object-cover"
+                className="w-full aspect-video object-contain"
               />
               
               {/* Status Overlay */}

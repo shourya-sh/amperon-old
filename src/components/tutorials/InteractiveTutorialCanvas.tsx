@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import CircuitNode from '../canvas/CircuitNode';
 import { simulateCircuit } from '../../services/circuitSimulator';
+import { validateCircuitConnections } from '../../services/circuitValidator';
 import CompactComponentLibrary from './CompactComponentLibrary';
 import type { CanvasNode, CanvasEdge, CircuitComponent } from '../../types';
 
@@ -101,45 +102,46 @@ const InteractiveTutorialCanvasInner: React.FC<InteractiveTutorialCanvasInnerPro
       return false;
     }
 
-    // Check if there's a power source
-    const hasPowerSource = nodes.some((n: any) => n.data.component.category === 'source');
-    if (!hasPowerSource) {
+    // Convert nodes to component array for validator
+    const components = (nodes as any[]).map(n => ({
+      type: n.data.component.type
+    }));
+
+    // Convert edges to connection format for validator
+    const connections = (edges as any[]).map(e => {
+      const fromNodeIdx = nodes.findIndex(n => n.id === e.source);
+      const toNodeIdx = nodes.findIndex(n => n.id === e.target);
+      return { from: fromNodeIdx, to: toNodeIdx };
+    }).filter(c => c.from >= 0 && c.to >= 0);
+
+    // Use the proper circuit validator
+    const validation = validateCircuitConnections(components, connections);
+
+    // Show first error if any
+    if (!validation.isValid) {
+      const firstError = validation.errors[0];
       setValidationMessage({
         type: 'error',
-        message: '⚡ Every circuit needs a power source (battery)!',
+        message: `❌ ${firstError}`,
       });
       onValidationChange?.(false);
       return false;
     }
 
-    // Check if there's at least one load/output
-    const hasLoad = nodes.some(
-      (n: any) => n.data.component.category === 'output' || n.data.component.type === 'led'
-    );
-    if (!hasLoad) {
+    // Show warnings if any
+    if (validation.warnings.length > 0) {
       setValidationMessage({
         type: 'warning',
-        message: '💡 Add an LED or output component to see what happens!',
+        message: `⚠️ ${validation.warnings[0]}`,
       });
-      onValidationChange?.(false);
-      return false;
-    }
-
-    // Check if components are connected
-    const totalConnections = edges.length;
-    if (totalConnections === 0) {
+      // Still allow circuit to be simulated with warnings
+    } else {
       setValidationMessage({
-        type: 'error',
-        message: '🔗 Connect your components with wires!',
+        type: 'success',
+        message: '✅ Circuit looks good! Ready to simulate.',
       });
-      onValidationChange?.(false);
-      return false;
     }
 
-    setValidationMessage({
-      type: 'success',
-      message: '✅ Circuit looks good! Ready to simulate.',
-    });
     onValidationChange?.(true);
     return true;
   }, [nodes, edges, onValidationChange]);

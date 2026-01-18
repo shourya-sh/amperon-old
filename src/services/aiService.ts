@@ -1,6 +1,7 @@
 // AI Service using OpenRouter API for circuit design assistance
 import type { CircuitComponent } from "../types";
 import { circuitComponents } from "../data/components";
+import { getComponentPinCount } from './circuitValidator';
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -43,6 +44,14 @@ export interface CurrentCircuitState {
 const SYSTEM_PROMPT = `You are an expert circuit design assistant for Amperon, an educational circuit design application.
 
 You help users build and understand electronic circuits. When a user asks you to build something, you MUST respond with actual component actions.
+
+**CRITICAL RULES FOR COMPLEX REQUESTS:**
+- Parse ALL specifications from user requests (don't simplify or ignore details)
+- If user specifies quantities (e.g., "4 motors", "2 H-bridges"), include them ALL
+- If user specifies components with properties (e.g., "regulated low-voltage rail", "pressure sensors", "audible alerts"), create them ALL
+- Interpret implicit requirements: "motor drivers" means create appropriate quantity, "status indicators" means LEDs with resistors, "industrial layout" means explicit realistic wiring
+- For complex requests, err on the side of OVER-specification, not under-specification
+- Read the entire request multiple times before responding - don't stop at the first interpretation
 
 AVAILABLE COMPONENTS (use exact type names):
 
@@ -206,6 +215,30 @@ Follow these electrical engineering principles for realistic circuits:
    - DON'T connect motor driver output to another motor driver
    - DON'T forget return path to ground/battery negative
    - DON'T put regulator after the loads it should power
+   - DON'T leave any component with fewer connections than required by its pins
+   - DON'T connect diodes, resistors, or capacitors on only one end - they MUST have both ends connected
+   - DON'T create "dangling" wires or incomplete component connections
+
+COMPONENT PIN REQUIREMENTS (CRITICAL - ALL CONNECTIONS MUST BE COMPLETE):
+- Two-pin components (MUST have exactly 2 connections): resistor, capacitor, inductor, fuse, diode, flyback-diode, led, buzzer, battery, motor, etc.
+- Three-pin components: potentiometer, relay, comparator
+- Five+ pin components: opamp, microcontroller
+- Special: ground, wire (can have multiple connections)
+
+CONNECTION VALIDATION RULES:
+1. EVERY two-pin component must be connected on BOTH ends (not left dangling on one end)
+2. EVERY three-pin component must have at least 3 connections
+3. DIODES ESPECIALLY: Must have a complete path through them (anode → diode → cathode)
+4. Resistors used for LEDs MUST connect: Power → Resistor → LED → Ground (complete chain)
+5. All passive protection components (diodes, fuses, TVS) must be fully connected in the circuit
+6. No isolated components - everything must have a complete path to ground
+
+BEFORE SUBMITTING YOUR RESPONSE:
+- Count connections for each component using the index numbers
+- Verify each component has the MINIMUM required connections
+- Check that no component is left with one connection dangling
+- Ensure all protection/passive components are part of a complete circuit path
+- If a component looks incomplete, add the missing connections
 
 RULES:
 1. For BUILD requests (build, create, make a circuit): Use "build_circuit" type with ALL components AND ALL connections
@@ -269,6 +302,7 @@ Response: {
 User: "Build a circuit with 4 DC motors and an H-bridge motor driver"
 Response: {
   "type": "build_circuit",
+  "mode": "replace",
   "components": [{"type": "battery"}, {"type": "h-bridge"}, {"type": "h-bridge"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "ground"}],
   "connections": [
     {"from": 0, "to": 1}, {"from": 0, "to": 2},
@@ -284,6 +318,7 @@ Response: {
 User: "Create a circuit with a battery, buck converter for 5V, pressure sensor, and 4 motors with 2 H-bridges"
 Response: {
   "type": "build_circuit",
+  "mode": "replace",
   "components": [{"type": "battery"}, {"type": "buck-converter"}, {"type": "h-bridge"}, {"type": "h-bridge"}, {"type": "pressure-sensor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "ground"}],
   "connections": [
     {"from": 0, "to": 1},
@@ -296,6 +331,43 @@ Response: {
   ],
   "message": "12V battery → buck converter (steps down to 5V) → powers 2 H-bridges, pressure sensor, and 4 motors (2 per H-bridge). All components share common ground."
 }
+
+User: "Design a battery-powered industrial motor control and monitoring circuit for a small automated mechanical system with a buck converter for low-voltage control, 2 H-bridges controlling 4 DC motors in 2 groups by load, LED indicators with resistors for power/motor/fault status, pressure sensors for load monitoring, and audible buzzers for overload alerts with realistic production-style wiring"
+Response: {
+  "type": "build_circuit",
+  "mode": "replace",
+  "components": [
+    {"type": "battery"}, {"type": "buck-converter"}, 
+    {"type": "h-bridge"}, {"type": "h-bridge"},
+    {"type": "motor"}, {"type": "motor"}, {"type": "motor"}, {"type": "motor"},
+    {"type": "pressure-sensor"}, {"type": "pressure-sensor"},
+    {"type": "led"}, {"type": "resistor"}, {"type": "led"}, {"type": "resistor"}, {"type": "led"}, {"type": "resistor"}, {"type": "led"}, {"type": "resistor"}, {"type": "led"}, {"type": "resistor"}, {"type": "led"}, {"type": "resistor"},
+    {"type": "buzzer"}, {"type": "buzzer"}, {"type": "resistor"}, {"type": "resistor"},
+    {"type": "diode"}, {"type": "diode"}, {"type": "diode"}, {"type": "diode"},
+    {"type": "ground"}
+  ],
+  "connections": [
+    {"from": 0, "to": 1},
+    {"from": 1, "to": 2}, {"from": 1, "to": 3},
+    {"from": 2, "to": 4}, {"from": 2, "to": 5}, {"from": 3, "to": 6}, {"from": 3, "to": 7},
+    {"from": 4, "to": 25}, {"from": 5, "to": 25}, {"from": 6, "to": 25}, {"from": 7, "to": 25},
+    {"from": 1, "to": 8}, {"from": 1, "to": 9},
+    {"from": 8, "to": 12}, {"from": 9, "to": 16},
+    {"from": 10, "to": 11}, {"from": 11, "to": 25},
+    {"from": 12, "to": 13}, {"from": 13, "to": 25},
+    {"from": 14, "to": 15}, {"from": 15, "to": 25},
+    {"from": 16, "to": 17}, {"from": 17, "to": 25},
+    {"from": 18, "to": 19}, {"from": 19, "to": 25},
+    {"from": 20, "to": 21}, {"from": 21, "to": 25},
+    {"from": 1, "to": 22}, {"from": 1, "to": 23},
+    {"from": 22, "to": 24}, {"from": 24, "to": 25},
+    {"from": 23, "to": 25},
+    {"from": 2, "to": 26}, {"from": 3, "to": 27}, {"from": 4, "to": 28}, {"from": 5, "to": 29},
+    {"from": 25, "to": 0}
+  ],
+  "message": "Production-grade industrial motor control circuit: 12V battery → buck converter (5V rail for control/sensing). Two H-bridges control 4 DC motors in 2 groups: H-bridge 1 drives motors 1-2 (high-torque load), H-bridge 2 drives motors 3-4 (auxiliary load). 2 pressure sensors monitor mechanical load on each group. 6 LED status indicators with 220Ω resistors: power presence, motor 1-2 active, motor 3-4 active, pressure warning 1, pressure warning 2, fault condition. 2 audible buzzers (one per load group) for overload/fault signaling with current-limiting resistors. Flyback diodes protect motor drivers from back-EMF. All components share common ground with explicit return paths. Realistic industrial layout with individual component connections rather than block abstraction."
+}
+
 
 HANDLING MODIFICATIONS:
 When a user asks to modify an existing circuit (e.g., "add 3 more motors", "I want 4 LEDs instead of 1", "change the resistor to a capacitor"):
@@ -410,7 +482,7 @@ If user asks to add more, change quantities, or modify the circuit, return a com
         model: "google/gemini-2.0-flash-001",
         messages: contextMessages,
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: 2048,
       }),
     });
 
@@ -464,6 +536,12 @@ If user asks to add more, change quantities, or modify the circuit, return a com
       ) {
         connections = generateSeriesConnections(components);
         console.log("Auto-generated connections (fallback):", connections);
+      }
+
+      // CRITICAL: Validate and fix ALL connections to ensure no component is left incomplete
+      if (components.length > 0 && connections.length > 0) {
+        connections = validateAndFixConnections(components, connections);
+        console.log("Validated and fixed connections:", connections);
       }
 
       let result: CircuitAction = {
@@ -549,7 +627,81 @@ const SENSORS = new Set(['analog-sensor', 'digital-sensor', 'temperature-sensor'
 const PROTECTION = new Set(['diode', 'flyback-diode', 'fuse', 'polyfuse', 'tvs-diode', 'reverse-polarity', 'battery-protection']);
 const CONTROL = new Set(['switch', 'pushbutton', 'relay', 'solid-state-relay', 'e-stop']);
 
+/**
+ * CRITICAL: Validate and fix incomplete connections in ANY circuit
+ * This ensures all components with required connections get them, regardless of AI or fallback generation
+ */
+function validateAndFixConnections(
+  components: Array<{ type: string }>,
+  connections: Array<{ from: number; to: number; label?: string }>,
+): Array<{ from: number; to: number; label?: string }> {
+  if (!components || components.length === 0) return connections;
+
+  const conns = [...connections]; // Make a copy to modify
+  
+  // Build connection tracking map
+  const connectedToComponent = new Map<number, Set<number>>();
+  components.forEach((_, idx) => {
+    connectedToComponent.set(idx, new Set<number>());
+  });
+
+  // Track existing connections
+  conns.forEach((conn) => {
+    const fromSet = connectedToComponent.get(conn.from);
+    const toSet = connectedToComponent.get(conn.to);
+    if (fromSet) fromSet.add(conn.to);
+    if (toSet) toSet.add(conn.from);
+  });
+
+  // Find key indices
+  const powerIdx = components.findIndex((c) => POWER_SOURCES.has(c.type));
+  const groundIdx = components.findIndex((c) => c.type === 'ground');
+
+  // CRITICAL: Ensure all components with required connections have them
+  components.forEach((comp, idx) => {
+    const requiredConnections = getComponentPinCount(comp.type);
+    const actualConnections = connectedToComponent.get(idx)!.size;
+
+    // If component needs more connections, add them
+    if (actualConnections < requiredConnections) {
+      const existingConnections = connectedToComponent.get(idx)!;
+      let connectionsNeeded = requiredConnections - actualConnections;
+
+      // Priority order for connection points
+      const connectionCandidates = [
+        groundIdx,
+        powerIdx,
+      ].filter(i => i >= 0 && i !== idx && !existingConnections.has(i));
+
+      // First, connect to priority candidates
+      for (const candidate of connectionCandidates) {
+        if (connectionsNeeded <= 0) break;
+        conns.push({ from: idx, to: candidate });
+        existingConnections.add(candidate);
+        connectedToComponent.get(candidate)?.add(idx);
+        connectionsNeeded--;
+      }
+
+      // If still need connections, find any available component
+      if (connectionsNeeded > 0) {
+        for (let i = 0; i < components.length; i++) {
+          if (connectionsNeeded <= 0) break;
+          if (i !== idx && !existingConnections.has(i)) {
+            conns.push({ from: idx, to: i });
+            existingConnections.add(i);
+            connectedToComponent.get(i)?.add(idx);
+            connectionsNeeded--;
+          }
+        }
+      }
+    }
+  });
+
+  return conns;
+}
+
 // Helper: Generate intelligent connections based on component types and proper circuit topology
+// This version ensures all components are properly connected according to electrical rules
 function generateSeriesConnections(
   components: Array<{ type: string; properties?: Record<string, unknown> }>,
 ): Array<{ from: number; to: number; label?: string }> {
@@ -568,11 +720,23 @@ function generateSeriesConnections(
   const controlIdxs = components.map((c, i) => CONTROL.has(c.type) ? i : -1).filter(i => i >= 0);
   const protectionIdxs = components.map((c, i) => PROTECTION.has(c.type) ? i : -1).filter(i => i >= 0);
   
-  // Get resistor indices (current limiting for LEDs, etc)
+  // Get resistor and capacitor indices (for proper current limiting and filtering)
   const resistorIdxs = components.map((c, i) => c.type === 'resistor' ? i : -1).filter(i => i >= 0);
+  const capacitorIdxs = components.map((c, i) => c.type === 'capacitor' ? i : -1).filter(i => i >= 0);
+  let resistorUsed = 0; // Track how many resistors have been used for LEDs/loads
   
-  // Track which components have been connected
-  const connected = new Set<number>();
+  // Track which components have been connected and how many connections each has
+  const connectedToComponent = new Map<number, Set<number>>();
+  components.forEach((_, idx) => {
+    connectedToComponent.set(idx, new Set<number>());
+  });
+  
+  // Helper to add a connection and track it
+  const addConnection = (from: number, to: number, label?: string) => {
+    conns.push({ from, to, label });
+    connectedToComponent.get(from)?.add(to);
+    connectedToComponent.get(to)?.add(from);
+  };
   
   // Determine power distribution point (after regulator if exists)
   let powerDistributionPoint = powerIdx >= 0 ? powerIdx : 0;
@@ -580,126 +744,264 @@ function generateSeriesConnections(
   // STEP 1: Power source to regulator (if exists)
   if (powerIdx >= 0 && regulatorIdxs.length > 0) {
     const regIdx = regulatorIdxs[0];
-    conns.push({ from: powerIdx, to: regIdx });
-    connected.add(powerIdx);
-    connected.add(regIdx);
+    addConnection(powerIdx, regIdx);
     powerDistributionPoint = regIdx; // Power now comes from regulator output
   }
   
   // STEP 2: Connect motor drivers to power distribution point
-  // Each motor driver gets power from the distribution point
   motorDriverIdxs.forEach((driverIdx) => {
-    if (!connected.has(driverIdx) || driverIdx !== powerDistributionPoint) {
-      conns.push({ from: powerDistributionPoint, to: driverIdx });
-      connected.add(driverIdx);
+    if (connectedToComponent.get(driverIdx)!.size === 0 || driverIdx !== powerDistributionPoint) {
+      addConnection(powerDistributionPoint, driverIdx);
+      // Also connect to ground for power return
+      if (groundIdx >= 0) {
+        addConnection(driverIdx, groundIdx);
+      }
     }
   });
   
   // STEP 3: Connect motors to motor drivers (parallel, one motor per driver or shared)
   if (motorIdxs.length > 0 && motorDriverIdxs.length > 0) {
-    // Distribute motors among drivers
     motorIdxs.forEach((motorIdx, i) => {
       const driverIdx = motorDriverIdxs[i % motorDriverIdxs.length];
-      conns.push({ from: driverIdx, to: motorIdx });
-      connected.add(motorIdx);
+      addConnection(driverIdx, motorIdx);
       // Motors need return path to ground
       if (groundIdx >= 0) {
-        conns.push({ from: motorIdx, to: groundIdx, label: 'GND' });
+        addConnection(motorIdx, groundIdx);
       }
     });
   } else if (motorIdxs.length > 0) {
-    // No motor drivers, connect motors directly (with control switch if available)
+    // No motor drivers, connect motors directly
     motorIdxs.forEach((motorIdx) => {
       let sourcePoint = powerDistributionPoint;
       
-      // If there's a control switch, put it in the path
-      if (controlIdxs.length > 0 && !connected.has(controlIdxs[0])) {
+      // If there's a control switch, insert it in the path
+      if (controlIdxs.length > 0 && connectedToComponent.get(controlIdxs[0])!.size === 0) {
         const ctrlIdx = controlIdxs[0];
-        conns.push({ from: powerDistributionPoint, to: ctrlIdx });
-        connected.add(ctrlIdx);
+        addConnection(powerDistributionPoint, ctrlIdx);
         sourcePoint = ctrlIdx;
       }
       
-      conns.push({ from: sourcePoint, to: motorIdx });
-      connected.add(motorIdx);
+      addConnection(sourcePoint, motorIdx);
       
       // Add flyback protection if available
-      const flybackIdx = protectionIdxs.find(idx => components[idx].type === 'flyback-diode' || components[idx].type === 'diode');
-      if (flybackIdx !== undefined && !connected.has(flybackIdx)) {
-        conns.push({ from: motorIdx, to: flybackIdx });
-        connected.add(flybackIdx);
-        if (groundIdx >= 0) {
-          conns.push({ from: flybackIdx, to: groundIdx, label: 'GND' });
+      const flybackIdx = protectionIdxs.find(idx => 
+        components[idx].type === 'flyback-diode' || components[idx].type === 'diode'
+      );
+      if (flybackIdx !== undefined && connectedToComponent.get(flybackIdx)!.size < 2) {
+        addConnection(motorIdx, flybackIdx);
+        if (groundIdx >= 0 && connectedToComponent.get(flybackIdx)!.size < 2) {
+          addConnection(flybackIdx, groundIdx);
         }
       } else if (groundIdx >= 0) {
-        conns.push({ from: motorIdx, to: groundIdx, label: 'GND' });
+        addConnection(motorIdx, groundIdx);
       }
     });
   }
   
-  // STEP 4: Connect passive loads (LEDs, buzzers, etc.) in series chains or parallel
+  // STEP 4: Connect passive loads (LEDs, buzzers, speakers, etc.)
   if (loadIdxs.length > 0) {
-    let resistorUsed = 0;
     loadIdxs.forEach((loadIdx) => {
       let sourcePoint = powerDistributionPoint;
       
       // Use a resistor for current limiting (especially for LEDs)
       if (components[loadIdx].type === 'led' && resistorUsed < resistorIdxs.length) {
         const resIdx = resistorIdxs[resistorUsed++];
-        if (!connected.has(resIdx)) {
-          conns.push({ from: powerDistributionPoint, to: resIdx });
-          connected.add(resIdx);
-          sourcePoint = resIdx;
-        }
+        // Resistor must be properly inserted: Power → Resistor → LED → Ground
+        // This ensures the resistor is fully connected (2 connections for a 2-pin device)
+        addConnection(powerDistributionPoint, resIdx);
+        sourcePoint = resIdx;
       }
       
-      conns.push({ from: sourcePoint, to: loadIdx });
-      connected.add(loadIdx);
+      addConnection(sourcePoint, loadIdx);
       
       // Return to ground
-      if (groundIdx >= 0) {
-        conns.push({ from: loadIdx, to: groundIdx, label: 'GND' });
+      if (groundIdx >= 0 && connectedToComponent.get(loadIdx)!.size < 2) {
+        addConnection(loadIdx, groundIdx);
       }
     });
   }
   
-  // STEP 5: Connect sensors (they need power and ground)
-  sensorIdxs.forEach((sensorIdx) => {
-    conns.push({ from: powerDistributionPoint, to: sensorIdx });
-    connected.add(sensorIdx);
-    if (groundIdx >= 0) {
-      conns.push({ from: sensorIdx, to: groundIdx, label: 'GND' });
+  // STEP 5: Connect protection components (diodes, fuses) and unused resistors properly
+  // Diodes, fuses, capacitors etc. need to be part of the main circuit chain, not dangling
+  // IMPORTANT: Any resistor used as protection/snubber should also be fully connected
+  const allResistorIdxs = components.map((c, i) => c.type === 'resistor' ? i : -1).filter(i => i >= 0);
+  const usedResistors = new Set(resistorIdxs.slice(0, resistorUsed || 0));
+  const unusedResistorIdxs = allResistorIdxs.filter(idx => !usedResistors.has(idx) && connectedToComponent.get(idx)!.size === 0);
+  const danglingProtection = protectionIdxs.filter(idx => connectedToComponent.get(idx)!.size < 2);
+  const danglingCapacitors = capacitorIdxs.filter(idx => connectedToComponent.get(idx)!.size < 2);
+  
+  // Connect unused resistors as parallel snubbers or current limiting elements
+  unusedResistorIdxs.forEach((resIdx) => {
+    if (connectedToComponent.get(resIdx)!.size === 0) {
+      // Connect between power and ground for filtering/snubbing
+      addConnection(powerDistributionPoint, resIdx);
+      if (groundIdx >= 0 && connectedToComponent.get(resIdx)!.size < 2) {
+        addConnection(resIdx, groundIdx);
+      }
     }
   });
   
-  // STEP 6: Connect any remaining motor drivers to ground
-  motorDriverIdxs.forEach((driverIdx) => {
-    if (groundIdx >= 0) {
-      conns.push({ from: driverIdx, to: groundIdx, label: 'GND' });
+  // CRITICAL: All protection components (diodes) MUST have 2 connections
+  danglingProtection.forEach((protIdx) => {
+    const currentConnections = connectedToComponent.get(protIdx)!.size;
+    
+    if (currentConnections === 0) {
+      // Completely disconnected: connect both ends
+      addConnection(powerDistributionPoint, protIdx);
+      if (groundIdx >= 0 && connectedToComponent.get(protIdx)!.size < 2) {
+        addConnection(protIdx, groundIdx);
+      }
+    } else if (currentConnections === 1) {
+      // Only 1 connection: MUST complete to 2 connections
+      let connected = false;
+      const existingConnections = connectedToComponent.get(protIdx)!;
+      
+      // First try: connect to ground (preferred for diodes)
+      if (groundIdx >= 0 && !existingConnections.has(groundIdx)) {
+        addConnection(protIdx, groundIdx);
+        connected = true;
+      }
+      
+      // Second try: connect to power if ground didn't work
+      if (!connected && powerIdx >= 0 && !existingConnections.has(powerIdx)) {
+        addConnection(protIdx, powerIdx);
+        connected = true;
+      }
+      
+      // Third try: connect to power distribution point
+      if (!connected && powerDistributionPoint >= 0 && !existingConnections.has(powerDistributionPoint)) {
+        addConnection(protIdx, powerDistributionPoint);
+        connected = true;
+      }
+      
+      // Last resort: find any available component to connect to
+      if (!connected) {
+        for (let i = 0; i < components.length; i++) {
+          if (i !== protIdx && !existingConnections.has(i)) {
+            addConnection(protIdx, i);
+            connected = true;
+            break;
+          }
+        }
+      }
+    }
+  });
+  
+  // Connect capacitors for filtering
+  danglingCapacitors.forEach((capIdx) => {
+    const currentConnections = connectedToComponent.get(capIdx)!.size;
+    
+    if (currentConnections === 0) {
+      addConnection(powerDistributionPoint, capIdx);
+      if (groundIdx >= 0 && connectedToComponent.get(capIdx)!.size < 2) {
+        addConnection(capIdx, groundIdx);
+      }
+    } else if (currentConnections === 1) {
+      // Only 1 connection: MUST complete to 2 connections
+      let connected = false;
+      const existingConnections = connectedToComponent.get(capIdx)!;
+      
+      // First try: connect to ground (preferred for capacitors)
+      if (groundIdx >= 0 && !existingConnections.has(groundIdx)) {
+        addConnection(capIdx, groundIdx);
+        connected = true;
+      }
+      
+      // Second try: connect to power if ground didn't work
+      if (!connected && powerIdx >= 0 && !existingConnections.has(powerIdx)) {
+        addConnection(capIdx, powerIdx);
+        connected = true;
+      }
+      
+      // Third try: connect to power distribution point
+      if (!connected && powerDistributionPoint >= 0 && !existingConnections.has(powerDistributionPoint)) {
+        addConnection(capIdx, powerDistributionPoint);
+        connected = true;
+      }
+      
+      // Last resort: find any available component to connect to
+      if (!connected) {
+        for (let i = 0; i < components.length; i++) {
+          if (i !== capIdx && !existingConnections.has(i)) {
+            addConnection(capIdx, i);
+            connected = true;
+            break;
+          }
+        }
+      }
+    }
+  });
+  
+  // STEP 6: Connect sensors (they need power and ground)
+  sensorIdxs.forEach((sensorIdx) => {
+    const sensorConnections = connectedToComponent.get(sensorIdx)!.size;
+    if (sensorConnections === 0) {
+      addConnection(powerDistributionPoint, sensorIdx);
+      if (groundIdx >= 0) {
+        addConnection(sensorIdx, groundIdx);
+      }
+    } else if (sensorConnections === 1) {
+      if (groundIdx >= 0) {
+        addConnection(sensorIdx, groundIdx);
+      }
     }
   });
   
   // STEP 7: Connect any remaining unconnected components
+  // This ensures NO component is left "hanging" or with incomplete connections
   components.forEach((comp, idx) => {
-    if (!connected.has(idx) && idx !== powerIdx && idx !== groundIdx) {
-      // Connect to power distribution point
-      conns.push({ from: powerDistributionPoint, to: idx });
-      connected.add(idx);
-      // And to ground if available
-      if (groundIdx >= 0 && !POWER_SOURCES.has(comp.type)) {
-        conns.push({ from: idx, to: groundIdx, label: 'GND' });
+    const connections = connectedToComponent.get(idx)!.size;
+    const requiredConnections = getComponentPinCount(comp.type);
+    
+    if (connections === 0 && idx !== powerIdx && idx !== groundIdx) {
+      // Component is completely isolated - must connect it
+      addConnection(powerDistributionPoint, idx);
+      // If it needs 2+ connections, also connect to ground
+      if (requiredConnections >= 2 && groundIdx >= 0) {
+        addConnection(idx, groundIdx);
+      }
+    } else if (connections === 1 && requiredConnections >= 2 && idx !== powerIdx && idx !== groundIdx) {
+      // Component only has one connection, but needs more - complete the circuit
+      if (!POWER_SOURCES.has(comp.type) && comp.type !== 'ground') {
+        let connected = false;
+        const existingConnections = connectedToComponent.get(idx)!;
+        
+        // First try: connect to ground
+        if (groundIdx >= 0 && !existingConnections.has(groundIdx)) {
+          addConnection(idx, groundIdx);
+          connected = true;
+        }
+        
+        // Second try: connect to power if ground didn't work
+        if (!connected && powerIdx >= 0 && !existingConnections.has(powerIdx)) {
+          addConnection(idx, powerIdx);
+          connected = true;
+        }
+        
+        // Third try: connect to power distribution point
+        if (!connected && powerDistributionPoint >= 0 && !existingConnections.has(powerDistributionPoint)) {
+          addConnection(idx, powerDistributionPoint);
+          connected = true;
+        }
+        
+        // Last resort: find any available component to connect to
+        if (!connected) {
+          for (let i = 0; i < components.length; i++) {
+            if (i !== idx && !existingConnections.has(i)) {
+              addConnection(idx, i);
+              connected = true;
+              break;
+            }
+          }
+        }
       }
     }
   });
   
   // STEP 8: Ensure ground connects back to power source (close the circuit)
   if (groundIdx >= 0 && powerIdx >= 0 && groundIdx !== powerIdx) {
-    conns.push({ from: groundIdx, to: powerIdx });
-  } else if (powerIdx >= 0) {
-    // No ground, find last connected component and close loop
-    const lastConnected = Array.from(connected).pop();
-    if (lastConnected !== undefined && lastConnected !== powerIdx) {
-      conns.push({ from: lastConnected, to: powerIdx });
+    if (!connectedToComponent.get(groundIdx)!.has(powerIdx)) {
+      addConnection(groundIdx, powerIdx);
     }
   }
   
@@ -840,7 +1142,7 @@ function wordToNumber(word: string): number | null {
   return map[normalized] ?? null;
 }
 
-// Local intent-based circuit builder: ensures the app builds circuits even without AI
+// Local intent-based circuit builder: intelligently parses detailed requirements
 function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
   const text = (userMessage || "").toLowerCase();
 
@@ -856,28 +1158,274 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
     message,
   });
 
-  // LED circuit templates
-  if (text.includes("led") || text.includes("light") || text.includes("lamp")) {
-    const comps = [
-      { type: "battery" },
-      { type: "resistor" },
-      { type: "led" },
-      { type: "ground" },
-    ];
-    const conns = [
-      { from: 0, to: 1 },
-      { from: 1, to: 2 },
-      { from: 2, to: 3 },
-      { from: 3, to: 0 },
-    ];
-    return create(
-      comps,
-      conns,
-      "Built a protected LED circuit: Battery → Resistor → LED → Ground → back to Battery.",
-    );
+  // COMPLEX CIRCUIT DETECTION: Industrial, multi-component systems
+  // Match: industrial motor, battery-powered control, monitoring circuit, pressure sensors, etc.
+  if (
+    (text.includes("industrial") || text.includes("production") || text.includes("automated")) &&
+    (text.includes("motor") || text.includes("control") || text.includes("monitoring")) &&
+    (text.includes("h-bridge") || text.includes("motor driver") || text.includes("motor control"))
+  ) {
+    // Extract quantities from text
+    const motorMatch = text.match(/(\d+|four|2)\s*(dc\s*)?motors?/);
+    const motorCount = motorMatch ? (motorMatch[1] === "four" || motorMatch[1] === "4" ? 4 : parseInt(motorMatch[1]) || 4) : 4;
+    
+    const hbridgeMatch = text.match(/(\d+|two|2)\s*h-?bridges?/);
+    const hbridgeCount = hbridgeMatch ? (hbridgeMatch[1] === "two" || hbridgeMatch[1] === "2" ? 2 : parseInt(hbridgeMatch[1]) || 2) : 2;
+    
+    const hasLEDs = text.includes("led") || text.includes("indicator") || text.includes("status");
+    const ledCount = hasLEDs ? 6 : 0; // Power, motor group 1, motor group 2, pressure 1, pressure 2, fault
+    
+    const hasPressureSensors = text.includes("pressure sensor") || text.includes("pressure") || text.includes("load");
+    const pressureCount = hasPressureSensors ? 2 : 0;
+    
+    const hasBuzzers = text.includes("buzzer") || text.includes("audible") || text.includes("alert") || text.includes("alarm");
+    const buzzerCount = hasBuzzers ? 2 : 0;
+    
+    const hasFlybackDiodes = text.includes("diode") || text.includes("flyback") || text.includes("protection");
+    const diodeCount = hasFlybackDiodes ? motorCount : 0;
+    
+    const hasBuckConverter = text.includes("buck") || text.includes("regulator") || text.includes("low-voltage");
+
+    // Build comprehensive component list
+    const components: Array<{ type: string }> = [];
+    let compIndex = 0;
+    
+    components.push({ type: "battery" }); // 0
+    compIndex++;
+    
+    if (hasBuckConverter) {
+      components.push({ type: "buck-converter" }); // 1
+      compIndex++;
+    }
+    
+    // H-bridges
+    const hbridgeStart = compIndex;
+    for (let i = 0; i < hbridgeCount; i++) {
+      components.push({ type: "h-bridge" });
+      compIndex++;
+    }
+    
+    // Motors
+    const motorStart = compIndex;
+    for (let i = 0; i < motorCount; i++) {
+      components.push({ type: "motor" });
+      compIndex++;
+    }
+    
+    // Pressure sensors
+    const pressureStart = compIndex;
+    for (let i = 0; i < pressureCount; i++) {
+      components.push({ type: "pressure-sensor" });
+      compIndex++;
+    }
+    
+    // LEDs and resistors for indicators
+    const ledStart = compIndex;
+    for (let i = 0; i < ledCount; i++) {
+      components.push({ type: "led" });
+      components.push({ type: "resistor" });
+      compIndex += 2;
+    }
+    
+    // Buzzers and resistors
+    const buzzerStart = compIndex;
+    for (let i = 0; i < buzzerCount; i++) {
+      components.push({ type: "buzzer" });
+      components.push({ type: "resistor" });
+      compIndex += 2;
+    }
+    
+    // Flyback diodes
+    const diodeStart = compIndex;
+    for (let i = 0; i < diodeCount; i++) {
+      components.push({ type: "diode" });
+      compIndex++;
+    }
+    
+    // Ground
+    const groundIndex = compIndex;
+    components.push({ type: "ground" });
+
+    // Build realistic connections
+    const connections: Array<{ from: number; to: number }> = [];
+    const batteryIdx = 0;
+    const buckConverterIdx = hasBuckConverter ? 1 : -1;
+    const powerRailSource = hasBuckConverter ? buckConverterIdx : batteryIdx;
+
+    // Battery to buck converter (if present)
+    if (hasBuckConverter) {
+      connections.push({ from: batteryIdx, to: buckConverterIdx });
+    }
+
+    // Power distribution to H-bridges
+    for (let i = 0; i < hbridgeCount; i++) {
+      connections.push({ from: powerRailSource, to: hbridgeStart + i });
+    }
+
+    // Power distribution to pressure sensors (via buck converter if present)
+    for (let i = 0; i < pressureCount; i++) {
+      connections.push({ from: powerRailSource, to: pressureStart + i });
+    }
+
+    // Power distribution to buzzers
+    for (let i = 0; i < buzzerCount; i++) {
+      connections.push({ from: powerRailSource, to: buzzerStart + i * 2 });
+    }
+
+    // H-bridges to motors (each H-bridge controls motorCount/hbridgeCount motors)
+    const motorsPerBridge = Math.ceil(motorCount / hbridgeCount);
+    let diodeUsed = 0;
+    for (let i = 0; i < hbridgeCount; i++) {
+      for (let j = 0; j < motorsPerBridge && i * motorsPerBridge + j < motorCount; j++) {
+        const motorIdx = motorStart + i * motorsPerBridge + j;
+        connections.push({ from: hbridgeStart + i, to: motorIdx });
+        
+        // Add flyback diode in parallel with motor (H-bridge output → Diode → Ground)
+        // IMPORTANT: Only use diodes that exist in the array
+        if (diodeUsed < diodeCount) {
+          const diodeIdx = diodeStart + diodeUsed;
+          connections.push({ from: hbridgeStart + i, to: diodeIdx });
+          connections.push({ from: diodeIdx, to: groundIndex });
+          diodeUsed++;
+        }
+      }
+    }
+
+    // Connect motors to ground (complete motor circuit)
+    for (let i = 0; i < motorCount; i++) {
+      connections.push({ from: motorStart + i, to: groundIndex });
+    }
+
+    // Pressure sensors to indicators (optional signal routing)
+    for (let i = 0; i < pressureCount; i++) {
+      const ledPairStart = ledStart + i * 2;
+      connections.push({ from: pressureStart + i, to: ledPairStart });
+    }
+
+    // LED indicators with resistors
+    for (let i = 0; i < ledCount; i++) {
+      const ledIdx = ledStart + i * 2;
+      const resistorIdx = ledIdx + 1;
+      connections.push({ from: powerRailSource, to: resistorIdx });
+      connections.push({ from: resistorIdx, to: ledIdx });
+      connections.push({ from: ledIdx, to: groundIndex });
+    }
+
+    // Buzzers with resistors
+    for (let i = 0; i < buzzerCount; i++) {
+      const buzzerIdx = buzzerStart + i * 2;
+      const resistorIdx = buzzerIdx + 1;
+      connections.push({ from: buzzerIdx, to: resistorIdx });
+      connections.push({ from: resistorIdx, to: groundIndex });
+    }
+
+    // Connect any remaining unused diodes (if any) as protection/snubber elements
+    while (diodeUsed < diodeCount) {
+      const diodeIdx = diodeStart + diodeUsed;
+      // Connect unused diodes between power rail and ground for protection
+      connections.push({ from: powerRailSource, to: diodeIdx });
+      connections.push({ from: diodeIdx, to: groundIndex });
+      diodeUsed++;
+    }
+
+    // All H-bridges, motors, and sensors to ground (redundant but ensures solid connections)
+    for (let i = 0; i < hbridgeCount; i++) {
+      connections.push({ from: hbridgeStart + i, to: groundIndex });
+    }
+    for (let i = 0; i < motorCount; i++) {
+      connections.push({ from: motorStart + i, to: groundIndex });
+    }
+    for (let i = 0; i < pressureCount; i++) {
+      connections.push({ from: pressureStart + i, to: groundIndex });
+    }
+
+    // Ground back to battery (complete circuit)
+    connections.push({ from: groundIndex, to: batteryIdx });
+
+    const message = `Industrial motor control circuit with ${motorCount} DC motors, ${hbridgeCount} H-bridge drivers, ${ledCount} status LEDs, ${pressureCount} pressure sensors, ${buzzerCount} buzzers, and protective flyback diodes. ${hasBuckConverter ? "Buck converter provides regulated 5V control rail. " : ""}All components share common ground with realistic production-style wiring.`;
+
+    return create(components, connections, message);
   }
 
-  // Motor with switch + flyback diode
+  // STANDARD LED CIRCUIT
+  if (text.includes("led") || text.includes("light") || text.includes("lamp")) {
+    const ledMatch = text.match(/(\d+|two|three|four|five)\s*leds?/);
+    const ledCount = ledMatch ? (["two", "2"].includes(ledMatch[1]) ? 2 : ["three", "3"].includes(ledMatch[1]) ? 3 : ["four", "4"].includes(ledMatch[1]) ? 4 : ["five", "5"].includes(ledMatch[1]) ? 5 : 1) : 1;
+    
+    const components: Array<{ type: string }> = [{ type: "battery" }];
+    for (let i = 0; i < ledCount; i++) {
+      components.push({ type: "resistor" }, { type: "led" });
+    }
+    components.push({ type: "ground" });
+
+    const connections: Array<{ from: number; to: number }> = [];
+    for (let i = 0; i < ledCount; i++) {
+      const resistorIdx = 1 + i * 2;
+      const ledIdx = 1 + i * 2 + 1;
+      connections.push({ from: 0, to: resistorIdx });
+      connections.push({ from: resistorIdx, to: ledIdx });
+      connections.push({ from: ledIdx, to: components.length - 1 });
+    }
+    connections.push({ from: components.length - 1, to: 0 });
+
+    return create(components, connections, `Built a protected ${ledCount} LED circuit${ledCount > 1 ? "s with parallel branches" : ""}: Battery → Resistor(s) → LED(s) → Ground.`);
+  }
+
+  // MULTI-MOTOR CIRCUITS
+  if ((text.includes("motor") || text.includes("actuator")) && (text.includes("4") || text.includes("four") || text.includes("multiple"))) {
+    const motorMatch = text.match(/(\d+|four|six|eight)\s*(dc\s*)?motors?/);
+    const motorCount = motorMatch ? (["four", "4"].includes(motorMatch[1]) ? 4 : ["six", "6"].includes(motorMatch[1]) ? 6 : ["eight", "8"].includes(motorMatch[1]) ? 8 : 2) : 4;
+    
+    const hbridgeCount = Math.max(2, Math.ceil(motorCount / 2));
+
+    const components: Array<{ type: string }> = [{ type: "battery" }];
+    for (let i = 0; i < hbridgeCount; i++) {
+      components.push({ type: "h-bridge" });
+    }
+    for (let i = 0; i < motorCount; i++) {
+      components.push({ type: "motor" });
+    }
+    for (let i = 0; i < motorCount; i++) {
+      components.push({ type: "diode" });
+    }
+    components.push({ type: "ground" });
+
+    const connections: Array<{ from: number; to: number }> = [];
+    const hbridgeStart = 1;
+    const motorStart = hbridgeStart + hbridgeCount;
+    const diodeStart = motorStart + motorCount;
+    const groundIdx = components.length - 1;
+
+    // Battery to H-bridges
+    for (let i = 0; i < hbridgeCount; i++) {
+      connections.push({ from: 0, to: hbridgeStart + i });
+    }
+
+    // H-bridges to motors and flyback diodes (diodes in parallel with motors)
+    for (let i = 0; i < motorCount; i++) {
+      const bridgeIdx = hbridgeStart + Math.floor(i / 2);
+      const diodeIdx = diodeStart + i;
+      
+      // Motor connection
+      connections.push({ from: bridgeIdx, to: motorStart + i });
+      connections.push({ from: motorStart + i, to: groundIdx });
+      
+      // Flyback diode in parallel (H-bridge → Diode → Ground)
+      connections.push({ from: bridgeIdx, to: diodeIdx });
+      connections.push({ from: diodeIdx, to: groundIdx });
+    }
+
+    // Everything to ground
+    for (let i = 0; i < hbridgeCount; i++) {
+      connections.push({ from: hbridgeStart + i, to: groundIdx });
+    }
+
+    connections.push({ from: groundIdx, to: 0 });
+
+    return create(components, connections, `Built a ${motorCount}-motor circuit with ${hbridgeCount} H-bridge drivers and flyback protection. Each H-bridge controls 1-2 motors with bidirectional control.`);
+  }
+
+  // MOTOR WITH SWITCH + FLYBACK
   if (text.includes("motor")) {
     const comps = [
       { type: "battery" },
@@ -936,14 +1484,14 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
       { type: "ground" },
     ];
     const conns = [
-      { from: 0, to: 1 }, // Battery to input A switch
-      { from: 0, to: 2 }, // Battery to input B switch
-      { from: 1, to: 3 }, // Switch A to AND gate
-      { from: 2, to: 3 }, // Switch B to AND gate
-      { from: 3, to: 4 }, // Gate to resistor
-      { from: 4, to: 5 }, // Resistor to LED
-      { from: 5, to: 6 }, // LED to ground
-      { from: 6, to: 0 }, // close loop
+      { from: 0, to: 1 },
+      { from: 0, to: 2 },
+      { from: 1, to: 3 },
+      { from: 2, to: 3 },
+      { from: 3, to: 4 },
+      { from: 4, to: 5 },
+      { from: 5, to: 6 },
+      { from: 6, to: 0 },
     ];
     return create(
       comps,
@@ -958,7 +1506,6 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
     text.includes("opamp") ||
     text.includes("operational amplifier")
   ) {
-    // Basic non-inverting amplifier template with feedback from output back to input
     const comps = [
       { type: "battery" },
       { type: "resistor" },
@@ -969,14 +1516,14 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
       { type: "ground" },
     ];
     const conns = [
-      { from: 0, to: 1 }, // battery -> input resistor
-      { from: 1, to: 3 }, // input resistor -> op-amp input
-      { from: 3, to: 4 }, // op-amp output -> output resistor
-      { from: 4, to: 6 }, // output resistor -> ground/load
-      { from: 3, to: 1 }, // feedback: op-amp output -> input node (creates feedback loop)
-      { from: 2, to: 6 }, // decoupling cap -> ground
-      { from: 5, to: 6 }, // output cap -> ground
-      { from: 6, to: 0 }, // close loop
+      { from: 0, to: 1 },
+      { from: 1, to: 3 },
+      { from: 3, to: 4 },
+      { from: 4, to: 6 },
+      { from: 3, to: 1 },
+      { from: 2, to: 6 },
+      { from: 5, to: 6 },
+      { from: 6, to: 0 },
     ];
     return create(
       comps,
@@ -1047,36 +1594,6 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
     );
   }
 
-  // H-Bridge motor driver for DC motor control
-  if (
-    text.includes("h-bridge") ||
-    text.includes("hbridge") ||
-    (text.includes("motor") && (text.includes("driver") || text.includes("control") || text.includes("direction")))
-  ) {
-    const comps = [
-      { type: "battery" },
-      { type: "switch" },
-      { type: "switch" },
-      { type: "h-bridge" },
-      { type: "motor" },
-      { type: "ground" },
-    ];
-    const conns = [
-      { from: 0, to: 1 }, // Battery to control switch 1
-      { from: 0, to: 2 }, // Battery to control switch 2
-      { from: 1, to: 3 }, // Control switch 1 to H-bridge input
-      { from: 2, to: 3 }, // Control switch 2 to H-bridge input
-      { from: 3, to: 4 }, // H-bridge to motor
-      { from: 4, to: 5 }, // Motor to ground
-      { from: 5, to: 0 }, // close loop
-    ];
-    return create(
-      comps,
-      conns,
-      "Built an H-Bridge motor driver circuit: Battery → Control switches → H-Bridge → DC Motor. The H-Bridge allows bidirectional motor control (forward, reverse, brake).",
-    );
-  }
-
   // Stepper motor driver
   if (text.includes("stepper")) {
     const comps = [
@@ -1087,16 +1604,16 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
       { type: "ground" },
     ];
     const conns = [
-      { from: 0, to: 1 }, // Battery to microcontroller
-      { from: 1, to: 2 }, // Microcontroller to stepper driver
-      { from: 2, to: 3 }, // Stepper driver to stepper motor
-      { from: 3, to: 4 }, // Motor to ground
-      { from: 4, to: 0 }, // close loop
+      { from: 0, to: 1 },
+      { from: 1, to: 2 },
+      { from: 2, to: 3 },
+      { from: 3, to: 4 },
+      { from: 4, to: 0 },
     ];
     return create(
       comps,
       conns,
-      "Built a stepper motor control circuit: Battery → Microcontroller → Stepper Driver → Stepper Motor. The controller sends step/direction signals to the driver.",
+      "Built a stepper motor control circuit: Battery → Microcontroller → Stepper Driver → Stepper Motor.",
     );
   }
 
@@ -1109,15 +1626,15 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
       { type: "ground" },
     ];
     const conns = [
-      { from: 0, to: 1 }, // Battery to microcontroller
-      { from: 1, to: 2 }, // Microcontroller PWM to servo
-      { from: 2, to: 3 }, // Servo to ground
-      { from: 3, to: 0 }, // close loop
+      { from: 0, to: 1 },
+      { from: 1, to: 2 },
+      { from: 2, to: 3 },
+      { from: 3, to: 0 },
     ];
     return create(
       comps,
       conns,
-      "Built a servo motor control circuit: Battery → Microcontroller (PWM signal) → Servo Motor. The servo positions based on the PWM duty cycle.",
+      "Built a servo motor control circuit: Battery → Microcontroller (PWM signal) → Servo Motor.",
     );
   }
 
@@ -1128,11 +1645,14 @@ function buildCircuitFromIntent(userMessage: string): CircuitAction | null {
 // Fetch a concise, hover-friendly explanation for a component using Gemini
 export async function fetchComponentInsight(
   component: CircuitComponent,
+  context?: string,
 ): Promise<string> {
-  const cached = insightCache.get(component.type);
+  const cacheKey = context ? `${component.type}|${context}` : component.type;
+  const cached = insightCache.get(cacheKey);
   if (cached) return cached;
 
-  const fallback = `**Purpose:** ${component.description}\n**Where it fits:** A fundamental part of basic circuits.\n**Connection tips:** Wire following its symbol; respect polarity if present.`;
+  const fallbackContext = context && context.length > 0 ? `\n**This circuit:** ${context}` : '';
+  const fallback = `**Purpose:** ${component.description}\n**Where it fits:** A fundamental part of basic circuits.${fallbackContext}\n**Connection tips:** Wire following its symbol; respect polarity if present.`;
 
   if (!OPENROUTER_API_KEY) {
     return fallback;
@@ -1155,7 +1675,7 @@ export async function fetchComponentInsight(
           { role: "system", content: INSIGHT_SYSTEM_PROMPT },
           {
             role: "user",
-            content: `Component: ${component.name}\nCategory: ${component.category}\nSymbol: ${component.symbol}\nDescription: ${component.description}\nConnections: ${component.connections}\nExplain it for a hover tooltip.`,
+            content: `Component: ${component.name}\nCategory: ${component.category}\nSymbol: ${component.symbol}\nDescription: ${component.description}\nConnections: ${component.connections}\nCircuit context: ${context || 'No other components connected yet.'}\nExplain its role and how it links to neighbors. Keep it hover-friendly in <70 words.`,
           },
         ],
       }),
@@ -1183,7 +1703,7 @@ export async function fetchComponentInsight(
     }
 
     const finalContent = content.length > 0 ? content : fallback;
-    insightCache.set(component.type, finalContent);
+    insightCache.set(cacheKey, finalContent);
     return finalContent;
   } catch (error) {
     console.error("AI insight error:", error);

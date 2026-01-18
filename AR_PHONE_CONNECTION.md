@@ -5,30 +5,37 @@ The AR Lab feature allows you to connect your phone to stream its camera to your
 
 ## Quick Setup
 
-### 1. Set Your Laptop's IP Address in `.env`
-Edit `.env` and add your laptop's IP address:
+### 1. Hosted (Production) — Recommended
+When the app is hosted (e.g., `https://circuitco.web.app`), the AR connection uses the site origin automatically. No IP setup is required.
+
+- Ensure the site is served over HTTPS (Firebase Hosting provides this)
+- Keep `VITE_LAPTOP_IP` empty in production
+- Optional: configure TURN servers for restrictive networks
+
+### 2. Local Development (Optional)
+Set your laptop's IP address in `.env` to make QR codes point to your dev server:
 
 ```env
 VITE_LAPTOP_IP=192.168.1.100
 ```
 
 **To find your IP address:**
-- **Windows:** Open PowerShell and run `ipconfig` - look for "IPv4 Address"
+- **Windows:** Open PowerShell and run `ipconfig` — look for "IPv4 Address"
 - **Mac/Linux:** Open Terminal and run `ifconfig` or `hostname -I`
 
-### 2. Start the Development Server
+### 3. Start the Development Server
 ```bash
 npm run dev
 ```
 The app will run at `http://localhost:5173/ar`
 
-### 3. On Your Laptop
+### 4. On Your Laptop
 1. Navigate to `http://localhost:5173/ar` (or `http://YOUR_IP:5173/ar`)
 2. Click on the "Phone" tab
 3. Click "Connect Phone" to generate a QR code
 4. The QR code will automatically use your configured IP address
 
-### 4. On Your Phone
+### 5. On Your Phone
 1. Open your phone's camera app
 2. Scan the QR code shown on your laptop
 3. Click the notification or follow the link
@@ -89,8 +96,9 @@ The phone shows detailed error messages. Common ones:
 
 ```
 Phone (ARConnectPage)
-  ↓ (QR Code URL)
-  ↓ Scan → http://YOUR_IP:5173/ar-connect?peer=ID&session=SESSION
+   ↓ (QR Code URL)
+   ↓ Scan → https://circuitco.web.app/ar-connect?peer=ID&session=SESSION (hosted)
+                      or http://YOUR_IP:5173/ar-connect?peer=ID&session=SESSION (dev)
   ↓ (PeerJS WebRTC)
 Laptop (ARTutorialPage)
   ↓ (Receives video stream)
@@ -134,10 +142,10 @@ Real-time breadboard analysis
 
 When deploying to Firebase (`firebase deploy --only hosting`):
 
-1. Set `VITE_LAPTOP_IP` in your deployment environment
-2. The app will be available at `https://amperon.web.app/ar`
-3. Phone connects via `https://amperon.web.app/ar-connect`
-4. Note: Cross-origin or CORS issues may arise - test thoroughly
+1. Keep `VITE_LAPTOP_IP` empty so hosted origin is used
+2. The app will be available at your hosting URL (e.g., `https://circuitco.web.app/ar`)
+3. Phone connects via `https://circuitco.web.app/ar-connect`
+4. If using the collaboration server, set `CLIENT_ORIGIN` to your hosted URL and update `VITE_SOCKET_URL` accordingly
 
 ## Security Notes
 

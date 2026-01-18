@@ -21,9 +21,10 @@ const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const { nodes, edges } = useCircuitStore();
-  const { projects, addProject, setCurrentProjectId } = useProjectStore();
+  const { projects, addProject, setCurrentProjectId, currentProjectId } = useProjectStore();
   const { sessions, currentSessionId } = useChatStore();
   const autosaveCounterRef = React.useRef(0);
+  const lastSavedStateRef = React.useRef<{ nodes: string; edges: string }>({ nodes: '', edges: '' });
 
   const navItems = [
     { path: '/', label: 'Designer', icon: LayoutDashboard },
@@ -42,6 +43,23 @@ const Navbar: React.FC = () => {
   };
 
   const autosaveCurrentDesign = () => {
+    // Only autosave if there are actual nodes/edges and they've changed
+    if ((nodes.length === 0 && edges.length === 0)) {
+      return; // Don't save empty canvas
+    }
+
+    const currentState = JSON.stringify({ nodes, edges });
+    
+    // Don't save if nothing has changed since last save
+    if (currentState === lastSavedStateRef.current.nodes) {
+      return;
+    }
+
+    // Only autosave if there's no current project (new work) or if it's been changed
+    if (currentProjectId) {
+      return; // Don't autosave if we already have a project open - let the DesignerPage handle it
+    }
+
     const name = getNextUntitledName();
     const session = sessions.find((s) => s.id === currentSessionId);
     autosaveCounterRef.current += 1;
@@ -61,6 +79,7 @@ const Navbar: React.FC = () => {
     };
     addProject(newProject);
     setCurrentProjectId(newProject.id);
+    lastSavedStateRef.current = { nodes: currentState, edges: currentState };
   };
 
   const handleNavClick = (path: string) => {

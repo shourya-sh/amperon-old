@@ -30,32 +30,39 @@ function getConnectionBaseUrl(): string {
   const hostname = window.location.hostname;
   const port = window.location.port;
   const protocol = window.location.protocol;
-  
+
   // Prefer new env var VITE_LAPTOP_IP_ADRESS; fallback to VITE_LAPTOP_IP
   const envIpRaw = (import.meta.env as any).VITE_LAPTOP_IP_ADRESS || (import.meta.env as any).VITE_LAPTOP_IP;
   const envIp = typeof envIpRaw === 'string' ? envIpRaw.trim() : undefined;
-  
+
+  // Detect if we're running on a publicly hosted domain (not localhost/IP)
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isIpHostname = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+  const isHostedDomain = !isLocalHost && !isIpHostname;
+
   console.log('🔍 getConnectionBaseUrl() called');
   console.log('  hostname:', hostname);
+  console.log('  isHostedDomain:', isHostedDomain);
   console.log('  envIpPreferred (ADRESS → IP):', envIp);
   console.log('  Full import.meta.env:', import.meta.env);
-  
-  // If env IP override is defined, always use it
+
+  // When hosted on a real domain, always use the origin (e.g., https://circuitco.web.app)
+  if (isHostedDomain) {
+    const url = window.location.origin;
+    console.log('  🌐 Hosted domain detected, using origin:', url);
+    return url;
+  }
+
+  // Development: if env IP override is defined, use it
   if (envIp && envIp.length > 0) {
     const url = `${protocol}//${envIp}${port ? ':' + port : ''}`;
-    console.log('  ✅ Using env IP override, returning:', url);
+    console.log('  ✅ Using env IP override (dev):', url);
     return url;
   }
-  
-  // If on localhost and no env IP, use localhost (UI will show helper)
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const url = `${protocol}//${hostname}${port ? ':' + port : ''}`;
-    console.log('  ⚠️ No env IP, returning localhost:', url);
-    return url;
-  }
-  
-  const url = window.location.origin;
-  console.log('  🌐 Using window.location.origin:', url);
+
+  // Fallback to current host (localhost or IP)
+  const url = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+  console.log('  ⚠️ Fallback to current host:', url);
   return url;
 }
 
