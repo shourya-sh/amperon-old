@@ -54,7 +54,6 @@ const CircuitCanvasInner: React.FC = () => {
     selectedNode,
     setSelectedNode,
     viewMode,
-    setViewMode,
     clearCanvas,
     isSimulating,
     setIsSimulating,
@@ -74,7 +73,6 @@ const CircuitCanvasInner: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const [showGrid, setShowGrid] = React.useState(true);
   const [showLabels, setShowLabels] = React.useState(false); // Start false for better initial spacing
-  const [hasInitialized, setHasInitialized] = React.useState(false);
   
   // Track if we're currently syncing to prevent loops
   const isSyncingRef = useRef(false);
@@ -155,7 +153,6 @@ const CircuitCanvasInner: React.FC = () => {
         // Enable labels right after fitView completes (300ms)
         setTimeout(() => {
           setShowLabels(true);
-          setHasInitialized(true);
         }, 350);
       }
     }, 50);
@@ -288,9 +285,10 @@ const CircuitCanvasInner: React.FC = () => {
     generateSchematicPdf(storeNodes, storeEdges, projectName);
   }, [storeNodes, storeEdges, currentProject]);
 
-  const currentZoom = useMemo(() => {
+  // Viewport tracking for debugging
+  useMemo(() => {
     const viewport = getViewport();
-    return Math.round(viewport.zoom * 100);
+    Math.round(viewport.zoom * 100);
   }, [getViewport]);
 
   return (

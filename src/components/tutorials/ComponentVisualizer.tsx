@@ -43,7 +43,7 @@ const ComponentVisualizer: React.FC<ComponentVisualizerProps> = ({
         // Enhance SVG with better colors
         const enhanced = svg
           .replace(/#22c55e/gi, isActive ? '#22c55e' : '#64748b')
-          .replace(/stroke-width="([\d.]+)"/g, (m, w) => {
+          .replace(/stroke-width="([\d.]+)"/g, (_m, w) => {
             const width = parseFloat(w) * 1.5;
             return `stroke-width="${width}"`;
           });

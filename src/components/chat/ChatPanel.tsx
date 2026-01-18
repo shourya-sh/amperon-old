@@ -49,8 +49,7 @@ const ChatPanel: React.FC = () => {
   const { 
     isLiveSession, 
     chatMessages: sharedMessages, 
-    activeUsers,
-    permission 
+    activeUsers
   } = useLiveShareStore();
   
   const [input, setInput] = useState('');

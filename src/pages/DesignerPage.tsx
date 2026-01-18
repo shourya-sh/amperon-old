@@ -13,7 +13,7 @@ const DesignerPage: React.FC = () => {
   const { user } = useAuth();
   const { isOpen: isChatOpen, setIsOpen: setIsChatOpen } = useChatStore();
   const { isOpen: isShopOpen, setIsOpen: setIsShopOpen } = useShopStore();
-  const { isLiveSession, activeUsers, shareId, permission } = useLiveShareStore();
+  const { isLiveSession, activeUsers, permission } = useLiveShareStore();
   
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 

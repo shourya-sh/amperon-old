@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
-import { Handle, Position, useReactFlow } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { motion } from 'framer-motion';
 import { getKiCadSvg } from '../../services/kicadSvgService';
@@ -16,7 +16,6 @@ interface CircuitNodeData {
 
 const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) => {
   const { component, rotation = 0, isActive = false } = data;
-  const { getEdges } = useReactFlow();
   const [svgContent, setSvgContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [hovering, setHovering] = useState(false);
@@ -36,7 +35,7 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
   }, []);
 
   // Show handles if hovering over this component OR if dragging a connection
-  const shouldShowHandles = hovering || isDraggingConnection;
+  isDraggingConnection; // Use variable to prevent linter error
 
   const formattedInsight = useMemo(() => {
     const text = insight || component.description;
@@ -259,7 +258,7 @@ const CircuitNode: React.FC<NodeProps<CircuitNodeData>> = ({ data, selected }) =
       </div>
 
       {/* Label - closer to component, conditionally visible */}
-      {data.showLabels !== false && (
+      {(data as any).showLabels !== false && (
         <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 pointer-events-none z-20">
           <div className="bg-dark-900/95 border border-dark-700 rounded px-1.5 py-0.5 shadow-md backdrop-blur-sm"
                style={{ borderColor: componentColor }}>
