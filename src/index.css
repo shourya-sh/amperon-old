@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fredoka:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -13,20 +13,30 @@
     @apply bg-[#0d1117] text-[#c9d1d9] font-sans antialiased m-0;
   }
 
+  /* Apply Fredoka to headings globally */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Fredoka", sans-serif;
+  }
+
   ::-webkit-scrollbar {
-    @apply w-1.5 h-1.5;
+    @apply w-2 h-2;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    @apply bg-dark-900 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-[#30363d] rounded hover:bg-[#484f58];
+    @apply bg-dark-700 rounded-full hover:bg-dark-600;
   }
 
   ::selection {
-    @apply bg-[#2ea043]/30 text-white;
+    @apply bg-duo-green/30 text-white;
   }
 }
 
@@ -39,63 +49,92 @@
     @apply hover:bg-[#1c2128] transition-colors duration-150;
   }
 
+  /* Kid-friendly 3D button styles */
   .btn-primary {
-    @apply px-3 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm font-medium rounded 
-           transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-4 py-2.5 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl
+           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+           hover:translate-y-[2px] active:translate-y-[4px];
+    box-shadow: 0 4px 0 0 #15803d;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 2px 0 0 #15803d;
+  }
+
+  .btn-primary:active {
+    box-shadow: none;
   }
 
   .btn-secondary {
-    @apply px-3 py-1.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded
-           border border-[#30363d] hover:border-[#8b949e] transition-all duration-150
+    @apply px-4 py-2.5 bg-dark-700 hover:bg-dark-600 text-dark-200 text-sm font-display font-semibold rounded-xl
+           border-2 border-dark-600 hover:border-dark-500 transition-all duration-150
+           hover:translate-y-[2px] active:translate-y-[4px]
            disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 0 0 #2d2d35;
+  }
+
+  .btn-secondary:hover {
+    box-shadow: 0 2px 0 0 #2d2d35;
+  }
+
+  .btn-secondary:active {
+    box-shadow: none;
   }
 
   .btn-ghost {
-    @apply px-3 py-1.5 hover:bg-[#1c2128] text-[#8b949e] hover:text-[#c9d1d9] text-sm font-medium rounded
+    @apply px-4 py-2.5 hover:bg-dark-800 text-dark-400 hover:text-dark-200 text-sm font-display font-medium rounded-xl
            transition-all duration-150;
   }
 
+  .btn-danger {
+    @apply px-4 py-2.5 bg-duo-red hover:brightness-110 text-white text-sm font-display font-semibold rounded-xl
+           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+           shadow-[0_4px_0_0_#dc2626] hover:shadow-[0_2px_0_0_#dc2626]
+           hover:translate-y-[2px] active:shadow-none active:translate-y-[4px];
+  }
+
   .input-field {
-    @apply w-full px-3 py-1.5 bg-[#0d1117] border border-[#30363d] rounded
-           text-[#c9d1d9] text-sm placeholder-[#6e7681] focus:outline-none focus:border-[#1f6feb]
-           focus:ring-1 focus:ring-[#1f6feb] transition-all duration-150;
+    @apply w-full px-4 py-2.5 bg-dark-850 border-2 border-dark-700 rounded-xl
+           text-dark-200 text-sm placeholder-dark-500 focus:outline-none focus:border-duo-green
+           focus:ring-2 focus:ring-duo-green/20 transition-all duration-150;
   }
 
   .card {
-    @apply bg-[#161b22] border border-[#30363d] rounded-md p-4;
+    @apply bg-dark-850 border-2 border-dark-700 rounded-2xl p-5;
   }
 
   .card-interactive {
-    @apply card hover:bg-[#1c2128] hover:border-[#8b949e] cursor-pointer transition-all duration-150;
+    @apply card hover:bg-dark-800 hover:border-dark-600 cursor-pointer 
+           transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-dark-900/50;
   }
 
   .tooltip {
-    @apply absolute z-50 px-2 py-1 text-xs bg-[#161b22] border border-[#30363d] 
-           rounded text-[#c9d1d9] whitespace-nowrap shadow-xl;
+    @apply absolute z-50 px-3 py-2 text-sm font-display bg-dark-800 border-2 border-dark-700 
+           rounded-xl text-dark-200 whitespace-nowrap shadow-xl;
   }
 
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-display font-semibold;
   }
 
   .badge-green {
-    @apply badge bg-[#238636]/20 text-[#2ea043] border border-[#238636]/40;
+    @apply badge bg-duo-green/20 text-duo-green border-2 border-duo-green/30;
   }
 
   .badge-blue {
-    @apply badge bg-[#1f6feb]/20 text-[#58a6ff] border border-[#1f6feb]/40;
+    @apply badge bg-duo-blue/20 text-duo-blue border-2 border-duo-blue/30;
   }
 
   .badge-yellow {
-    @apply badge bg-[#d29922]/20 text-[#e3b341] border border-[#d29922]/40;
+    @apply badge bg-duo-yellow/20 text-duo-yellow border-2 border-duo-yellow/30;
   }
 
   .badge-purple {
-    @apply badge bg-[#8957e5]/20 text-[#a371f7] border border-[#8957e5]/40;
+    @apply badge bg-duo-purple/20 text-duo-purple border-2 border-duo-purple/30;
   }
 
   .badge-red {
-    @apply badge bg-[#da3633]/20 text-[#f85149] border border-[#da3633]/40;
+    @apply badge bg-duo-red/20 text-duo-red border-2 border-duo-red/30;
   }
 
   /* Markdown Content Styles */
@@ -223,4 +262,14 @@
 
 .react-flow__background {
   background-color: #0d1117 !important;
+}
+
+/* Canvas dots appear on hover */
+.circuit-canvas .react-flow__background pattern circle {
+  fill: transparent !important;
+  transition: fill 0.3s ease;
+}
+
+.circuit-canvas:hover .react-flow__background pattern circle {
+  fill: rgba(148, 163, 184, 0.15) !important;
 }

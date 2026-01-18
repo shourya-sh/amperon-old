@@ -138,20 +138,20 @@ const ARConnectPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex flex-col">
+    <div className="min-h-screen bg-dark-950 flex flex-col">
       {/* ALWAYS VISIBLE HEADER - If you see this, React is working */}
-      <header className="h-14 bg-[#161b22] border-b border-[#30363d] flex items-center justify-center px-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-            <Camera size={16} className="text-white" />
+      <header className="h-16 bg-dark-900 border-b-2 border-dark-700 flex items-center justify-center px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center">
+            <Camera size={20} className="text-duo-green" />
           </div>
-          <span className="text-sm font-semibold text-[#c9d1d9]">Amperon AR Connect</span>
+          <span className="font-display font-bold text-dark-100">Amperon AR Connect</span>
         </div>
       </header>
 
       {/* Debug Banner - Always visible */}
-      <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2">
-        <p className="text-xs text-yellow-400 font-mono">
+      <div className="bg-duo-yellow/10 border-b-2 border-duo-yellow/30 px-4 py-2">
+        <p className="text-xs font-display font-medium text-duo-yellow">
           📡 Status: {status} | URL: {window.location.pathname}
         </p>
       </div>
@@ -160,64 +160,64 @@ const ARConnectPage: React.FC = () => {
       <main className="flex-1 flex flex-col items-center justify-center p-6">
         {status === 'checking-params' && (
           <div className="text-center">
-            <Loader2 size={48} className="text-green-500 animate-spin mx-auto mb-4" />
-            <p className="text-[#c9d1d9] font-medium">Checking connection parameters...</p>
-            <p className="text-xs text-[#8b949e] mt-2">{debugInfo}</p>
+            <Loader2 size={48} className="text-duo-green animate-spin mx-auto mb-4" />
+            <p className="font-display font-bold text-dark-100">Checking connection parameters...</p>
+            <p className="text-sm text-dark-500 mt-2">{debugInfo}</p>
           </div>
         )}
 
         {status === 'initializing' && (
           <div className="text-center">
-            <Loader2 size={48} className="text-green-500 animate-spin mx-auto mb-4" />
-            <p className="text-[#c9d1d9] font-medium">Initializing connection...</p>
-            <p className="text-xs text-[#8b949e] mt-2">{debugInfo}</p>
+            <Loader2 size={48} className="text-duo-green animate-spin mx-auto mb-4" />
+            <p className="font-display font-bold text-dark-100">Initializing connection...</p>
+            <p className="text-sm text-dark-500 mt-2">{debugInfo}</p>
           </div>
         )}
 
         {status === 'requesting-camera' && (
           <div className="text-center">
-            <div className="w-20 h-20 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center mx-auto mb-6">
-              <Camera size={32} className="text-green-500 animate-pulse" />
+            <div className="w-24 h-24 rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center mx-auto mb-6">
+              <Camera size={40} className="text-duo-green animate-pulse" />
             </div>
-            <h2 className="text-lg font-semibold text-[#c9d1d9] mb-2">Camera Access Required</h2>
-            <p className="text-sm text-[#8b949e] max-w-xs mb-3">
+            <h2 className="text-xl font-display font-bold text-dark-100 mb-2">Camera Access Required</h2>
+            <p className="text-sm text-dark-400 max-w-xs mb-3">
               Please allow camera access when prompted to stream your view to the computer.
             </p>
-            <p className="text-xs text-[#8b949e]">{debugInfo}</p>
+            <p className="text-xs text-dark-500">{debugInfo}</p>
           </div>
         )}
 
         {status === 'connecting' && (
           <div className="text-center">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-[#21262d] border border-[#30363d] flex items-center justify-center mx-auto mb-6">
-                <Wifi size={32} className="text-green-500" />
+              <div className="w-24 h-24 rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center mx-auto mb-6">
+                <Wifi size={40} className="text-duo-green" />
               </div>
-              <div className="absolute inset-0 rounded-full border-4 border-green-500/30 animate-ping" />
+              <div className="absolute inset-0 rounded-2xl border-4 border-duo-green/30 animate-ping" />
             </div>
-            <h2 className="text-lg font-semibold text-[#c9d1d9] mb-2">Connecting to Host...</h2>
-            <p className="text-sm text-[#8b949e] max-w-xs mb-3">
+            <h2 className="text-xl font-display font-bold text-dark-100 mb-2">Connecting to Host...</h2>
+            <p className="text-sm text-dark-400 max-w-xs mb-3">
               Establishing secure connection to your computer.
             </p>
-            <p className="text-xs text-[#8b949e]">{debugInfo}</p>
-            <p className="text-xs text-[#484f58] mt-3">This may take 10-15 seconds</p>
+            <p className="text-xs text-dark-500">{debugInfo}</p>
+            <p className="text-xs text-dark-600 mt-3">This may take 10-15 seconds</p>
           </div>
         )}
 
         {status === 'connected' && (
           <div className="w-full max-w-lg">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle size={32} className="text-green-500" />
+              <div className="w-20 h-20 rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={36} className="text-duo-green" />
               </div>
-              <h2 className="text-lg font-semibold text-[#c9d1d9] mb-1">Connected!</h2>
-              <p className="text-sm text-[#8b949e]">
+              <h2 className="text-xl font-display font-bold text-dark-100 mb-1">Connected!</h2>
+              <p className="text-sm text-dark-400">
                 Your camera is streaming to the computer.
               </p>
             </div>
 
             {/* Camera Preview */}
-            <div className="relative rounded-xl overflow-hidden bg-[#161b22] border border-[#30363d] shadow-xl">
+            <div className="relative rounded-2xl overflow-hidden bg-dark-900 border-2 border-dark-700 shadow-xl">
               <video
                 ref={videoRef}
                 autoPlay
@@ -227,18 +227,18 @@ const ARConnectPage: React.FC = () => {
               />
               
               {/* Status Overlay */}
-              <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-green-500/20 backdrop-blur-md rounded-full border border-green-500/30">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs font-medium text-green-400">Live</span>
+              <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-duo-green/20 backdrop-blur-md rounded-full border-2 border-duo-green/30">
+                <div className="w-2.5 h-2.5 rounded-full bg-duo-green animate-pulse" />
+                <span className="text-xs font-display font-bold text-duo-green">Live</span>
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-[#161b22] rounded-xl border border-[#30363d]">
+            <div className="mt-6 p-4 bg-dark-900 rounded-2xl border-2 border-dark-700">
               <div className="flex items-start gap-3">
-                <Smartphone size={16} className="text-green-500 shrink-0 mt-0.5" />
+                <Smartphone size={18} className="text-duo-green shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-[#c9d1d9] mb-1">Keep this page open</p>
-                  <p className="text-xs text-[#8b949e]">
+                  <p className="text-sm font-display font-bold text-dark-100 mb-1">Keep this page open</p>
+                  <p className="text-sm text-dark-400">
                     Point your camera at your breadboard. The video is being streamed to your computer for analysis.
                   </p>
                 </div>
@@ -250,17 +250,17 @@ const ARConnectPage: React.FC = () => {
         {status === 'error' && (
           <div className="w-full max-w-sm">
             <div className="text-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
-                <XCircle size={32} className="text-red-500" />
+              <div className="w-24 h-24 rounded-2xl bg-duo-red/10 border-2 border-duo-red/20 flex items-center justify-center mx-auto mb-4">
+                <XCircle size={40} className="text-duo-red" />
               </div>
-              <h2 className="text-lg font-semibold text-[#c9d1d9] mb-2">Connection Failed</h2>
-              <p className="text-sm text-[#8b949e] mb-6 leading-relaxed">{error}</p>
+              <h2 className="text-xl font-display font-bold text-dark-100 mb-2">Connection Failed</h2>
+              <p className="text-sm text-dark-400 mb-6 leading-relaxed">{error}</p>
             </div>
 
             {/* Troubleshooting Tips */}
-            <div className="bg-[#161b22] rounded-xl border border-[#30363d] p-4 mb-6">
-              <h3 className="text-sm font-medium text-[#c9d1d9] mb-3">Troubleshooting:</h3>
-              <ul className="text-xs text-[#8b949e] space-y-2">
+            <div className="bg-dark-900 rounded-2xl border-2 border-dark-700 p-5 mb-6">
+              <h3 className="font-display font-bold text-dark-100 mb-3">Troubleshooting:</h3>
+              <ul className="text-sm text-dark-400 space-y-2">
                 <li>✓ Check that both devices are on the same WiFi network</li>
                 <li>✓ Verify the laptop's IP address is correct (check VITE_LAPTOP_IP in .env)</li>
                 <li>✓ Ensure the laptop has the AR Lab page open at http://YOUR_IP:5173/ar</li>
@@ -271,9 +271,9 @@ const ARConnectPage: React.FC = () => {
             
             <button
               onClick={handleRetry}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3.5 bg-duo-green hover:bg-duo-greenDark text-white font-display font-bold rounded-xl transition-all shadow-[0_4px_0_0_#16a34a] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#16a34a] active:translate-y-[4px] active:shadow-none"
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={18} />
               Try Again
             </button>
           </div>
@@ -282,7 +282,7 @@ const ARConnectPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="p-4 text-center">
-        <p className="text-xs text-[#484f58]">
+        <p className="text-sm font-display text-dark-500">
           Powered by Amperon • Secure peer-to-peer connection
         </p>
       </footer>

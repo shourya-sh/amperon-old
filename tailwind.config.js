@@ -57,15 +57,30 @@ export default {
           wire: "#2ea043",
           switch: "#bc8cff",
         },
+        // Duolingo-inspired colors (darker for readability)
+        duo: {
+          green: "#22c55e",
+          greenDark: "#16a34a",
+          greenDeep: "#15803d",
+          blue: "#38bdf8",
+          purple: "#c084fc",
+          red: "#f87171",
+          orange: "#fb923c",
+          yellow: "#fbbf24",
+          gray: "#4b4b4b",
+          grayLight: "#777777",
+        },
       },
       fontFamily: {
         sans: [
+          "Fredoka",
           "Geist",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",
           "sans-serif",
         ],
+        display: ["Fredoka", "-apple-system", "sans-serif"],
         mono: ["Geist Mono", "Menlo", "Monaco", "Courier New", "monospace"],
       },
       animation: {

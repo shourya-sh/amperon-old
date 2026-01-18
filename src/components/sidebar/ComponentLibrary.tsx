@@ -109,17 +109,18 @@ const ComponentLibrary: React.FC = () => {
   };
 
   return (
-    <div className="w-56 h-full bg-dark-900 border-r border-dark-800 flex flex-col">
+    <div className="w-60 h-full bg-dark-850 border-r-2 border-dark-700 flex flex-col">
       {/* Header */}
-      <div className="p-3 border-b border-dark-800">
+      <div className="p-3 border-b-2 border-dark-700">
+        <h2 className="text-sm font-display font-bold text-dark-200 mb-3">Components</h2>
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dark-500" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500" size={16} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="w-full pl-8 pr-3 py-1.5 bg-dark-850 border border-dark-700 rounded-md text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-dark-600 transition-colors"
+            className="w-full pl-10 pr-3 py-2.5 bg-dark-800 border-2 border-dark-700 rounded-xl text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-duo-green/50 transition-all"
           />
         </div>
       </div>
@@ -129,7 +130,7 @@ const ComponentLibrary: React.FC = () => {
         {searchQuery ? (
           // Search Results
           <div className="space-y-1">
-            <p className="px-2 py-1 text-xs text-dark-500">
+            <p className="px-3 py-2 text-xs font-display font-semibold text-dark-500">
               {filteredComponents.length} results
             </p>
             {filteredComponents.map((component) => (
@@ -155,24 +156,24 @@ const ComponentLibrary: React.FC = () => {
                 <div key={category.id}>
                   <button
                     onClick={() => toggleCategory(category.id)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-dark-800 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-dark-800 transition-all"
                   >
-                    <Icon size={14} className="text-dark-400" />
-                    <span className="flex-1 text-left text-sm text-dark-300">
+                    <Icon size={16} className="text-dark-400" />
+                    <span className="flex-1 text-left text-sm font-display font-semibold text-dark-300">
                       {category.name}
                     </span>
-                    <span className="text-xs text-dark-500">
+                    <span className="text-xs font-display font-semibold text-dark-500 bg-dark-800 px-2 py-0.5 rounded-full">
                       {categoryComponents.length}
                     </span>
                     {isExpanded ? (
-                      <ChevronDown size={12} className="text-dark-500" />
+                      <ChevronDown size={14} className="text-dark-500" />
                     ) : (
-                      <ChevronRight size={12} className="text-dark-500" />
+                      <ChevronRight size={14} className="text-dark-500" />
                     )}
                   </button>
 
                   {isExpanded && (
-                    <div className="pl-0 space-y-0.5 mt-0.5 mb-1">
+                    <div className="pl-0 space-y-1 mt-1 mb-2">
                       {categoryComponents.map((component) => (
                         <ComponentItem
                           key={component.id}
@@ -192,21 +193,21 @@ const ComponentLibrary: React.FC = () => {
 
       {/* Component Info Tooltip */}
       {hoveredComponent && (
-        <div className="absolute left-56 bottom-4 ml-2 w-64 bg-dark-850 border border-dark-700 rounded-lg p-3 shadow-lg z-50">
-          <div className="flex items-start gap-2">
-            <span className="text-base">{hoveredComponent.symbol}</span>
+        <div className="absolute left-60 bottom-4 ml-2 w-64 bg-dark-800 border-2 border-dark-700 rounded-2xl p-4 shadow-xl z-50">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">{hoveredComponent.symbol}</span>
             <div className="flex-1">
-              <h4 className="text-sm font-medium text-dark-200">{hoveredComponent.name}</h4>
-              <p className="text-xs text-dark-400 mt-0.5 leading-relaxed">{hoveredComponent.description}</p>
+              <h4 className="text-sm font-display font-bold text-dark-100">{hoveredComponent.name}</h4>
+              <p className="text-xs text-dark-400 mt-1 leading-relaxed">{hoveredComponent.description}</p>
             </div>
           </div>
           {hoveredComponent.properties.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-dark-700">
-              <div className="space-y-0.5">
+            <div className="mt-3 pt-3 border-t-2 border-dark-700">
+              <div className="space-y-1">
                 {hoveredComponent.properties.map((prop) => (
                   <div key={prop.name} className="flex justify-between text-xs">
                     <span className="text-dark-500">{prop.name}</span>
-                    <span className="text-dark-300">
+                    <span className="text-dark-300 font-display font-semibold">
                       {prop.value} {prop.unit}
                     </span>
                   </div>
@@ -235,15 +236,15 @@ const ComponentItem: React.FC<ComponentItemProps> = ({ component, onDragStart, o
       onDragStart={(e) => onDragStart(e, component)}
       onMouseEnter={() => onHover(component)}
       onMouseLeave={() => onHover(null)}
-      className="flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-dark-800 cursor-grab active:cursor-grabbing transition-colors group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-dark-800 cursor-grab active:cursor-grabbing transition-all group border-2 border-transparent hover:border-dark-700"
     >
-      <GripVertical size={12} className="text-dark-600 group-hover:text-dark-500" />
+      <GripVertical size={14} className="text-dark-600 group-hover:text-dark-500" />
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-9 h-9 rounded-md bg-dark-850 border border-dark-700 shadow-inner flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl bg-dark-800 border-2 border-dark-700 shadow-inner flex items-center justify-center">
           <ComponentIcon component={component} color={accent} />
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-sm text-dark-200 truncate">{component.name}</span>
+          <span className="text-sm font-display font-semibold text-dark-200 truncate">{component.name}</span>
           <span className="text-xs text-dark-500">{component.symbol}</span>
         </div>
       </div>

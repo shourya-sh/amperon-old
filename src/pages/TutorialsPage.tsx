@@ -1,15 +1,26 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
   BookOpen, 
   Clock, 
   Play, 
-  CheckCircle2, 
+  CheckCircle, 
   Zap,
-  Search,
-  Trophy
+  Star,
+  Lock,
+  Lightbulb,
+  Cpu,
+  Battery,
+  CircuitBoard,
+  Radio,
+  Waves,
+  Target,
+  Gift,
+  ArrowRight,
+  Flame,
+  X
 } from 'lucide-react';
 import { tutorials } from '../data/tutorials';
 import { useTutorialStore } from '../stores';
@@ -17,9 +28,39 @@ import type { Tutorial } from '../types';
 import InteractiveTutorialCanvas from '../components/tutorials/InteractiveTutorialCanvas';
 import ComponentVisualizer from '../components/tutorials/ComponentVisualizer';
 
+// Icon mapping for tutorials based on their content
+const getTutorialIcon = (tutorialId: string, isCompleted: boolean, isLocked: boolean) => {
+  const iconProps = { 
+    size: 28, 
+    strokeWidth: 2.5,
+    className: isLocked ? 'text-dark-500' : isCompleted ? 'text-white' : 'text-white'
+  };
+  
+  if (tutorialId.includes('basic') || tutorialId.includes('intro')) {
+    return <Lightbulb {...iconProps} fill={isLocked ? 'transparent' : 'currentColor'} />;
+  }
+  if (tutorialId.includes('resistor') || tutorialId.includes('ohm')) {
+    return <Waves {...iconProps} />;
+  }
+  if (tutorialId.includes('led') || tutorialId.includes('light')) {
+    return <Lightbulb {...iconProps} fill={isLocked ? 'transparent' : 'currentColor'} />;
+  }
+  if (tutorialId.includes('capacitor')) {
+    return <Battery {...iconProps} />;
+  }
+  if (tutorialId.includes('series') || tutorialId.includes('parallel')) {
+    return <CircuitBoard {...iconProps} />;
+  }
+  if (tutorialId.includes('transistor') || tutorialId.includes('amp')) {
+    return <Radio {...iconProps} />;
+  }
+  if (tutorialId.includes('sensor') || tutorialId.includes('input')) {
+    return <Cpu {...iconProps} />;
+  }
+  return <Star {...iconProps} fill={isLocked ? 'transparent' : 'currentColor'} />;
+};
+
 const TutorialsPage: React.FC = () => {
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeTutorial, setActiveTutorial] = useState<Tutorial | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   
@@ -30,8 +71,8 @@ const TutorialsPage: React.FC = () => {
     getTutorialProgress 
   } = useTutorialStore();
 
-  // Calculate Circuit Points rewards based on difficulty
-  const getCircuitPointsReward = (difficulty: string) => {
+  // Calculate Amperes rewards based on difficulty
+  const getAmperesReward = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner': return 50;
       case 'intermediate': return 100;
@@ -40,33 +81,60 @@ const TutorialsPage: React.FC = () => {
     }
   };
 
-  // Add Circuit Points rewards to tutorials
-  const tutorialsWithRewards = useMemo(() => 
-    tutorials.map(t => ({
-      ...t,
-      circuitPointsReward: getCircuitPointsReward(t.difficulty),
-      completed: isTutorialComplete(t.id),
-      progress: getTutorialProgress(t.id),
-    })),
-    [isTutorialComplete, getTutorialProgress]
-  );
+  // Group tutorials by section/difficulty
+  const tutorialSections = useMemo(() => {
+    const sections = [
+      { 
+        id: 'basics', 
+        title: 'Circuit Basics', 
+        subtitle: 'Learn the fundamentals',
+        tutorials: tutorials.filter(t => t.difficulty === 'beginner').slice(0, 5)
+      },
+      { 
+        id: 'components', 
+        title: 'Components', 
+        subtitle: 'Master each part',
+        tutorials: tutorials.filter(t => t.difficulty === 'beginner').slice(5, 10).concat(
+          tutorials.filter(t => t.difficulty === 'intermediate').slice(0, 2)
+        )
+      },
+      { 
+        id: 'circuits', 
+        title: 'Build Circuits', 
+        subtitle: 'Put it together',
+        tutorials: tutorials.filter(t => t.difficulty === 'intermediate').slice(2, 7)
+      },
+      { 
+        id: 'advanced', 
+        title: 'Advanced', 
+        subtitle: 'Level up',
+        tutorials: tutorials.filter(t => t.difficulty === 'advanced')
+      },
+    ].filter(section => section.tutorials.length > 0);
 
-  const difficulties = [
-    { id: 'all', label: 'All Levels', color: 'bg-dark-700' },
-    { id: 'beginner', label: '🌱 Beginner', color: 'bg-green-600' },
-    { id: 'intermediate', label: '🌿 Intermediate', color: 'bg-amber-600' },
-    { id: 'advanced', label: '🌳 Advanced', color: 'bg-red-600' },
-  ];
-
-  const filteredTutorials = tutorialsWithRewards.filter((tutorial) => {
-    const matchesDifficulty = selectedDifficulty === 'all' || tutorial.difficulty === selectedDifficulty;
-    const matchesSearch = 
-      tutorial.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tutorial.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesDifficulty && matchesSearch;
-  });
+    // Add metadata to tutorials
+    return sections.map((section, sectionIndex) => ({
+      ...section,
+      tutorials: section.tutorials.map((t, tutorialIndex) => {
+        const isCompleted = isTutorialComplete(t.id);
+        const progress = getTutorialProgress(t.id);
+        
+        return {
+          ...t,
+          amperesReward: getAmperesReward(t.difficulty),
+          completed: isCompleted,
+          progress,
+          isLocked: false, // For now, unlock all tutorials for better UX
+          sectionIndex,
+          tutorialIndex,
+        };
+      })
+    }));
+  }, [isTutorialComplete, getTutorialProgress]);
 
   const completedCount = completedTutorials.size;
+  const totalTutorials = tutorials.length;
+  const currentStreak = Math.min(completedCount, 7); // Simulated streak
 
   if (activeTutorial) {
     return (
@@ -83,225 +151,222 @@ const TutorialsPage: React.FC = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-6xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="h-full overflow-y-auto bg-dark-900">
+      {/* Top Header Bar */}
+      <div className="sticky top-0 z-20 bg-dark-900/95 backdrop-blur-sm border-b border-dark-800">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-display font-bold text-dark-100">Learn</h1>
+          </div>
+          
+          {/* Currency Display */}
+          <div className="flex items-center gap-3">
+            {/* Streak */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-800 rounded-xl">
+              <Flame className="text-orange-500" size={18} fill="currentColor" />
+              <span className="font-display font-semibold text-dark-100">{currentStreak}</span>
+            </div>
+            
+            {/* Amperes */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-800 rounded-xl">
+              <Zap className="text-yellow-500" size={18} fill="currentColor" />
+              <span className="font-display font-semibold text-dark-100">{totalCircuitPoints}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Progress Card - Compact */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-dark-800 rounded-2xl border border-dark-700 flex items-center gap-4"
+        >
+          <div className="w-14 h-14 rounded-full bg-duo-green/20 flex items-center justify-center shrink-0">
+            <span className="font-display font-bold text-xl text-duo-green">
+              {Math.round((completedCount / totalTutorials) * 100)}%
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display font-bold text-dark-100">Your Progress</h2>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex-1 h-2 bg-dark-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-duo-green rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(completedCount / totalTutorials) * 100}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
+              </div>
+              <span className="text-sm text-dark-400 shrink-0">{completedCount}/{totalTutorials}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tutorial Path - Curved Snake Layout */}
+        <div className="relative">
+          {tutorialSections.map((section, sectionIdx) => (
+            <motion.div
+              key={section.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: sectionIdx * 0.1 }}
+              className="mb-8"
+            >
+              {/* Section Header - Compact */}
+              <div className="flex items-center gap-3 mb-4 px-2">
+                <div className="w-8 h-8 rounded-lg bg-duo-green/20 flex items-center justify-center">
+                  <Star size={16} className="text-duo-green" fill="currentColor" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-dark-100 text-sm">{section.title}</h3>
+                  <p className="text-xs text-dark-500">{section.subtitle}</p>
+                </div>
+              </div>
+
+              {/* Curved Snake Path - 4 items per row */}
+              <div className="relative">
+                {/* SVG Path connecting nodes */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+                  <defs>
+                    <linearGradient id={`path-gradient-${section.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0.2" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+
+                {/* Grid of tutorial nodes - snake pattern */}
+                <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                  {section.tutorials.map((tutorial, idx) => {
+                    const isCompleted = tutorial.completed;
+                    const isLocked = tutorial.isLocked;
+                    const isInProgress = tutorial.progress > 0 && !isCompleted;
+                    
+                    // Snake pattern: reverse every other row
+                    const row = Math.floor(idx / 4);
+                    const col = idx % 4;
+                    const isReversedRow = row % 2 === 1;
+                    const actualCol = isReversedRow ? 3 - col : col;
+                    
+                    return (
+                      <motion.button
+                        key={tutorial.id}
+                        onClick={() => !isLocked && setActiveTutorial(tutorial)}
+                        disabled={isLocked}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: idx * 0.03 }}
+                        whileHover={!isLocked ? { scale: 1.05, y: -2 } : {}}
+                        whileTap={!isLocked ? { scale: 0.95 } : {}}
+                        style={{ order: row * 4 + actualCol }}
+                        className="relative group flex flex-col items-center"
+                      >
+                        {/* Node Circle */}
+                        <div className={`
+                          w-14 h-14 rounded-2xl flex items-center justify-center
+                          transition-all duration-200 shadow-lg
+                          ${isLocked 
+                            ? 'bg-dark-700 border-2 border-dark-600 cursor-not-allowed' 
+                            : isCompleted 
+                              ? 'bg-duo-green border-2 border-duo-greenDark cursor-pointer' 
+                              : isInProgress
+                                ? 'bg-duo-blue border-2 border-blue-600 cursor-pointer'
+                                : 'bg-duo-green border-2 border-duo-greenDark cursor-pointer hover:brightness-110'
+                          }
+                        `}>
+                          {isLocked ? (
+                            <Lock size={20} className="text-dark-500" />
+                          ) : isCompleted ? (
+                            <CheckCircle size={24} className="text-white" fill="currentColor" />
+                          ) : (
+                            getTutorialIcon(tutorial.id, isCompleted, isLocked)
+                          )}
+                        </div>
+
+                        {/* Star badge for completed */}
+                        {isCompleted && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center border-2 border-dark-900 z-10">
+                            <Star size={10} className="text-white" fill="currentColor" />
+                          </div>
+                        )}
+
+                        {/* Progress indicator */}
+                        {isInProgress && (
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-dark-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-duo-blue rounded-full"
+                              style={{ width: `${tutorial.progress}%` }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Title - shown below */}
+                        <div className="mt-2 text-center max-w-[80px]">
+                          <p className="text-xs font-display font-medium text-dark-300 truncate">
+                            {tutorial.title.split(':')[0]}
+                          </p>
+                        </div>
+
+                        {/* Hover tooltip */}
+                        <div className={`
+                          absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-44 p-2.5 rounded-xl
+                          bg-dark-800 border border-dark-700 shadow-xl
+                          opacity-0 group-hover:opacity-100 pointer-events-none
+                          transition-opacity duration-200 z-20
+                        `}>
+                          <p className="font-display font-semibold text-xs text-dark-100 text-center mb-1">
+                            {tutorial.title}
+                          </p>
+                          <div className="flex items-center justify-center gap-2 text-[10px] text-dark-400">
+                            <Clock size={10} />
+                            <span>{tutorial.duration}</span>
+                            <Zap size={10} className="text-yellow-500" />
+                            <span>+{tutorial.amperesReward}</span>
+                          </div>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Connecting curved lines between rows */}
+                {section.tutorials.length > 4 && (
+                  <div className="absolute right-0 top-[72px] w-12 h-16 pointer-events-none">
+                    <svg className="w-full h-full" viewBox="0 0 48 64">
+                      <path
+                        d="M 24 0 Q 48 0 48 32 Q 48 64 24 64"
+                        fill="none"
+                        stroke="rgba(34, 197, 94, 0.3)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+
+          {/* End treasure/reward - Compact */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex items-center justify-center gap-4 mt-4 p-4 bg-purple-600/10 border border-purple-600/30 rounded-2xl"
           >
-            <h1 className="text-3xl font-bold text-dark-100 mb-2">
-              Learn Electronics 🔬
-            </h1>
-            <p className="text-dark-400 text-lg">
-              Interactive tutorials to help you master circuit design
-            </p>
+            <div className="w-14 h-14 rounded-2xl bg-purple-600/20 border-2 border-purple-600/40 flex items-center justify-center">
+              <Gift size={28} className="text-purple-400" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-dark-100">Complete all lessons!</p>
+              <p className="text-sm text-dark-400">Unlock special rewards</p>
+            </div>
           </motion.div>
         </div>
-
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-wrap items-center gap-4 mb-8"
-        >
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500" size={18} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tutorials..."
-              className="w-full pl-10 pr-4 py-2.5 bg-dark-800 border border-dark-700 rounded-xl text-dark-100 placeholder-dark-500 focus:outline-none focus:border-forest-600 transition-colors"
-            />
-          </div>
-
-          {/* Difficulty Filters */}
-          <div className="flex items-center gap-2">
-            {difficulties.map((diff) => (
-              <button
-                key={diff.id}
-                onClick={() => setSelectedDifficulty(diff.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedDifficulty === diff.id
-                    ? 'bg-forest-600 text-white'
-                    : 'bg-dark-800 text-dark-300 hover:bg-dark-700 border border-dark-700'
-                }`}
-              >
-                {diff.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Progress Overview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-3 gap-4 mb-8"
-        >
-          <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
-                <CheckCircle2 className="text-green-400" size={20} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-dark-100">{completedCount}</p>
-                <p className="text-sm text-dark-500">Completed</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center">
-                <BookOpen className="text-amber-400" size={20} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-dark-100">{tutorials.length}</p>
-                <p className="text-sm text-dark-500">Total Tutorials</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-forest-600/20 flex items-center justify-center">
-                <Trophy className="text-forest-400" size={20} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-dark-100">{totalCircuitPoints}</p>
-                <p className="text-sm text-dark-500">Circuit Points Earned</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Tutorial Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence mode="popLayout">
-            {filteredTutorials.map((tutorial, index) => (
-              <motion.div
-                key={tutorial.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <TutorialCard
-                  tutorial={tutorial}
-                  onClick={() => setActiveTutorial(tutorial)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {filteredTutorials.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-dark-500 text-lg">No tutorials found</p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedDifficulty('all');
-              }}
-              className="mt-2 text-forest-500 hover:text-forest-400"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
       </div>
     </div>
-  );
-};
-
-interface TutorialCardProps {
-  tutorial: Tutorial;
-  onClick: () => void;
-}
-
-const TutorialCard: React.FC<TutorialCardProps> = ({ tutorial, onClick }) => {
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner': return 'text-green-400 bg-green-400/10 border-green-400/30';
-      case 'intermediate': return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
-      case 'advanced': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      default: return '';
-    }
-  };
-
-  const isCompleted = tutorial.completed || false;
-  const progress = tutorial.progress || 0;
-
-  return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      className={`relative w-full text-left bg-dark-900 border rounded-xl p-5 hover:border-forest-700/50 transition-all group ${
-        isCompleted ? 'border-forest-600/50' : 'border-dark-800'
-      }`}
-    >
-      {/* Completion Badge */}
-      {isCompleted && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-forest-600/20 border border-forest-600/30 rounded-full">
-          <CheckCircle2 size={12} className="text-forest-400" />
-          <span className="text-xs font-medium text-forest-400">+{tutorial.circuitPointsReward} CP</span>
-        </div>
-      )}
-
-      {/* Icon */}
-      <div className="text-4xl mb-4">{tutorial.icon}</div>
-
-      {/* Title & Description */}
-      <h3 className="text-lg font-semibold text-dark-100 mb-1 group-hover:text-forest-400 transition-colors">
-        {tutorial.title}
-      </h3>
-      <p className="text-sm text-dark-400 mb-4 line-clamp-2">
-        {tutorial.description}
-      </p>
-
-      {/* Meta */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getDifficultyColor(tutorial.difficulty)}`}>
-            {tutorial.difficulty}
-          </span>
-          <span className="flex items-center gap-1 text-xs text-dark-500">
-            <Clock size={12} />
-            {tutorial.duration}
-          </span>
-        </div>
-        
-        <div className="w-8 h-8 rounded-full bg-forest-600/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          {isCompleted ? (
-            <CheckCircle2 size={14} className="text-forest-400" />
-          ) : (
-            <Play size={14} className="text-forest-400 ml-0.5" />
-          )}
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      {progress > 0 && !isCompleted && (
-        <div className="mt-4 pt-4 border-t border-dark-800">
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-dark-500">Progress</span>
-            <span className="text-forest-400">{Math.round(progress)}%</span>
-          </div>
-          <div className="h-1.5 bg-dark-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-forest-500 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-    </motion.button>
   );
 };
 
@@ -323,9 +388,17 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
   const { markTutorialComplete, updateTutorialProgress, isTutorialComplete } = useTutorialStore();
   const isCompleted = isTutorialComplete(tutorial.id);
   
+  const amperesReward = useMemo(() => {
+    switch (tutorial.difficulty) {
+      case 'beginner': return 50;
+      case 'intermediate': return 100;
+      case 'advanced': return 200;
+      default: return 50;
+    }
+  }, [tutorial.difficulty]);
+  
   const handleComplete = () => {
-    const circuitPointsReward = tutorial.circuitPointsReward || 50;
-    markTutorialComplete(tutorial.id, circuitPointsReward);
+    markTutorialComplete(tutorial.id, amperesReward);
     onClose();
   };
 
@@ -336,202 +409,185 @@ const TutorialViewer: React.FC<TutorialViewerProps> = ({
   };
 
   return (
-    <div className="h-full flex">
-      {/* Left Sidebar - Steps */}
-      <div className="w-72 bg-dark-900 border-r border-dark-800 flex flex-col">
-        <div className="p-4 border-b border-dark-800">
+    <div className="h-full flex flex-col bg-dark-900">
+      {/* Header */}
+      <div className="flex-shrink-0 bg-dark-800 border-b border-dark-700">
+        <div className="flex items-center gap-4 px-4 py-3">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-dark-400 hover:text-dark-200 text-sm mb-4"
+            className="w-10 h-10 rounded-xl bg-dark-700 hover:bg-dark-600 flex items-center justify-center transition-colors"
           >
-            ← Back to tutorials
+            <X size={20} className="text-dark-300" />
           </button>
-          <div className="text-3xl mb-2">{tutorial.icon}</div>
-          <h2 className="font-semibold text-dark-100">{tutorial.title}</h2>
-          <p className="text-xs text-dark-500 mt-1">{tutorial.duration}</p>
-          {tutorial.circuitPointsReward && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-forest-400">
-              <Trophy size={12} />
-              <span>{tutorial.circuitPointsReward} CP</span>
-            </div>
-          )}
-        </div>
-
-        {/* Progress */}
-        <div className="p-4 border-b border-dark-800">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-dark-500">Progress</span>
-            <span className="text-forest-400">{Math.round(progress)}%</span>
-          </div>
-          <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
+          
+          {/* Progress bar */}
+          <div className="flex-1 h-3 bg-dark-700 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-forest-500 rounded-full"
+              className="h-full bg-duo-green rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.3 }}
             />
           </div>
-        </div>
 
-        {/* Steps List */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {tutorial.steps.map((s, index) => (
-            <button
-              key={s.id}
-              onClick={() => handleStepChange(index)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                index === currentStep
-                  ? 'bg-forest-600/20 text-forest-400'
-                  : index < currentStep
-                  ? 'text-dark-400 hover:bg-dark-800'
-                  : 'text-dark-500 hover:bg-dark-800'
-              }`}
-            >
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                index === currentStep
-                  ? 'bg-forest-600 text-white'
-                  : index < currentStep
-                  ? 'bg-forest-600/30 text-forest-400'
-                  : 'bg-dark-700 text-dark-500'
-              }`}>
-                {index < currentStep ? <CheckCircle2 size={14} /> : index + 1}
-              </div>
-              <span className="truncate">{s.title}</span>
-            </button>
-          ))}
+          {/* Reward preview */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 rounded-xl">
+            <Zap size={16} className="text-yellow-500" fill="currentColor" />
+            <span className="font-display font-semibold text-sm text-dark-200">+{amperesReward}</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-3xl mx-auto">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <div className="mb-6">
-                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                  step.type === 'interactive' 
-                    ? 'bg-forest-600/20 text-forest-400' 
-                    : step.type === 'diagram'
-                    ? 'bg-blue-600/20 text-blue-400'
-                    : step.type === 'quiz'
-                    ? 'bg-amber-600/20 text-amber-400'
-                    : 'bg-dark-700 text-dark-400'
-                }`}>
-                  {step.type === 'interactive' ? '🎮 Interactive' : step.type === 'diagram' ? '📊 Circuit' : step.type === 'quiz' ? '❓ Quiz' : '📖 Lesson'}
-                </span>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-6 py-8">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {/* Step type badge */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`
+                inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-display font-semibold
+                ${step.type === 'interactive' 
+                  ? 'bg-duo-green/20 text-duo-green' 
+                  : step.type === 'diagram'
+                  ? 'bg-duo-blue/20 text-duo-blue'
+                  : step.type === 'quiz'
+                  ? 'bg-duo-orange/20 text-duo-orange'
+                  : 'bg-dark-700 text-dark-300'
+                }
+              `}>
+                {step.type === 'interactive' && <Play size={12} fill="currentColor" />}
+                {step.type === 'diagram' && <CircuitBoard size={12} />}
+                {step.type === 'quiz' && <Target size={12} />}
+                {step.type === 'text' && <BookOpen size={12} />}
+                {step.type === 'interactive' ? 'Practice' : step.type === 'diagram' ? 'Circuit' : step.type === 'quiz' ? 'Quiz' : 'Lesson'}
+              </span>
+              <span className="text-xs text-dark-500">
+                Step {currentStep + 1} of {tutorial.steps.length}
+              </span>
+            </div>
+            
+            <h2 className="font-display font-bold text-2xl text-dark-100 mb-6">{step.title}</h2>
+            
+            {/* Render circuit diagram if present */}
+            {(step.type === 'diagram' || step.type === 'interactive') && step.circuit && (
+              <div className="mb-8 rounded-2xl overflow-hidden border border-dark-700">
+                <InteractiveTutorialCanvas
+                  key={`circuit-${currentStep}`}
+                  initialNodes={step.circuit.nodes || []}
+                  initialEdges={step.circuit.edges || []}
+                  isReadOnly={step.type === 'diagram' || step.circuit.isReadOnly}
+                  showSimulation={step.circuit.showSimulation !== false}
+                  height="h-80"
+                />
               </div>
-              
-              <h2 className="text-2xl font-bold text-dark-100 mb-6">{step.title}</h2>
-              
-              {/* Render circuit diagram if present */}
-              {(step.type === 'diagram' || step.type === 'interactive') && step.circuit && (
-                <div className="mb-8">
-                  <InteractiveTutorialCanvas
-                    key={`circuit-${currentStep}`}
-                    initialNodes={step.circuit.nodes || []}
-                    initialEdges={step.circuit.edges || []}
-                    isReadOnly={step.type === 'diagram' || step.circuit.isReadOnly}
-                    showSimulation={step.circuit.showSimulation !== false}
-                    height="h-96"
-                  />
-                </div>
-              )}
-              
-              <div className="prose prose-invert prose-lg max-w-none markdown-content">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    h1: ({ node, ...props }) => <h1 className="text-3xl font-bold text-dark-100 mt-6 mb-4" {...props} />,
-                    h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-dark-100 mt-6 mb-3" {...props} />,
-                    h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-forest-400 mt-4 mb-2" {...props} />,
-                    p: ({ node, ...props }) => <p className="text-dark-300 my-2 leading-relaxed" {...props} />,
-                    ul: ({ node, ...props }) => <ul className="list-disc ml-6 my-3 space-y-1" {...props} />,
-                    li: ({ node, ...props }) => <li className="text-dark-300" {...props} />,
-                    strong: ({ node, ...props }) => <strong className="font-bold text-dark-100" {...props} />,
-                    em: ({ node, ...props }) => <em className="italic text-dark-200" {...props} />,
-                    code: ({ node, inline, ...props }: any) => 
-                      inline ? (
-                        <code className="px-1.5 py-0.5 bg-dark-800 text-forest-400 rounded text-sm" {...props} />
-                      ) : (
-                        <code className="block p-3 bg-dark-800 text-dark-200 rounded-lg my-3 overflow-x-auto" {...props} />
-                      ),
-                  }}
-                >
-                  {step.content}
-                </ReactMarkdown>
-              </div>
+            )}
+            
+            <div className="prose prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: (props) => <h1 className="font-display font-bold text-2xl text-dark-100 mt-6 mb-4" {...props} />,
+                  h2: (props) => <h2 className="font-display font-bold text-xl text-dark-100 mt-6 mb-3" {...props} />,
+                  h3: (props) => <h3 className="font-display font-semibold text-lg text-duo-green mt-4 mb-2" {...props} />,
+                  p: (props) => <p className="text-dark-300 my-3 leading-relaxed text-base" {...props} />,
+                  ul: (props) => <ul className="list-disc ml-6 my-4 space-y-2" {...props} />,
+                  li: (props) => <li className="text-dark-300" {...props} />,
+                  strong: (props) => <strong className="font-semibold text-dark-100" {...props} />,
+                  em: (props) => <em className="italic text-dark-200" {...props} />,
+                  code: ({ inline, ...props }: { inline?: boolean; children?: React.ReactNode }) => 
+                    inline ? (
+                      <code className="px-1.5 py-0.5 bg-dark-800 text-duo-green rounded text-sm" {...props} />
+                    ) : (
+                      <code className="block p-4 bg-dark-800 text-dark-200 rounded-xl my-4 overflow-x-auto" {...props} />
+                    ),
+                }}
+              >
+                {step.content}
+              </ReactMarkdown>
+            </div>
 
-              {/* Component Visualizer */}
-              {step.visualizeComponents && step.visualizeComponents.length > 0 && (
+            {/* Component Visualizer */}
+            {step.visualizeComponents && step.visualizeComponents.length > 0 && (
+              <div className="mt-8">
                 <ComponentVisualizer
                   componentIds={step.visualizeComponents}
-                  title="Interactive Component Explorer"
-                  description="Click and interact with the components used in this lesson"
+                  title="Explore Components"
+                  description="Tap to learn more about each part"
                   interactive={true}
                 />
-              )}
-
-              {step.type === 'interactive' && !step.circuit && (
-                <div className="mt-8 p-6 bg-forest-600/10 border border-forest-600/30 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Zap className="text-forest-400" size={20} />
-                    <span className="font-semibold text-forest-400">Try it yourself!</span>
-                  </div>
-                  <p className="text-dark-300 text-sm">
-                    Open the circuit designer and apply what you've learned. 
-                    The components mentioned are available in the left sidebar.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="border-t border-dark-800 p-4">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <button
-              onClick={() => handleStepChange(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0}
-              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← Previous
-            </button>
-
-            <span className="text-sm text-dark-500">
-              Step {currentStep + 1} of {tutorial.steps.length}
-            </span>
-
-            {currentStep === tutorial.steps.length - 1 ? (
-              <button 
-                onClick={handleComplete} 
-                className="btn-primary flex items-center gap-2"
-              >
-                {isCompleted ? (
-                  <>
-                    <CheckCircle2 size={16} />
-                    Completed
-                  </>
-                ) : (
-                  <>
-                    Complete Tutorial 🎉
-                    <span className="text-xs opacity-75">+{tutorial.circuitPointsReward} CP</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => handleStepChange(Math.min(tutorial.steps.length - 1, currentStep + 1))}
-                className="btn-primary"
-              >
-                Next →
-              </button>
+              </div>
             )}
-          </div>
+
+            {step.type === 'interactive' && !step.circuit && (
+              <div className="mt-8 p-5 bg-duo-green/10 border-2 border-duo-green/30 rounded-2xl">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-duo-green/20 flex items-center justify-center">
+                    <Zap className="text-duo-green" size={20} />
+                  </div>
+                  <span className="font-display font-bold text-duo-green">Try it yourself!</span>
+                </div>
+                <p className="text-dark-300 text-sm">
+                  Head to the circuit designer and build what you've learned.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Navigation Footer */}
+      <div className="flex-shrink-0 border-t border-dark-700 bg-dark-800 p-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          {currentStep > 0 ? (
+            <button
+              onClick={() => handleStepChange(currentStep - 1)}
+              className="px-6 py-3 bg-dark-700 hover:bg-dark-600 text-dark-200 font-display font-semibold rounded-xl transition-colors"
+            >
+              Back
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep === tutorial.steps.length - 1 ? (
+            <button 
+              onClick={handleComplete} 
+              className={`
+                flex-1 max-w-xs px-6 py-3 rounded-xl font-display font-bold text-white
+                flex items-center justify-center gap-2 transition-all
+                ${isCompleted 
+                  ? 'bg-dark-600' 
+                  : 'bg-duo-green hover:bg-duo-greenDark active:scale-95'
+                }
+              `}
+            >
+              {isCompleted ? (
+                <>
+                  <CheckCircle size={20} />
+                  Completed
+                </>
+              ) : (
+                <>
+                  Complete
+                  <Zap size={18} fill="currentColor" />
+                  +{amperesReward}
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => handleStepChange(currentStep + 1)}
+              className="flex-1 max-w-xs px-6 py-3 bg-duo-green hover:bg-duo-greenDark text-white font-display font-bold rounded-xl transition-colors flex items-center justify-center gap-2 active:scale-95"
+            >
+              Continue
+              <ArrowRight size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>

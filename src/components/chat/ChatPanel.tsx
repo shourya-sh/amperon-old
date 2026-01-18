@@ -722,54 +722,58 @@ const ChatPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed right-4 bottom-4 p-3 bg-dark-850 hover:bg-dark-800 border border-dark-700 text-dark-300 rounded-lg z-50 transition-colors"
+        className="fixed right-4 bottom-4 p-4 bg-duo-green hover:bg-duo-greenDark border-2 border-duo-greenDeep text-white rounded-2xl z-50 transition-all shadow-[0_4px_0_0_#16a34a] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#16a34a] active:translate-y-[4px] active:shadow-none"
       >
-        <MessageSquare size={20} />
+        <MessageSquare size={22} />
       </button>
     );
   }
 
   return (
     <div
-      className={`h-full bg-dark-900/80 border-l border-dark-700 flex flex-col ${
-        isExpanded ? 'w-96' : 'w-72'
-      } transition-all duration-150 backdrop-blur-sm`}
+      className={`h-full bg-dark-900/95 border-l-2 border-dark-700 flex flex-col ${
+        isExpanded ? 'w-96' : 'w-80'
+      } transition-all duration-150 backdrop-blur-md`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-dark-700">
-        <div className="flex items-center gap-2">
-          <MessageSquare size={14} className="text-forest-500" />
-          <span className="text-sm font-medium text-dark-200">AI Assistant</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b-2 border-dark-700 bg-dark-850">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center">
+            <MessageSquare size={18} className="text-duo-green" />
+          </div>
+          <span className="font-display font-bold text-dark-100">AI Helper</span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
+            className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
           >
-            {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
           <button
             onClick={clearMessages}
-            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
+            className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
           </button>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1.5 hover:bg-dark-800 rounded text-dark-500 hover:text-dark-300 transition-colors"
+            className="p-2 hover:bg-dark-800 rounded-xl text-dark-400 hover:text-dark-200 transition-colors"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center py-8">
-            <MessageSquare size={32} className="mx-auto text-dark-600 mb-3" />
-            <p className="text-dark-400 text-sm mb-1">AI Circuit Assistant</p>
-            <p className="text-dark-500 text-xs">Ask me to build circuits or explain concepts</p>
+          <div className="text-center py-10">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center mb-4">
+              <MessageSquare size={28} className="text-duo-green" />
+            </div>
+            <p className="font-display font-bold text-dark-200 text-lg mb-1">AI Circuit Helper</p>
+            <p className="text-dark-500 text-sm">Ask me to build circuits or explain concepts!</p>
           </div>
         )}
 
@@ -779,10 +783,10 @@ const ChatPanel: React.FC = () => {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                 message.role === 'user'
-                  ? 'bg-forest-600 text-white'
-                  : 'bg-dark-850 text-dark-200 border border-dark-700'
+                  ? 'bg-duo-green text-white font-medium'
+                  : 'bg-dark-850 text-dark-200 border-2 border-dark-700'
               }`}
             >
               <div className="whitespace-pre-wrap leading-relaxed">
@@ -794,10 +798,10 @@ const ChatPanel: React.FC = () => {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-dark-850 rounded-lg px-3 py-2 border border-dark-700">
+            <div className="bg-dark-850 rounded-2xl px-4 py-3 border-2 border-dark-700">
               <div className="flex items-center gap-2 text-dark-400">
-                <Loader2 size={14} className="animate-spin" />
-                <span className="text-xs">Thinking...</span>
+                <Loader2 size={16} className="animate-spin text-duo-green" />
+                <span className="text-sm font-display font-medium">Thinking...</span>
               </div>
             </div>
           </div>
@@ -808,14 +812,14 @@ const ChatPanel: React.FC = () => {
 
       {/* Quick Actions */}
       {messages.length === 0 && (
-        <div className="px-3 pb-2">
-          <p className="text-xs text-dark-500 mb-2">Try asking:</p>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="px-4 pb-3">
+          <p className="text-sm font-display font-semibold text-dark-400 mb-2">Try asking:</p>
+          <div className="flex flex-wrap gap-2">
             {quickActions.map((action) => (
               <button
                 key={action.id}
                 onClick={() => handleQuickAction(action.prompt)}
-                className="px-2 py-1 text-xs bg-dark-850 hover:bg-dark-800 border border-dark-700 rounded text-dark-400 hover:text-dark-200 transition-colors"
+                className="px-3 py-2 text-sm font-display font-medium bg-dark-850 hover:bg-dark-800 border-2 border-dark-700 hover:border-duo-green/30 rounded-xl text-dark-300 hover:text-dark-100 transition-all"
               >
                 {action.label}
               </button>
@@ -825,7 +829,7 @@ const ChatPanel: React.FC = () => {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-dark-700">
+      <div className="p-4 border-t-2 border-dark-700 bg-dark-850">
         <div className="relative">
           <textarea
             ref={inputRef}
@@ -835,14 +839,14 @@ const ChatPanel: React.FC = () => {
             placeholder="Ask to build a circuit..."
             rows={2}
             disabled={isLoading}
-            className="w-full px-3 py-3 pr-14 bg-dark-850 border border-dark-700 rounded-lg text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-forest-600 focus:ring-1 focus:ring-forest-600/50 resize-none transition-colors disabled:opacity-50"
+            className="w-full px-4 py-3 pr-14 bg-dark-900 border-2 border-dark-700 rounded-xl text-sm text-dark-200 placeholder-dark-500 focus:outline-none focus:border-duo-green focus:ring-2 focus:ring-duo-green/20 resize-none transition-colors disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-forest-600 hover:bg-forest-500 disabled:bg-dark-700 disabled:text-dark-500 rounded-md text-white transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-duo-green hover:bg-duo-greenDark disabled:bg-dark-700 disabled:text-dark-500 rounded-xl text-white transition-all shadow-[0_3px_0_0_#16a34a] hover:translate-y-[1px] hover:shadow-[0_2px_0_0_#16a34a] active:translate-y-[3px] active:shadow-none disabled:shadow-none"
           >
-            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
       </div>

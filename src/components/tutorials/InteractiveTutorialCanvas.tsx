@@ -517,13 +517,13 @@ const InteractiveTutorialCanvasInner: React.FC<InteractiveTutorialCanvasInnerPro
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center"
               >
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-dark-800 flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-forest-500" />
+                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-duo-green/10 border-2 border-duo-green/20 flex items-center justify-center">
+                  <AlertCircle className="w-7 h-7 text-duo-green" />
                 </div>
-                <h3 className="text-sm font-semibold text-dark-300 mb-1">
+                <h3 className="font-display font-bold text-dark-200 mb-1">
                   Build Your Circuit
                 </h3>
-                <p className="text-xs text-dark-500 max-w-[200px]">
+                <p className="text-sm text-dark-500 max-w-[220px]">
                   Drag components from the left panel and connect them!
                 </p>
               </motion.div>
@@ -553,7 +553,7 @@ const InteractiveTutorialCanvas: React.FC<InteractiveTutorialCanvasProps> = ({
   ...props
 }) => {
   return (
-    <div className={`${height} bg-dark-950 border border-dark-800 rounded-lg overflow-hidden`}>
+    <div className={`${height} bg-dark-950 border-2 border-dark-800 rounded-2xl overflow-hidden`}>
       <ReactFlowProvider>
         <InteractiveTutorialCanvasInner 
           {...props} 

@@ -247,7 +247,11 @@ const CircuitCanvasInner: React.FC = () => {
           variant={BackgroundVariant.Dots}
           gap={20} 
           size={1} 
-          color="rgba(148, 163, 184, 0.18)" 
+          color="rgba(148, 163, 184, 0)" 
+          className="transition-all duration-300 [.circuit-canvas:hover_&]:!bg-[rgba(148,163,184,0.12)]"
+          style={{
+            backgroundColor: 'transparent',
+          }}
         />
         
         <Controls 

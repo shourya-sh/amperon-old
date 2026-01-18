@@ -76,25 +76,25 @@ const CompactComponentLibrary: React.FC<CompactComponentLibraryProps> = ({
   };
 
   return (
-    <div className="w-44 bg-dark-900/95 border-r border-dark-700 flex flex-col h-full overflow-hidden">
+    <div className="w-48 bg-dark-900/95 border-r-2 border-dark-700 flex flex-col h-full overflow-hidden">
       {/* Compact Search */}
-      <div className="p-2 border-b border-dark-700">
+      <div className="p-2.5 border-b-2 border-dark-700 bg-dark-850">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-dark-500" size={12} />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dark-500" size={14} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="w-full pl-7 pr-2 py-1 bg-dark-800 border border-dark-600 rounded text-xs text-dark-200 placeholder-dark-500 focus:outline-none focus:border-forest-600"
+            className="w-full pl-8 pr-2.5 py-1.5 bg-dark-800 border-2 border-dark-600 rounded-lg text-xs text-dark-200 placeholder-dark-500 focus:outline-none focus:border-duo-green transition-colors"
           />
         </div>
       </div>
 
       {/* Components List */}
-      <div className="flex-1 overflow-y-auto p-1.5">
+      <div className="flex-1 overflow-y-auto p-2">
         {searchQuery ? (
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {filteredComponents.map((component) => (
               <ComponentItem
                 key={component.id}
@@ -104,7 +104,7 @@ const CompactComponentLibrary: React.FC<CompactComponentLibraryProps> = ({
             ))}
           </div>
         ) : (
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {componentCategories.map((category) => {
               const isExpanded = expandedCategories.includes(category.id);
               const categoryComponents = filteredComponents.filter(
@@ -117,23 +117,23 @@ const CompactComponentLibrary: React.FC<CompactComponentLibraryProps> = ({
                 <div key={category.id}>
                   <button
                     onClick={() => toggleCategory(category.id)}
-                    className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-dark-800 transition-colors"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-dark-800 transition-colors"
                   >
                     {isExpanded ? (
-                      <ChevronDown size={10} className="text-dark-500" />
+                      <ChevronDown size={12} className="text-dark-500" />
                     ) : (
-                      <ChevronRight size={10} className="text-dark-500" />
+                      <ChevronRight size={12} className="text-dark-500" />
                     )}
-                    <span className="flex-1 text-left text-xs font-medium text-dark-300">
+                    <span className="flex-1 text-left text-xs font-display font-semibold text-dark-300">
                       {category.name}
                     </span>
-                    <span className="text-[10px] text-dark-500">
+                    <span className="text-xs font-display text-dark-500">
                       {categoryComponents.length}
                     </span>
                   </button>
 
                   {isExpanded && (
-                    <div className="space-y-0.5 mt-0.5">
+                    <div className="space-y-1 mt-1">
                       {categoryComponents.map((component) => (
                         <ComponentItem
                           key={component.id}
@@ -151,8 +151,8 @@ const CompactComponentLibrary: React.FC<CompactComponentLibraryProps> = ({
       </div>
 
       {/* Tip */}
-      <div className="p-2 border-t border-dark-700 bg-dark-800/50">
-        <p className="text-[10px] text-dark-500 text-center">
+      <div className="p-2.5 border-t-2 border-dark-700 bg-dark-850">
+        <p className="text-xs font-display font-medium text-dark-500 text-center">
           Drag components to canvas
         </p>
       </div>
@@ -166,19 +166,19 @@ interface ComponentItemProps {
 }
 
 const ComponentItem: React.FC<ComponentItemProps> = ({ component, onDragStart }) => {
-  const accent = categoryColorMap[component.category] || '#22c55e';
+  const accent = categoryColorMap[component.category] || '#4ade80';
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, component)}
-      className="flex items-center gap-2 px-1.5 py-1.5 rounded hover:bg-dark-700 cursor-grab active:cursor-grabbing transition-colors group"
+      className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-dark-700 cursor-grab active:cursor-grabbing transition-colors group border-2 border-transparent hover:border-dark-600"
     >
-      <GripVertical size={10} className="text-dark-600 group-hover:text-dark-400" />
-      <div className="w-6 h-6 rounded bg-dark-800 border border-dark-600 flex items-center justify-center">
+      <GripVertical size={12} className="text-dark-600 group-hover:text-dark-400" />
+      <div className="w-7 h-7 rounded-lg bg-dark-800 border-2 border-dark-600 flex items-center justify-center">
         <ComponentIcon component={component} color={accent} />
       </div>
-      <span className="text-xs text-dark-300 truncate">{component.name}</span>
+      <span className="text-xs font-display font-medium text-dark-300 truncate">{component.name}</span>
     </div>
   );
 };

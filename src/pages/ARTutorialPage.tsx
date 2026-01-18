@@ -488,27 +488,27 @@ const ARTutorialPage: React.FC = () => {
   const isAnyCameraActive = isLocalCameraActive || connectionStatus === 'connected';
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0d1117] min-h-0">
+    <div className="flex-1 flex flex-col bg-dark-900 min-h-0">
       {/* Header */}
-      <div className="h-14 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-4 shrink-0">
+      <div className="h-14 bg-dark-800 border-b border-dark-700 flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-duo-green flex items-center justify-center shadow-lg">
             <Camera size={16} className="text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-[#c9d1d9]">AR Lab</h1>
-            <p className="text-xs text-[#8b949e]">Scan your breadboard in real-time</p>
+            <h1 className="text-sm font-display font-bold text-dark-100">AR Lab</h1>
+            <p className="text-xs text-dark-400">Scan your breadboard in real-time</p>
           </div>
         </div>
         
         {/* Camera source tabs */}
-        <div className="flex items-center gap-1 bg-[#21262d] rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-dark-700 rounded-xl p-1">
           <button
             onClick={() => setActiveTab('local')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'local'
-                ? 'bg-[#30363d] text-[#c9d1d9]'
-                : 'text-[#8b949e] hover:text-[#c9d1d9]'
+                ? 'bg-duo-green text-white'
+                : 'text-dark-400 hover:text-dark-100'
             }`}
           >
             <Monitor size={14} />
@@ -516,16 +516,16 @@ const ARTutorialPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('phone')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'phone'
-                ? 'bg-[#30363d] text-[#c9d1d9]'
-                : 'text-[#8b949e] hover:text-[#c9d1d9]'
+                ? 'bg-duo-green text-white'
+                : 'text-dark-400 hover:text-dark-100'
             }`}
           >
             <Smartphone size={14} />
             Phone
             {connectionStatus === 'connected' && (
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-duo-green animate-pulse" />
             )}
           </button>
         </div>
@@ -536,7 +536,7 @@ const ARTutorialPage: React.FC = () => {
             !isLocalCameraActive ? (
               <button
                 onClick={startLocalCamera}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl shadow-lg transition-colors"
               >
                 <Camera size={14} />
                 Start Camera
@@ -544,7 +544,7 @@ const ARTutorialPage: React.FC = () => {
             ) : (
               <button
                 onClick={stopLocalCamera}
-                className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-dark-700 hover:bg-dark-600 text-dark-100 text-sm font-display font-medium rounded-xl border border-dark-600 transition-colors"
               >
                 <CameraOff size={14} />
                 Stop Camera
@@ -554,7 +554,7 @@ const ARTutorialPage: React.FC = () => {
             connectionStatus !== 'connected' ? (
               <button
                 onClick={startPhoneConnection}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl shadow-lg transition-colors"
               >
                 <QrCode size={14} />
                 Connect Phone
@@ -562,7 +562,7 @@ const ARTutorialPage: React.FC = () => {
             ) : (
               <button
                 onClick={disconnectPhone}
-                className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-dark-700 hover:bg-dark-600 text-dark-100 text-sm font-display font-medium rounded-xl border border-dark-600 transition-colors"
               >
                 <WifiOff size={14} />
                 Disconnect
@@ -575,21 +575,21 @@ const ARTutorialPage: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Video Feed Area */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#0d1117] relative overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center bg-dark-900 relative overflow-hidden">
           {!isAnyCameraActive ? (
             // Empty state
             <div className="text-center max-w-md">
-              <div className="w-20 h-20 rounded-2xl bg-[#21262d] border border-[#30363d] flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 rounded-2xl bg-dark-800 border border-dark-700 flex items-center justify-center mx-auto mb-6">
                 {activeTab === 'local' ? (
-                  <Camera size={32} className="text-[#484f58]" />
+                  <Camera size={32} className="text-dark-500" />
                 ) : (
-                  <Smartphone size={32} className="text-[#484f58]" />
+                  <Smartphone size={32} className="text-dark-500" />
                 )}
               </div>
-              <h2 className="text-lg font-semibold text-[#c9d1d9] mb-2">
+              <h2 className="text-lg font-display font-bold text-dark-100 mb-2">
                 {activeTab === 'local' ? 'Start Your Webcam' : 'Connect Your Phone'}
               </h2>
-              <p className="text-sm text-[#8b949e] mb-6">
+              <p className="text-sm text-dark-400 mb-6">
                 {activeTab === 'local' 
                   ? 'Click "Start Camera" to begin analyzing your breadboard in real-time.'
                   : 'Scan the QR code with your phone to stream its camera to this screen.'}
@@ -597,19 +597,19 @@ const ARTutorialPage: React.FC = () => {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={activeTab === 'local' ? startLocalCamera : startPhoneConnection}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-duo-green hover:bg-duo-greenDark text-white font-display font-semibold rounded-xl shadow-lg transition-colors"
                 >
                   {activeTab === 'local' ? <Camera size={18} /> : <QrCode size={18} />}
                   {activeTab === 'local' ? 'Start Camera' : 'Show QR Code'}
                 </button>
               </div>
               
-              <div className="mt-8 p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+              <div className="mt-8 p-4 bg-dark-800 rounded-2xl border border-dark-700">
                 <div className="flex items-start gap-3">
-                  <Zap size={16} className="text-green-500 shrink-0 mt-0.5" />
+                  <Zap size={16} className="text-duo-green shrink-0 mt-0.5" />
                   <div className="text-left">
-                    <p className="text-xs font-medium text-[#c9d1d9] mb-1">Pro Tips</p>
-                    <ul className="text-xs text-[#8b949e] space-y-1">
+                    <p className="text-xs font-display font-semibold text-dark-100 mb-1">Pro Tips</p>
+                    <ul className="text-xs text-dark-400 space-y-1">
                       <li>• Ensure good lighting on your breadboard</li>
                       <li>• Keep the camera steady for best detection</li>
                       <li>• Phone cameras often have better quality!</li>
@@ -664,8 +664,8 @@ const ARTutorialPage: React.FC = () => {
                     <div className="absolute inset-2 border-2 border-dashed border-green-500/50 rounded-lg" />
                     
                     {/* Label */}
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-green-500/90 text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
-                      📋 Breadboard Detected
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-duo-green text-white text-xs font-display font-semibold px-3 py-1 rounded-xl whitespace-nowrap shadow-lg">
+                      Breadboard Detected
                     </div>
                   </div>
                 </div>
@@ -673,16 +673,16 @@ const ARTutorialPage: React.FC = () => {
 
               {/* Analysis Status Badge */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md ${
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-display font-semibold backdrop-blur-md ${
                   analysisStatus === 'analyzing' 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    ? 'bg-duo-green/20 text-duo-green border border-duo-green/30'
                     : analysisStatus === 'connected'
-                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                    : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                    ? 'bg-duo-blue/20 text-duo-blue border border-duo-blue/30'
+                    : 'bg-dark-800/80 text-dark-400 border border-dark-700'
                 }`}>
                   {analysisStatus === 'analyzing' ? (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-duo-green animate-pulse" />
                       Analyzing...
                     </>
                   ) : analysisStatus === 'connected' ? (
@@ -699,7 +699,7 @@ const ARTutorialPage: React.FC = () => {
                 </div>
                 
                 {breadboardDetected && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-md">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-display font-semibold bg-duo-green/20 text-duo-green border border-duo-green/30 backdrop-blur-md">
                     <CheckCircle size={12} />
                     Breadboard Detected
                   </div>
@@ -709,17 +709,17 @@ const ARTutorialPage: React.FC = () => {
               {/* Tutorial Step Overlay */}
               {isTutorialActive && showHints && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md w-full px-4">
-                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-[#30363d] p-4 shadow-xl">
+                  <div className="bg-dark-800/95 backdrop-blur-md rounded-2xl border border-dark-700 p-4 shadow-xl">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shrink-0">
-                        <span className="text-white text-sm font-bold">{currentStep + 1}</span>
+                      <div className="w-8 h-8 rounded-xl bg-duo-green flex items-center justify-center shrink-0 shadow-lg">
+                        <span className="text-white text-sm font-display font-bold">{currentStep + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[#c9d1d9] font-medium text-sm">
+                        <p className="text-dark-100 font-display font-semibold text-sm">
                           {tutorialSteps[currentStep]?.instruction}
                         </p>
                         {tutorialSteps[currentStep]?.feedback && (
-                          <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
+                          <p className="text-duo-green text-xs mt-1 flex items-center gap-1">
                             <CheckCircle size={12} />
                             {tutorialSteps[currentStep].feedback}
                           </p>
@@ -732,12 +732,12 @@ const ARTutorialPage: React.FC = () => {
                       {tutorialSteps.map((step, idx) => (
                         <div
                           key={step.id}
-                          className={`h-1 flex-1 rounded-full transition-colors ${
+                          className={`h-1.5 flex-1 rounded-full transition-colors ${
                             step.completed
-                              ? 'bg-green-500'
+                              ? 'bg-duo-green'
                               : idx === currentStep
-                              ? 'bg-green-500/50'
-                              : 'bg-[#30363d]'
+                              ? 'bg-duo-green/50'
+                              : 'bg-dark-700'
                           }`}
                         />
                       ))}
@@ -749,8 +749,8 @@ const ARTutorialPage: React.FC = () => {
               {/* Detected Components Display */}
               {showDetectedComponents && detectedComponents.length > 0 && (
                 <div className="absolute bottom-4 left-4 max-w-xs">
-                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-[#30363d] p-3 shadow-xl">
-                    <p className="text-[#8b949e] text-xs font-medium mb-2 flex items-center gap-1.5">
+                  <div className="bg-dark-800/95 backdrop-blur-md rounded-2xl border border-dark-700 p-3 shadow-xl">
+                    <p className="text-dark-400 text-xs font-display font-semibold mb-2 flex items-center gap-1.5">
                       <Eye size={12} />
                       Detected Components
                     </p>
@@ -758,12 +758,12 @@ const ARTutorialPage: React.FC = () => {
                       {detectedComponents.map((comp, idx) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded-md border border-green-500/20"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-duo-green/10 text-duo-green text-xs rounded-lg border border-duo-green/20"
                         >
                           {comp.count > 1 && <span className="font-bold">{comp.count}×</span>}
                           {comp.type}
                           {comp.colors && comp.colors.length > 0 && (
-                            <span className="text-[#8b949e]">({comp.colors.join(', ')})</span>
+                            <span className="text-dark-400">({comp.colors.join(', ')})</span>
                           )}
                         </span>
                       ))}
@@ -775,14 +775,14 @@ const ARTutorialPage: React.FC = () => {
               {/* Issues & Warnings */}
               {showIssues && currentIssues.length > 0 && (
                 <div className="absolute bottom-4 right-4 max-w-xs">
-                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-yellow-500/30 p-3 shadow-xl">
-                    <p className="text-yellow-400 text-xs font-medium mb-2 flex items-center gap-1.5">
+                  <div className="bg-dark-800/95 backdrop-blur-md rounded-2xl border border-yellow-500/30 p-3 shadow-xl">
+                    <p className="text-yellow-400 text-xs font-display font-semibold mb-2 flex items-center gap-1.5">
                       <AlertTriangle size={12} />
                       Issues Detected
                     </p>
                     <ul className="space-y-1">
                       {currentIssues.slice(0, 3).map((issue, idx) => (
-                        <li key={idx} className="text-xs text-[#c9d1d9]">
+                        <li key={idx} className="text-xs text-dark-100">
                           • {issue}
                         </li>
                       ))}
@@ -796,7 +796,7 @@ const ARTutorialPage: React.FC = () => {
                 <button
                   key={hint.id}
                   onClick={hint.action}
-                  className={`absolute ${hint.position.x} ${hint.position.y} flex items-center gap-2 px-4 py-2.5 bg-green-600/90 hover:bg-green-600 text-white text-sm font-medium rounded-xl shadow-lg backdrop-blur-sm transition-all hover:scale-105`}
+                  className={`absolute ${hint.position.x} ${hint.position.y} flex items-center gap-2 px-4 py-2.5 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl shadow-lg backdrop-blur-sm transition-all hover:scale-105`}
                 >
                   {hint.icon}
                   {hint.label}
@@ -807,10 +807,10 @@ const ARTutorialPage: React.FC = () => {
               <div className="absolute top-4 right-4 flex flex-col gap-2">
                 <button
                   onClick={() => setShowHints(!showHints)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-display font-semibold backdrop-blur-md transition-colors ${
                     showHints
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                      ? 'bg-duo-green/20 text-duo-green border border-duo-green/30'
+                      : 'bg-dark-800/80 text-dark-400 border border-dark-700'
                   }`}
                 >
                   {showHints ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -818,10 +818,10 @@ const ARTutorialPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowDetectedComponents(!showDetectedComponents)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-display font-semibold backdrop-blur-md transition-colors ${
                     showDetectedComponents
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                      ? 'bg-duo-green/20 text-duo-green border border-duo-green/30'
+                      : 'bg-dark-800/80 text-dark-400 border border-dark-700'
                   }`}
                 >
                   <Cpu size={12} />
@@ -829,10 +829,10 @@ const ARTutorialPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowIssues(!showIssues)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-display font-semibold backdrop-blur-md transition-colors ${
                     showIssues
                       ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                      : 'bg-dark-800/80 text-dark-400 border border-dark-700'
                   }`}
                 >
                   <AlertTriangle size={12} />
@@ -844,20 +844,20 @@ const ARTutorialPage: React.FC = () => {
         </div>
 
         {/* Right Sidebar - Tutorial Panel */}
-        <div className="w-80 bg-[#161b22] border-l border-[#30363d] flex flex-col shrink-0">
+        <div className="w-80 bg-dark-800 border-l border-dark-700 flex flex-col shrink-0">
           {/* Tutorial Controls */}
-          <div className="p-4 border-b border-[#30363d]">
+          <div className="p-4 border-b border-dark-700">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-[#c9d1d9]">Tutorial Mode</h2>
+              <h2 className="text-sm font-display font-bold text-dark-100">Tutorial Mode</h2>
               {isTutorialActive && (
-                <span className="flex items-center gap-1.5 text-xs text-green-400">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 text-xs text-duo-green font-display font-semibold">
+                  <div className="w-2 h-2 rounded-full bg-duo-green animate-pulse" />
                   Active
                 </span>
               )}
             </div>
             {!isAnyCameraActive ? (
-              <p className="text-xs text-[#8b949e] italic">
+              <p className="text-xs text-dark-400 italic">
                 Connect a camera to start the tutorial automatically
               </p>
             ) : (
@@ -865,7 +865,7 @@ const ARTutorialPage: React.FC = () => {
                 {isTutorialActive ? (
                   <button
                     onClick={pauseTutorial}
-                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-dark-700 hover:bg-dark-600 text-dark-100 text-sm font-display font-semibold rounded-xl border border-dark-600 transition-colors"
                   >
                     <Pause size={14} />
                     Pause
@@ -873,7 +873,7 @@ const ARTutorialPage: React.FC = () => {
                 ) : (
                   <button
                     onClick={startTutorial}
-                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl shadow-lg transition-colors"
                   >
                     <Play size={14} />
                     Resume
@@ -881,7 +881,7 @@ const ARTutorialPage: React.FC = () => {
                 )}
                 <button
                   onClick={resetTutorial}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-dark-700 hover:bg-dark-600 text-dark-100 text-sm font-display font-medium rounded-xl border border-dark-600 transition-colors"
                   title="Reset Tutorial"
                 >
                   <RotateCcw size={14} />
@@ -895,32 +895,32 @@ const ARTutorialPage: React.FC = () => {
             {tutorialSteps.map((step, idx) => (
               <div
                 key={step.id}
-                className={`p-3 rounded-lg border transition-all ${
+                className={`p-3 rounded-xl border transition-all ${
                   idx === currentStep && isTutorialActive
-                    ? 'border-green-500/50 bg-green-500/5'
+                    ? 'border-duo-green/50 bg-duo-green/5'
                     : step.completed
-                    ? 'border-[#30363d] bg-[#21262d]'
-                    : 'border-[#30363d] bg-[#0d1117]/50'
+                    ? 'border-dark-700 bg-dark-700'
+                    : 'border-dark-700 bg-dark-900/50'
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   {step.completed ? (
-                    <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+                    <CheckCircle size={16} className="text-duo-green shrink-0 mt-0.5" />
                   ) : idx === currentStep && isTutorialActive ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-green-500 shrink-0 mt-0.5 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div className="w-4 h-4 rounded-full border-2 border-duo-green shrink-0 mt-0.5 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-duo-green animate-pulse" />
                     </div>
                   ) : (
-                    <Circle size={16} className="text-[#484f58] shrink-0 mt-0.5" />
+                    <Circle size={16} className="text-dark-500 shrink-0 mt-0.5" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${
-                      step.completed ? 'text-[#8b949e]' : 'text-[#c9d1d9]'
+                      step.completed ? 'text-dark-400' : 'text-dark-100'
                     }`}>
                       {step.instruction}
                     </p>
                     {step.feedback && (
-                      <p className="text-xs text-green-400 mt-1">{step.feedback}</p>
+                      <p className="text-xs text-duo-green mt-1">{step.feedback}</p>
                     )}
                   </div>
                 </div>
@@ -929,10 +929,10 @@ const ARTutorialPage: React.FC = () => {
           </div>
 
           {/* AI Help Section */}
-          <div className="p-4 border-t border-[#30363d]">
+          <div className="p-4 border-t border-dark-700">
             <button
               onClick={askForHelp}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-dark-700 hover:bg-dark-600 text-dark-100 text-sm font-display font-semibold rounded-xl border border-dark-600 transition-colors"
             >
               <HelpCircle size={16} />
               Ask AI for Help
@@ -940,12 +940,12 @@ const ARTutorialPage: React.FC = () => {
             
             {/* Current suggestions */}
             {currentSuggestions.length > 0 && (
-              <div className="mt-3 p-3 bg-[#0d1117] rounded-lg border border-[#30363d]">
+              <div className="mt-3 p-3 bg-dark-900 rounded-xl border border-dark-700">
                 <div className="flex items-start gap-2">
                   <Lightbulb size={14} className="text-yellow-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-medium text-[#c9d1d9] mb-1">AI Suggestion</p>
-                    <p className="text-xs text-[#8b949e]">{currentSuggestions[0]}</p>
+                    <p className="text-xs font-display font-semibold text-dark-100 mb-1">AI Suggestion</p>
+                    <p className="text-xs text-dark-400">{currentSuggestions[0]}</p>
                   </div>
                 </div>
               </div>
@@ -957,9 +957,9 @@ const ARTutorialPage: React.FC = () => {
       {/* QR Code Modal */}
       {showQRModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] max-w-md w-full p-6 shadow-2xl">
+          <div className="bg-dark-800 rounded-2xl border border-dark-700 max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-[#c9d1d9]">Connect Your Phone</h3>
+              <h3 className="text-lg font-display font-bold text-dark-100">Connect Your Phone</h3>
               <button
                 onClick={() => {
                   setShowQRModal(false);
@@ -967,9 +967,9 @@ const ARTutorialPage: React.FC = () => {
                     disconnectPhone();
                   }
                 }}
-                className="p-1 hover:bg-[#21262d] rounded-lg transition-colors"
+                className="p-1 hover:bg-dark-700 rounded-xl transition-colors"
               >
-                <X size={20} className="text-[#8b949e]" />
+                <X size={20} className="text-dark-400" />
               </button>
             </div>
 
@@ -977,7 +977,7 @@ const ARTutorialPage: React.FC = () => {
               {connectionStatus === 'waiting' || connectionStatus === 'generating' ? (
                 <>
                   {qrCodeDataUrl ? (
-                    <div className="bg-white p-4 rounded-xl inline-block mb-4">
+                    <div className="bg-white p-4 rounded-2xl inline-block mb-4">
                       <img 
                         src={qrCodeDataUrl} 
                         alt="QR Code" 
@@ -985,36 +985,36 @@ const ARTutorialPage: React.FC = () => {
                       />
                     </div>
                   ) : (
-                    <div className="w-56 h-56 bg-[#21262d] rounded-xl flex items-center justify-center mb-4 mx-auto">
-                      <Loader2 size={32} className="text-green-500 animate-spin" />
+                    <div className="w-56 h-56 bg-dark-700 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                      <Loader2 size={32} className="text-duo-green animate-spin" />
                     </div>
                   )}
                   
-                  <p className="text-[#c9d1d9] font-medium mb-2">Scan with your phone camera</p>
-                  <p className="text-[#8b949e] text-sm mb-4">
+                  <p className="text-dark-100 font-display font-semibold mb-2">Scan with your phone camera</p>
+                  <p className="text-dark-400 text-sm mb-4">
                     Point your phone's camera at this QR code to connect
                   </p>
                   
-                  <div className="flex items-center justify-center gap-2 text-yellow-400 text-xs">
+                  <div className="flex items-center justify-center gap-2 text-yellow-400 text-xs font-display font-semibold">
                     <Wifi size={14} className="animate-pulse" />
                     Waiting for connection...
                   </div>
                 </>
               ) : connectionStatus === 'connecting' ? (
                 <div className="py-8">
-                  <Loader2 size={48} className="text-green-500 animate-spin mx-auto mb-4" />
-                  <p className="text-[#c9d1d9] font-medium">Connecting...</p>
+                  <Loader2 size={48} className="text-duo-green animate-spin mx-auto mb-4" />
+                  <p className="text-dark-100 font-display font-semibold">Connecting...</p>
                 </div>
               ) : connectionStatus === 'error' ? (
                 <div className="py-8">
-                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                     <X size={32} className="text-red-500" />
                   </div>
-                  <p className="text-[#c9d1d9] font-medium mb-2">Connection Failed</p>
-                  <p className="text-[#8b949e] text-sm mb-4">Please try again</p>
+                  <p className="text-dark-100 font-display font-semibold mb-2">Connection Failed</p>
+                  <p className="text-dark-400 text-sm mb-4">Please try again</p>
                   <button
                     onClick={startPhoneConnection}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="px-4 py-2 bg-duo-green hover:bg-duo-greenDark text-white text-sm font-display font-semibold rounded-xl shadow-lg transition-colors"
                   >
                     Try Again
                   </button>
@@ -1022,45 +1022,45 @@ const ARTutorialPage: React.FC = () => {
               ) : null}
             </div>
 
-            <div className="mt-6 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
-              <h4 className="text-sm font-medium text-[#c9d1d9] mb-2">How it works:</h4>
-              <ol className="text-xs text-[#8b949e] space-y-1.5">
+            <div className="mt-6 p-4 bg-dark-900 rounded-2xl border border-dark-700">
+              <h4 className="text-sm font-display font-semibold text-dark-100 mb-2">How it works:</h4>
+              <ol className="text-xs text-dark-400 space-y-1.5">
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">1</span>
+                  <span className="w-5 h-5 rounded-lg bg-dark-700 flex items-center justify-center shrink-0 text-dark-100 text-xs font-display font-semibold">1</span>
                   Scan the QR code with your phone camera
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">2</span>
+                  <span className="w-5 h-5 rounded-lg bg-dark-700 flex items-center justify-center shrink-0 text-dark-100 text-xs font-display font-semibold">2</span>
                   Allow camera access when prompted
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">3</span>
+                  <span className="w-5 h-5 rounded-lg bg-dark-700 flex items-center justify-center shrink-0 text-dark-100 text-xs font-display font-semibold">3</span>
                   Your phone camera will stream to this screen
                 </li>
               </ol>
 
               {/* Localhost helper - show editable URL */}
               {isOnLocalhost && connectionUrl && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
                   <div className="flex items-start gap-2 mb-3">
                     <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-medium text-yellow-400 mb-1">Using Localhost</p>
-                      <p className="text-xs text-[#8b949e]">
-                        Replace <code className="text-[#c9d1d9] bg-[#21262d] px-1 rounded">localhost</code> with your computer's IP address:
+                      <p className="text-xs font-display font-semibold text-yellow-400 mb-1">Using Localhost</p>
+                      <p className="text-xs text-dark-400">
+                        Replace <code className="text-dark-100 bg-dark-700 px-1 rounded">localhost</code> with your computer's IP address:
                       </p>
                     </div>
                   </div>
-                  <div className="bg-[#161b22] rounded p-2 font-mono text-xs">
+                  <div className="bg-dark-800 rounded-xl p-2 font-mono text-xs">
                     <input
                       type="text"
                       defaultValue={connectionUrl}
-                      className="w-full bg-transparent text-green-400 outline-none border-b border-[#30363d] pb-1"
+                      className="w-full bg-transparent text-duo-green outline-none border-b border-dark-700 pb-1"
                       onClick={(e) => e.currentTarget.select()}
                       readOnly
                     />
-                    <p className="text-[#8b949e] mt-2 text-[10px]">
-                      💡 Run <code className="text-green-400">ipconfig</code> and replace localhost with your IPv4 address
+                    <p className="text-dark-400 mt-2 text-[10px]">
+                      Run <code className="text-duo-green">ipconfig</code> and replace localhost with your IPv4 address
                     </p>
                   </div>
                 </div>
