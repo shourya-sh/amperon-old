@@ -41,7 +41,67 @@ export type ComponentType =
   | 'not-gate'
   | 'nand-gate'
   | 'nor-gate'
-  | 'xor-gate';
+  | 'xor-gate'
+  // Power & Energy
+  | 'dc-power-supply'
+  | 'ac-dc-converter'
+  | 'buck-converter'
+  | 'boost-converter'
+  | 'buck-boost-converter'
+  | 'ldo'
+  | 'battery-charger'
+  | 'battery-protection'
+  | 'power-path-controller'
+  // Control & Compute
+  | 'microcontroller'
+  | 'microprocessor'
+  | 'fpga'
+  | 'clock-oscillator'
+  | 'reset-supervisor'
+  | 'gpio-expander'
+  // Actuation & Drivers
+  | 'h-bridge'
+  | 'half-bridge'
+  | 'low-side-switch'
+  | 'high-side-switch'
+  | 'solid-state-relay'
+  | 'solenoid-driver'
+  | 'stepper-driver'
+  // Motors & Loads
+  | 'stepper-motor'
+  | 'servo-motor'
+  | 'resistive-load'
+  | 'inductive-load'
+  // Analog & Signal
+  | 'instrumentation-amplifier'
+  | 'comparator'
+  | 'analog-mux'
+  | 'rc-lpf'
+  | 'lc-filter'
+  // Sensors
+  | 'analog-sensor'
+  | 'digital-sensor'
+  | 'temperature-sensor'
+  | 'pressure-sensor'
+  | 'current-sensor'
+  | 'voltage-sensor'
+  // Communication
+  | 'uart'
+  | 'rs485'
+  | 'can'
+  | 'spi'
+  | 'i2c'
+  | 'ethernet'
+  // Protection & Safety
+  | 'flyback-diode'
+  | 'tvs-diode'
+  | 'polyfuse'
+  | 'reverse-polarity'
+  | 'e-stop'
+  // User Interfaces
+  | 'connector'
+  | 'terminal-block'
+  | 'led-indicator';
 
 export type ComponentCategory = 
   | 'passive' 
@@ -212,4 +272,64 @@ export interface BreadboardState {
     positive: number[];
     negative: number[];
   };
+}
+
+// AR/Camera Analysis types
+export interface ARDetectedComponent {
+  type: string;
+  count: number;
+  colors?: string[];
+  position?: string;
+}
+
+export interface ARBreadboardState {
+  detected: boolean;
+  type?: 'mini' | 'half' | 'full';
+  rows?: number;
+}
+
+export interface ARWiringConnection {
+  color: string;
+  from?: string;
+  to?: string;
+}
+
+export interface ARAnalysisResult {
+  components: ARDetectedComponent[];
+  breadboard: ARBreadboardState;
+  wiring: ARWiringConnection[];
+  issues: string[];
+  suggestions: string[];
+  timestamp: number;
+  latency?: number;
+}
+
+export type ARConnectionStatus = 
+  | 'idle' 
+  | 'generating' 
+  | 'waiting' 
+  | 'connecting' 
+  | 'connected' 
+  | 'error';
+
+export type ARAnalysisStatus = 
+  | 'idle' 
+  | 'connecting' 
+  | 'connected' 
+  | 'analyzing' 
+  | 'stopped' 
+  | 'error';
+
+export interface ARCameraSource {
+  type: 'local' | 'phone';
+  stream?: MediaStream;
+  peerId?: string;
+}
+
+export interface ARTutorialStep {
+  id: number;
+  instruction: string;
+  completed: boolean;
+  expectedComponents?: string[];
+  feedback?: string;
 }

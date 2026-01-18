@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Zap, 
   LayoutDashboard, 
   BookOpen, 
   FolderOpen, 
   Settings,
   Users,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Camera
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -21,6 +21,7 @@ const Navbar: React.FC = () => {
   const navItems = [
     { path: '/', label: 'Designer', icon: LayoutDashboard },
     { path: '/tutorials', label: 'Learn', icon: BookOpen },
+    { path: '/ar', label: 'AR Lab', icon: Camera },
     { path: '/projects', label: 'Projects', icon: FolderOpen },
   ];
 

@@ -17,6 +17,9 @@ const io = new Server(httpServer, {
 // Store active sessions
 const sessions = new Map();
 
+// AR Sessions - for phone camera streaming
+const arSessions = new Map();
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -136,13 +139,92 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ===== AR SESSION HANDLING =====
+
+  // Create/join AR session (laptop)
+  socket.on('ar-create-session', (data) => {
+    const { sessionId } = data;
+    console.log(`Creating AR session: ${sessionId}`);
+    
+    if (!arSessions.has(sessionId)) {
+      arSessions.set(sessionId, {
+        host: socket.id,
+        phone: null,
+        lastFrame: null,
+      });
+    }
+    
+    socket.join(`ar-${sessionId}`);
+    socket.emit('ar-session-created', { sessionId });
+  });
+
+  // Join AR session (phone)
+  socket.on('ar-join-session', (data) => {
+    const { sessionId } = data;
+    console.log(`Phone joining AR session: ${sessionId}`);
+    
+    const session = arSessions.get(sessionId);
+    if (!session) {
+      socket.emit('ar-error', { message: 'Session not found' });
+      return;
+    }
+    
+    session.phone = socket.id;
+    socket.join(`ar-${sessionId}`);
+    
+    // Notify host that phone connected
+    io.to(`ar-${sessionId}`).emit('ar-phone-connected');
+  });
+
+  // Handle camera frame from phone
+  socket.on('ar-frame', (data) => {
+    const { sessionId, frameData } = data;
+    const session = arSessions.get(sessionId);
+    
+    if (session) {
+      session.lastFrame = frameData;
+      // Broadcast frame to all in session (host will display it)
+      io.to(`ar-${sessionId}`).emit('ar-frame', { frameData });
+    }
+  });
+
+  // Leave AR session
+  socket.on('ar-leave-session', (data) => {
+    const { sessionId } = data;
+    const session = arSessions.get(sessionId);
+    
+    if (session) {
+      socket.leave(`ar-${sessionId}`);
+      
+      // Notify others and clean up
+      if (session.host === socket.id) {
+        io.to(`ar-${sessionId}`).emit('ar-host-disconnected');
+        arSessions.delete(sessionId);
+      } else if (session.phone === socket.id) {
+        session.phone = null;
+        io.to(`ar-${sessionId}`).emit('ar-phone-disconnected');
+      }
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     
-    // Find and clean up user from all sessions
+    // Clean up AR sessions
+    arSessions.forEach((session, sessionId) => {
+      if (session.host === socket.id) {
+        io.to(`ar-${sessionId}`).emit('ar-host-disconnected');
+        arSessions.delete(sessionId);
+      } else if (session.phone === socket.id) {
+        session.phone = null;
+        io.to(`ar-${sessionId}`).emit('ar-phone-disconnected');
+      }
+    });
+    
+    // Find and clean up user from all collaboration sessions
     sessions.forEach((session, sessionId) => {
-      session.users.forEach((user, odId) => {
+      session.users.forEach((user, userId) => {
         if (user.socketId === socket.id) {
           session.users.delete(userId);
           io.to(sessionId).emit('user-left', { id: userId });

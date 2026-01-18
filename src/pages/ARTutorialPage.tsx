@@ -1,48 +1,361 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Camera, CameraOff, Play, Pause, RotateCcw, Zap, CheckCircle, Circle } from 'lucide-react';
-// Note: analyzeCircuitImage and getContinuousTutorialGuidance are not yet implemented in aiService
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { 
+  Camera, 
+  CameraOff, 
+  QrCode,
+  Smartphone,
+  Monitor,
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Zap, 
+  CheckCircle, 
+  Circle,
+  AlertTriangle,
+  Lightbulb,
+  Eye,
+  EyeOff,
+  MessageSquare,
+  HelpCircle,
+  Loader2,
+  Wifi,
+  WifiOff,
+  X,
+  Cpu
+} from 'lucide-react';
+import { useARStore, useChatStore } from '../stores';
+import { overshootService, mapDetectedToAppComponents, type DetectedCircuitState } from '../services/overshootService';
+import { arConnectionManager, type ARConnectionState } from '../services/arConnectionService';
 
 interface TutorialStep {
   id: number;
   instruction: string;
   completed: boolean;
+  expectedComponents?: string[];
   feedback?: string;
+}
+
+interface HintButton {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  action: () => void;
+  position: { x: string; y: string };
 }
 
 const ARTutorialPage: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  
+  // Local state
+  const [isLocalCameraActive, setIsLocalCameraActive] = useState(false);
   const [isTutorialActive, setIsTutorialActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'local' | 'phone'>('local');
+  const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
+  const [isOnLocalhost, setIsOnLocalhost] = useState(false);
+  
   const [tutorialSteps, setTutorialSteps] = useState<TutorialStep[]>([
-    { id: 1, instruction: 'Place a breadboard in the camera view', completed: false },
-    { id: 2, instruction: 'Connect the battery to the breadboard', completed: false },
-    { id: 3, instruction: 'Add a resistor between the power rails', completed: false },
-    { id: 4, instruction: 'Connect an LED with proper polarity', completed: false },
-    { id: 5, instruction: 'Complete the circuit', completed: false },
+    { id: 1, instruction: 'Place a breadboard in the camera view', completed: false, expectedComponents: ['breadboard'] },
+    { id: 2, instruction: 'Add a resistor (check the color bands!)', completed: false, expectedComponents: ['resistor'] },
+    { id: 3, instruction: 'Connect an LED with proper polarity', completed: false, expectedComponents: ['led'] },
+    { id: 4, instruction: 'Add wires to connect your components', completed: false, expectedComponents: ['wire', 'jumper'] },
+    { id: 5, instruction: 'Connect a battery to power the circuit', completed: false, expectedComponents: ['battery', 'power supply', 'power'] },
   ]);
-  const [aiGuidance, setAiGuidance] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [detectedComponents, setDetectedComponents] = useState<string[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const analysisIntervalRef = useRef<number | null>(null);
 
-  // Start webcam
-  const startWebcam = async () => {
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const completedStepsRef = useRef<Set<number>>(new Set()); // Track completed steps
+  const detectionStartTimeRef = useRef<number | null>(null); // Track when detection started
+  const DETECTION_THRESHOLD_MS = 0; // Advance immediately on detection
+  
+  // Refs to keep callback up-to-date with latest state (avoids stale closures)
+  const currentStepRef = useRef(currentStep);
+  const isTutorialActiveRef = useRef(isTutorialActive);
+  const tutorialStepsRef = useRef(tutorialSteps);
+  
+  // Keep refs in sync with state to avoid stale closures in callbacks
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+  
+  useEffect(() => {
+    isTutorialActiveRef.current = isTutorialActive;
+  }, [isTutorialActive]);
+  
+  useEffect(() => {
+    tutorialStepsRef.current = tutorialSteps;
+  }, [tutorialSteps]);
+  
+  // AR Store
+  const {
+    connectionStatus,
+    analysisStatus,
+    detectedComponents,
+    breadboardDetected,
+    currentIssues,
+    currentSuggestions,
+    showHints,
+    showDetectedComponents,
+    showIssues,
+    setConnectionStatus,
+    setAnalysisStatus,
+    setDetectedComponents,
+    setBreadboardDetected,
+    setCurrentIssues,
+    setCurrentSuggestions,
+    setShowHints,
+    setShowDetectedComponents,
+    setShowIssues,
+    setCameraSource,
+    resetARState
+  } = useARStore();
+
+  // Chat store for AI help integration
+  const { setIsOpen: setChatOpen, addMessage } = useChatStore();
+
+  // Handle phone connection state changes
+  useEffect(() => {
+    const unsubscribe = arConnectionManager.subscribe((state: ARConnectionState) => {
+      console.log('AR state update:', { status: state.status, hasStream: !!state.remoteStream });
+      setConnectionStatus(state.status);
+      
+      if (state.status === 'connected' && state.remoteStream) {
+        console.log('Stream received, checking video element...', {
+          streamId: state.remoteStream.id,
+          videoTracks: state.remoteStream.getVideoTracks().length,
+          hasVideoRef: !!remoteVideoRef.current
+        });
+        
+        // Set stream immediately if ref is ready
+        const setVideoStream = () => {
+          if (!remoteVideoRef.current) {
+            console.warn('Video ref not ready yet, retrying...');
+            return false;
+          }
+          
+          console.log('Setting remote video srcObject now');
+          remoteVideoRef.current.srcObject = state.remoteStream;
+          
+          // Force play after srcObject is set
+          remoteVideoRef.current.play().then(() => {
+            console.log('✅ Remote video play() succeeded');
+          }).catch(err => {
+            console.error('❌ Remote video play() failed:', err);
+          });
+          
+          return true;
+        };
+        
+        // Try immediately, then retry if needed
+        if (!setVideoStream()) {
+          setTimeout(() => {
+            if (setVideoStream()) {
+              console.log('Video stream set successfully on retry');
+            } else {
+              console.error('Failed to set video stream after retry');
+            }
+          }, 100);
+        }
+        
+        setCameraSource('phone');
+        setActiveTab('phone');
+        setShowQRModal(false);
+        
+        // Auto-start tutorial when phone connects
+        console.log('📚 Auto-starting tutorial with phone camera');
+        setIsTutorialActive(true);
+        setShowHints(true);
+        setShowDetectedComponents(true);
+        setShowIssues(true);
+        setCurrentStep(0);
+        
+        // Start Gemini frame analysis on the phone video
+        // Wait for video element to be ready, then start analysis
+        setTimeout(() => {
+          if (remoteVideoRef.current) {
+            startFrameAnalysisWithVideo(remoteVideoRef.current);
+          }
+        }, 1000);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Handle analysis results from Overshoot/Gemini
+  // Creates a stable callback that reads from refs to get latest state
+  const handleAnalysisResult = useCallback((result: DetectedCircuitState) => {
+    const mappedComponents = mapDetectedToAppComponents(result);
+    
+    setDetectedComponents(mappedComponents.map(c => ({
+      type: c.type,
+      count: c.count,
+      colors: c.colors
+    })));
+    setBreadboardDetected(result.breadboard.detected);
+    setCurrentIssues(result.issues);
+    setCurrentSuggestions(result.suggestions);
+
+    // Read current values from refs to avoid stale closures
+    const tutorialActive = isTutorialActiveRef.current;
+    const step = currentStepRef.current;
+    const steps = tutorialStepsRef.current;
+
+    // Auto-check tutorial progress based on detected components
+    if (!tutorialActive) return;
+    
+    // Skip if step already completed
+    if (completedStepsRef.current.has(step)) {
+      console.log('Step', step + 1, 'already completed, skipping');
+      return;
+    }
+    
+    const currentStepData = steps[step];
+    console.log('📋 Tutorial check - Step:', step + 1, 'Expected:', currentStepData?.expectedComponents, 'Breadboard detected:', result.breadboard.detected);
+    
+    if (!currentStepData?.expectedComponents) return;
+    
+    // Get all detected types - include breadboard if detected
+    const detectedTypes = mappedComponents.map(c => c.type.toLowerCase());
+    
+    // Special handling for breadboard detection (step 1)
+    if (result.breadboard.detected) {
+      detectedTypes.push('breadboard');
+      console.log('🟢 Added breadboard to detected types');
+    }
+    
+    const hasExpected = currentStepData.expectedComponents.some(
+      exp => detectedTypes.some(det => det.includes(exp.toLowerCase()))
+    );
+    
+    console.log('🔍 Detected types:', detectedTypes, '| Has expected:', hasExpected);
+    
+    if (hasExpected) {
+      // Start tracking detection time if not already
+      if (detectionStartTimeRef.current === null) {
+        detectionStartTimeRef.current = Date.now();
+        console.log('⏱️ Detection started for step', step + 1);
+      }
+      
+      const detectionDuration = Date.now() - detectionStartTimeRef.current;
+      console.log('⏳ Detection duration:', detectionDuration, 'ms / threshold:', DETECTION_THRESHOLD_MS, 'ms');
+      
+      // Check if we've detected for long enough
+      if (detectionDuration >= DETECTION_THRESHOLD_MS) {
+        console.log('✅ STEP', step + 1, 'COMPLETE after', detectionDuration, 'ms - ADVANCING NOW');
+        
+        // Mark in ref immediately to prevent duplicates
+        completedStepsRef.current.add(step);
+        detectionStartTimeRef.current = null; // Reset for next step
+        
+        // Mark step as completed in state
+        setTutorialSteps(prev => 
+          prev.map((s, idx) => 
+            idx === step 
+              ? { ...s, completed: true, feedback: '✓ Detected!' }
+              : s
+          )
+        );
+        
+        // Advance to next step
+        const nextStep = step + 1;
+        console.log('🎯 Advancing from step', step + 1, 'to step', nextStep + 1);
+        if (nextStep < steps.length) {
+          setCurrentStep(nextStep);
+        } else {
+          console.log('🏁 Tutorial complete!');
+        }
+      } else {
+        // Update UI to show detection in progress
+        const remaining = Math.ceil((DETECTION_THRESHOLD_MS - detectionDuration) / 1000);
+        setTutorialSteps(prev => 
+          prev.map((s, idx) => 
+            idx === step 
+              ? { ...s, feedback: `Detecting... ${remaining}s` }
+              : s
+          )
+        );
+      }
+    } else {
+      // Reset detection timer if expected component not found
+      if (detectionStartTimeRef.current !== null) {
+        console.log('❌ Detection lost for step', step + 1);
+        detectionStartTimeRef.current = null;
+        // Clear the "Detecting..." feedback
+        setTutorialSteps(prev => 
+          prev.map((s, idx) => 
+            idx === step 
+              ? { ...s, feedback: undefined }
+              : s
+          )
+        );
+      }
+    }
+  }, []); // Empty deps - uses refs for latest values
+
+  // Start Gemini-based frame analysis with a video element
+  const startFrameAnalysisWithVideo = useCallback(async (videoElement: HTMLVideoElement) => {
+    try {
+      console.log('🎬 Starting Gemini frame analysis...');
+      await overshootService.startFrameAnalysis(videoElement, {
+        onResult: handleAnalysisResult,
+        onError: (error) => console.error('Analysis error:', error),
+        onStatus: (status) => setAnalysisStatus(status),
+        intervalMs: 3000 // Analyze every 3 seconds
+      });
+    } catch (error) {
+      console.error('Failed to start frame analysis:', error);
+    }
+  }, [handleAnalysisResult, setAnalysisStatus]);
+
+  // Ensure frame analysis stays active when tutorial is active
+  useEffect(() => {
+    if (!isTutorialActive || !isLocalCameraActive) return;
+    
+    // If tutorial becomes active and camera is on, make sure frame analysis is running
+    console.log('📊 Tutorial state changed, ensuring frame analysis is active');
+    if (videoRef.current?.srcObject) {
+      startFrameAnalysisWithVideo(videoRef.current);
+    }
+  }, [isTutorialActive, isLocalCameraActive]);
+
+  // Start local webcam
+  const startLocalCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          facingMode: 'environment' // Prefer back camera on mobile
+          facingMode: 'environment'
         }
       });
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsStreaming(true);
+        localStreamRef.current = stream;
+        setIsLocalCameraActive(true);
+        setCameraSource('local');
+        
+        // Enable overlays
+        setShowHints(true);
+        setShowDetectedComponents(true);
+        setShowIssues(true);
+        
+        // Auto-start tutorial when camera connects
+        console.log('📚 Auto-starting tutorial with local camera');
+        setIsTutorialActive(true);
+        setCurrentStep(0);
+        setTutorialSteps(prev => prev.map(step => ({ ...step, completed: false, feedback: undefined })));
+        
+        // Start Gemini frame analysis with the video element
+        setTimeout(() => {
+          if (videoRef.current) {
+            startFrameAnalysisWithVideo(videoRef.current);
+          }
+        }, 500);
       }
     } catch (error) {
       console.error('Error accessing webcam:', error);
@@ -50,249 +363,531 @@ const ARTutorialPage: React.FC = () => {
     }
   };
 
-  // Stop webcam
-  const stopWebcam = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-      setIsStreaming(false);
-      setIsTutorialActive(false);
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
+  // Stop local webcam
+  const stopLocalCamera = async () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
     }
     
-    // Clear analysis interval
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-      analysisIntervalRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    // Stop frame analysis and any Overshoot services
+    overshootService.stopFrameAnalysis();
+    await overshootService.stop();
+    setIsLocalCameraActive(false);
+    setIsTutorialActive(false);
+    resetARState();
+  };
+
+  // Start QR code generation for phone connection
+  const startPhoneConnection = async () => {
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1';
+    
+    setIsOnLocalhost(isLocalhost);
+    setShowQRModal(true);
+    
+    try {
+      const result = await arConnectionManager.startHost();
+      setQrCodeDataUrl(result.qrDataUrl);
+      setConnectionUrl(result.connectionUrl);
+    } catch (error) {
+      console.error('Failed to start phone connection:', error);
     }
   };
 
-  // Capture frame from video
-  const captureFrame = (): string | null => {
-    if (!videoRef.current || !canvasRef.current) return null;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return null;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    return canvas.toDataURL('image/jpeg', 0.8);
-  };
-
-  // Analyze current frame
-  const analyzeCurrentFrame = async () => {
-    if (!isStreaming || isAnalyzing) return;
-
-    setIsAnalyzing(true);
-    const frame = captureFrame();
-
-    if (frame) {
-      try {
-        // Note: getContinuousTutorialGuidance is not yet implemented
-        // const currentInstruction = tutorialSteps[currentStep]?.instruction || 'Follow the tutorial steps';
-        // const result = await getContinuousTutorialGuidance(frame, currentInstruction, detectedComponents);
-        
-        setAiGuidance('Frame analysis placeholder - AI guidance not yet implemented');
-        // setDetectedComponents(result.detectedComponents || []);
-
-        // Auto-advance step if AI confirms completion
-        // if (result.stepCompleted && currentStep < tutorialSteps.length - 1) {
-        //   setTutorialSteps(prev => 
-        //     prev.map((step, idx) => 
-        //       idx === currentStep ? { ...step, completed: true, feedback: result.guidance } : step
-        //     )
-        //   );
-        //   setTimeout(() => setCurrentStep(prev => prev + 1), 1000);
-        // }
-      } catch (error) {
-        console.error('Error analyzing frame:', error);
-      }
+  // Disconnect phone
+  const disconnectPhone = () => {
+    // Stop frame analysis when disconnecting
+    overshootService.stopFrameAnalysis();
+    arConnectionManager.disconnect();
+    setQrCodeDataUrl(null);
+    setConnectionUrl(null);
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
     }
-
-    setIsAnalyzing(false);
   };
 
-  // Start tutorial with continuous analysis
+  // Start tutorial
   const startTutorial = () => {
     setIsTutorialActive(true);
     setCurrentStep(0);
     setTutorialSteps(prev => prev.map(step => ({ ...step, completed: false, feedback: undefined })));
-    
-    // Start periodic analysis (every 3 seconds)
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-    }
-    analysisIntervalRef.current = window.setInterval(analyzeCurrentFrame, 3000);
   };
 
   // Pause tutorial
   const pauseTutorial = () => {
     setIsTutorialActive(false);
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-      analysisIntervalRef.current = null;
-    }
   };
 
   // Reset tutorial
   const resetTutorial = () => {
     setCurrentStep(0);
     setIsTutorialActive(false);
-    setAiGuidance('');
-    setDetectedComponents([]);
+    completedStepsRef.current.clear(); // Clear completed steps tracking
+    detectionStartTimeRef.current = null; // Reset detection timer
     setTutorialSteps(prev => prev.map(step => ({ ...step, completed: false, feedback: undefined })));
-    
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-      analysisIntervalRef.current = null;
-    }
   };
+
+  // Ask for help - opens chat with context
+  const askForHelp = () => {
+    const context = detectedComponents.length > 0
+      ? `I can see: ${detectedComponents.map(c => `${c.count}x ${c.type}`).join(', ')}`
+      : 'No components detected yet';
+    
+    const currentInstruction = tutorialSteps[currentStep]?.instruction || 'building a circuit';
+    
+    addMessage({
+      id: Date.now().toString(),
+      role: 'user',
+      content: `I'm working on my breadboard and need help with: ${currentInstruction}. ${context}. What should I do?`,
+      timestamp: new Date()
+    });
+    
+    setChatOpen(true);
+  };
+
+  // Hint buttons that appear on the camera overlay
+  const hintButtons: HintButton[] = [
+    {
+      id: 'help',
+      label: 'Ask AI',
+      icon: <MessageSquare size={16} />,
+      action: askForHelp,
+      position: { x: 'right-4', y: 'bottom-20' }
+    },
+    {
+      id: 'tip',
+      label: 'Quick Tip',
+      icon: <Lightbulb size={16} />,
+      action: () => {
+        const tip = currentSuggestions[0] || 'Make sure all connections are secure!';
+        addMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `💡 **Quick Tip:** ${tip}`,
+          timestamp: new Date()
+        });
+        setChatOpen(true);
+      },
+      position: { x: 'right-4', y: 'bottom-36' }
+    }
+  ];
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopWebcam();
+      stopLocalCamera();
+      disconnectPhone();
     };
   }, []);
 
+  const isAnyCameraActive = isLocalCameraActive || connectionStatus === 'connected';
+
   return (
-    <div className="flex-1 flex flex-col bg-dark-950">
+    <div className="flex-1 flex flex-col bg-[#0d1117] min-h-0">
       {/* Header */}
-      <div className="h-12 bg-dark-900 border-b border-dark-800 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Camera size={16} className="text-forest-500" />
-          <h1 className="text-sm font-semibold text-dark-100">AR Tutorial</h1>
+      <div className="h-14 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+            <Camera size={16} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold text-[#c9d1d9]">AR Lab</h1>
+            <p className="text-xs text-[#8b949e]">Scan your breadboard in real-time</p>
+          </div>
         </div>
+        
+        {/* Camera source tabs */}
+        <div className="flex items-center gap-1 bg-[#21262d] rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('local')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              activeTab === 'local'
+                ? 'bg-[#30363d] text-[#c9d1d9]'
+                : 'text-[#8b949e] hover:text-[#c9d1d9]'
+            }`}
+          >
+            <Monitor size={14} />
+            Webcam
+          </button>
+          <button
+            onClick={() => setActiveTab('phone')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              activeTab === 'phone'
+                ? 'bg-[#30363d] text-[#c9d1d9]'
+                : 'text-[#8b949e] hover:text-[#c9d1d9]'
+            }`}
+          >
+            <Smartphone size={14} />
+            Phone
+            {connectionStatus === 'connected' && (
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        {/* Control buttons */}
         <div className="flex items-center gap-2">
-          {!isStreaming ? (
-            <button
-              onClick={startWebcam}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Camera size={14} />
-              Start Camera
-            </button>
+          {activeTab === 'local' ? (
+            !isLocalCameraActive ? (
+              <button
+                onClick={startLocalCamera}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Camera size={14} />
+                Start Camera
+              </button>
+            ) : (
+              <button
+                onClick={stopLocalCamera}
+                className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+              >
+                <CameraOff size={14} />
+                Stop Camera
+              </button>
+            )
           ) : (
-            <button
-              onClick={stopWebcam}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <CameraOff size={14} />
-              Stop Camera
-            </button>
+            connectionStatus !== 'connected' ? (
+              <button
+                onClick={startPhoneConnection}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <QrCode size={14} />
+                Connect Phone
+              </button>
+            ) : (
+              <button
+                onClick={disconnectPhone}
+                className="flex items-center gap-2 px-4 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+              >
+                <WifiOff size={14} />
+                Disconnect
+              </button>
+            )
           )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Video Feed */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-dark-950 relative">
-          {!isStreaming ? (
-            <div className="text-center">
-              <Camera size={64} className="text-dark-700 mx-auto mb-4" />
-              <p className="text-dark-400 text-sm mb-4">Click "Start Camera" to begin</p>
-              <p className="text-dark-500 text-xs max-w-md">
-                Point your camera at your breadboard and components. The AI will guide you through building circuits step by step.
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Video Feed Area */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-[#0d1117] relative overflow-hidden">
+          {!isAnyCameraActive ? (
+            // Empty state
+            <div className="text-center max-w-md">
+              <div className="w-20 h-20 rounded-2xl bg-[#21262d] border border-[#30363d] flex items-center justify-center mx-auto mb-6">
+                {activeTab === 'local' ? (
+                  <Camera size={32} className="text-[#484f58]" />
+                ) : (
+                  <Smartphone size={32} className="text-[#484f58]" />
+                )}
+              </div>
+              <h2 className="text-lg font-semibold text-[#c9d1d9] mb-2">
+                {activeTab === 'local' ? 'Start Your Webcam' : 'Connect Your Phone'}
+              </h2>
+              <p className="text-sm text-[#8b949e] mb-6">
+                {activeTab === 'local' 
+                  ? 'Click "Start Camera" to begin analyzing your breadboard in real-time.'
+                  : 'Scan the QR code with your phone to stream its camera to this screen.'}
               </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={activeTab === 'local' ? startLocalCamera : startPhoneConnection}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  {activeTab === 'local' ? <Camera size={18} /> : <QrCode size={18} />}
+                  {activeTab === 'local' ? 'Start Camera' : 'Show QR Code'}
+                </button>
+              </div>
+              
+              <div className="mt-8 p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                <div className="flex items-start gap-3">
+                  <Zap size={16} className="text-green-500 shrink-0 mt-0.5" />
+                  <div className="text-left">
+                    <p className="text-xs font-medium text-[#c9d1d9] mb-1">Pro Tips</p>
+                    <ul className="text-xs text-[#8b949e] space-y-1">
+                      <li>• Ensure good lighting on your breadboard</li>
+                      <li>• Keep the camera steady for best detection</li>
+                      <li>• Phone cameras often have better quality!</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <>
-              {/* Video Element */}
+            // Active camera view with overlay
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+              {/* Video elements - fill the entire container */}
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className="max-w-full max-h-full object-contain rounded-lg"
+                muted
+                className={`absolute inset-0 w-full h-full object-cover ${
+                  activeTab === 'local' && isLocalCameraActive ? 'block' : 'hidden'
+                }`}
+              />
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className={`absolute inset-0 w-full h-full object-cover ${
+                  activeTab === 'phone' && connectionStatus === 'connected' ? 'block' : 'hidden'
+                }`}
+                onLoadedMetadata={() => {
+                  console.log('Remote video loaded:', remoteVideoRef.current?.videoWidth, 'x', remoteVideoRef.current?.videoHeight);
+                }}
+                onPlay={() => console.log('Remote video playing')}
+                onError={(e) => console.error('Remote video error:', e)}
               />
               
-              {/* Canvas for frame capture (hidden) */}
+              {/* Hidden canvas for frame capture */}
               <canvas ref={canvasRef} className="hidden" />
 
-              {/* Overlay - Current Step Indicator */}
-              {isTutorialActive && (
-                <div className="absolute top-4 left-4 right-4 glass p-4 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-forest-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm font-bold">{currentStep + 1}</span>
+              {/* === OVERLAY ELEMENTS === */}
+
+              {/* Breadboard Detection Overlay */}
+              {breadboardDetected && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="relative w-[70%] h-[50%] max-w-lg max-h-80">
+                    {/* Animated border corners */}
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-lg animate-pulse" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-lg animate-pulse" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-lg animate-pulse" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-lg animate-pulse" />
+                    
+                    {/* Dashed outline */}
+                    <div className="absolute inset-2 border-2 border-dashed border-green-500/50 rounded-lg" />
+                    
+                    {/* Label */}
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-green-500/90 text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
+                      📋 Breadboard Detected
                     </div>
-                    <div className="flex-1">
-                      <p className="text-dark-100 font-medium text-sm mb-1">
-                        {tutorialSteps[currentStep]?.instruction}
-                      </p>
-                      {aiGuidance && (
-                        <p className="text-forest-400 text-xs mt-2">
-                          {isAnalyzing ? 'Analyzing...' : aiGuidance}
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis Status Badge */}
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md ${
+                  analysisStatus === 'analyzing' 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : analysisStatus === 'connected'
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                }`}>
+                  {analysisStatus === 'analyzing' ? (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      Analyzing...
+                    </>
+                  ) : analysisStatus === 'connected' ? (
+                    <>
+                      <Wifi size={12} />
+                      Connected
+                    </>
+                  ) : (
+                    <>
+                      <Cpu size={12} />
+                      Ready
+                    </>
+                  )}
+                </div>
+                
+                {breadboardDetected && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-md">
+                    <CheckCircle size={12} />
+                    Breadboard Detected
+                  </div>
+                )}
+              </div>
+
+              {/* Tutorial Step Overlay */}
+              {isTutorialActive && showHints && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md w-full px-4">
+                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-[#30363d] p-4 shadow-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shrink-0">
+                        <span className="text-white text-sm font-bold">{currentStep + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[#c9d1d9] font-medium text-sm">
+                          {tutorialSteps[currentStep]?.instruction}
                         </p>
-                      )}
+                        {tutorialSteps[currentStep]?.feedback && (
+                          <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
+                            <CheckCircle size={12} />
+                            {tutorialSteps[currentStep].feedback}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Step progress */}
+                    <div className="flex gap-1 mt-3">
+                      {tutorialSteps.map((step, idx) => (
+                        <div
+                          key={step.id}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            step.completed
+                              ? 'bg-green-500'
+                              : idx === currentStep
+                              ? 'bg-green-500/50'
+                              : 'bg-[#30363d]'
+                          }`}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Detected Components Badge */}
-              {detectedComponents.length > 0 && (
-                <div className="absolute bottom-4 left-4 glass px-3 py-2 rounded-lg">
-                  <p className="text-dark-400 text-xs mb-1">Detected:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {detectedComponents.map((comp, idx) => (
-                      <span key={idx} className="bg-forest-600/20 text-forest-400 text-xs px-2 py-0.5 rounded">
-                        {comp}
-                      </span>
-                    ))}
+              {/* Detected Components Display */}
+              {showDetectedComponents && detectedComponents.length > 0 && (
+                <div className="absolute bottom-4 left-4 max-w-xs">
+                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-[#30363d] p-3 shadow-xl">
+                    <p className="text-[#8b949e] text-xs font-medium mb-2 flex items-center gap-1.5">
+                      <Eye size={12} />
+                      Detected Components
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detectedComponents.map((comp, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded-md border border-green-500/20"
+                        >
+                          {comp.count > 1 && <span className="font-bold">{comp.count}×</span>}
+                          {comp.type}
+                          {comp.colors && comp.colors.length > 0 && (
+                            <span className="text-[#8b949e]">({comp.colors.join(', ')})</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Analyzing Indicator */}
-              {isAnalyzing && (
-                <div className="absolute top-4 right-4 glass px-3 py-2 rounded-lg flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-forest-500 animate-pulse" />
-                  <span className="text-dark-300 text-xs">Analyzing...</span>
+              {/* Issues & Warnings */}
+              {showIssues && currentIssues.length > 0 && (
+                <div className="absolute bottom-4 right-4 max-w-xs">
+                  <div className="bg-[#161b22]/95 backdrop-blur-md rounded-xl border border-yellow-500/30 p-3 shadow-xl">
+                    <p className="text-yellow-400 text-xs font-medium mb-2 flex items-center gap-1.5">
+                      <AlertTriangle size={12} />
+                      Issues Detected
+                    </p>
+                    <ul className="space-y-1">
+                      {currentIssues.slice(0, 3).map((issue, idx) => (
+                        <li key={idx} className="text-xs text-[#c9d1d9]">
+                          • {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
-            </>
+
+              {/* Hint Buttons */}
+              {showHints && hintButtons.map((hint) => (
+                <button
+                  key={hint.id}
+                  onClick={hint.action}
+                  className={`absolute ${hint.position.x} ${hint.position.y} flex items-center gap-2 px-4 py-2.5 bg-green-600/90 hover:bg-green-600 text-white text-sm font-medium rounded-xl shadow-lg backdrop-blur-sm transition-all hover:scale-105`}
+                >
+                  {hint.icon}
+                  {hint.label}
+                </button>
+              ))}
+
+              {/* Overlay Controls Toggle */}
+              <div className="absolute top-4 right-4 flex flex-col gap-2">
+                <button
+                  onClick={() => setShowHints(!showHints)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                    showHints
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                  }`}
+                >
+                  {showHints ? <Eye size={12} /> : <EyeOff size={12} />}
+                  Hints
+                </button>
+                <button
+                  onClick={() => setShowDetectedComponents(!showDetectedComponents)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                    showDetectedComponents
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                  }`}
+                >
+                  <Cpu size={12} />
+                  Components
+                </button>
+                <button
+                  onClick={() => setShowIssues(!showIssues)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-md transition-colors ${
+                    showIssues
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : 'bg-[#21262d]/80 text-[#8b949e] border border-[#30363d]'
+                  }`}
+                >
+                  <AlertTriangle size={12} />
+                  Issues
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Tutorial Panel */}
-        <div className="w-96 bg-dark-900 border-l border-dark-800 flex flex-col">
+        {/* Right Sidebar - Tutorial Panel */}
+        <div className="w-80 bg-[#161b22] border-l border-[#30363d] flex flex-col shrink-0">
           {/* Tutorial Controls */}
-          <div className="p-4 border-b border-dark-800">
-            <h2 className="text-sm font-semibold text-dark-100 mb-3">Tutorial Progress</h2>
-            <div className="flex gap-2">
-              {!isTutorialActive ? (
-                <button
-                  onClick={startTutorial}
-                  disabled={!isStreaming}
-                  className="btn-primary flex items-center gap-2 flex-1"
-                >
-                  <Play size={14} />
-                  Start Tutorial
-                </button>
-              ) : (
-                <button
-                  onClick={pauseTutorial}
-                  className="btn-secondary flex items-center gap-2 flex-1"
-                >
-                  <Pause size={14} />
-                  Pause
-                </button>
+          <div className="p-4 border-b border-[#30363d]">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-[#c9d1d9]">Tutorial Mode</h2>
+              {isTutorialActive && (
+                <span className="flex items-center gap-1.5 text-xs text-green-400">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  Active
+                </span>
               )}
-              <button
-                onClick={resetTutorial}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <RotateCcw size={14} />
-              </button>
             </div>
+            {!isAnyCameraActive ? (
+              <p className="text-xs text-[#8b949e] italic">
+                Connect a camera to start the tutorial automatically
+              </p>
+            ) : (
+              <div className="flex gap-2">
+                {isTutorialActive ? (
+                  <button
+                    onClick={pauseTutorial}
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                  >
+                    <Pause size={14} />
+                    Pause
+                  </button>
+                ) : (
+                  <button
+                    onClick={startTutorial}
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    <Play size={14} />
+                    Resume
+                  </button>
+                )}
+                <button
+                  onClick={resetTutorial}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+                  title="Reset Tutorial"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Steps List */}
@@ -302,24 +897,30 @@ const ARTutorialPage: React.FC = () => {
                 key={step.id}
                 className={`p-3 rounded-lg border transition-all ${
                   idx === currentStep && isTutorialActive
-                    ? 'border-forest-500 bg-forest-500/5'
+                    ? 'border-green-500/50 bg-green-500/5'
                     : step.completed
-                    ? 'border-dark-700 bg-dark-800'
-                    : 'border-dark-700 bg-dark-800/50'
+                    ? 'border-[#30363d] bg-[#21262d]'
+                    : 'border-[#30363d] bg-[#0d1117]/50'
                 }`}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-2.5">
                   {step.completed ? (
-                    <CheckCircle size={16} className="text-forest-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+                  ) : idx === currentStep && isTutorialActive ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-green-500 shrink-0 mt-0.5 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    </div>
                   ) : (
-                    <Circle size={16} className="text-dark-600 flex-shrink-0 mt-0.5" />
+                    <Circle size={16} className="text-[#484f58] shrink-0 mt-0.5" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${step.completed ? 'text-dark-300' : 'text-dark-100'}`}>
+                    <p className={`text-sm ${
+                      step.completed ? 'text-[#8b949e]' : 'text-[#c9d1d9]'
+                    }`}>
                       {step.instruction}
                     </p>
                     {step.feedback && (
-                      <p className="text-xs text-forest-400 mt-1">{step.feedback}</p>
+                      <p className="text-xs text-green-400 mt-1">{step.feedback}</p>
                     )}
                   </div>
                 </div>
@@ -327,22 +928,147 @@ const ARTutorialPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Tips Section */}
-          <div className="p-4 border-t border-dark-800 bg-dark-800/50">
-            <div className="flex items-start gap-2">
-              <Zap size={14} className="text-forest-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-medium text-dark-200 mb-1">Tips</p>
-                <ul className="text-xs text-dark-400 space-y-1">
-                  <li>• Ensure good lighting for better detection</li>
-                  <li>• Keep components clearly visible</li>
-                  <li>• Follow each step before moving forward</li>
-                </ul>
+          {/* AI Help Section */}
+          <div className="p-4 border-t border-[#30363d]">
+            <button
+              onClick={askForHelp}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-sm font-medium rounded-lg border border-[#30363d] transition-colors"
+            >
+              <HelpCircle size={16} />
+              Ask AI for Help
+            </button>
+            
+            {/* Current suggestions */}
+            {currentSuggestions.length > 0 && (
+              <div className="mt-3 p-3 bg-[#0d1117] rounded-lg border border-[#30363d]">
+                <div className="flex items-start gap-2">
+                  <Lightbulb size={14} className="text-yellow-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-[#c9d1d9] mb-1">AI Suggestion</p>
+                    <p className="text-xs text-[#8b949e]">{currentSuggestions[0]}</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {showQRModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-[#c9d1d9]">Connect Your Phone</h3>
+              <button
+                onClick={() => {
+                  setShowQRModal(false);
+                  if (connectionStatus !== 'connected') {
+                    disconnectPhone();
+                  }
+                }}
+                className="p-1 hover:bg-[#21262d] rounded-lg transition-colors"
+              >
+                <X size={20} className="text-[#8b949e]" />
+              </button>
+            </div>
+
+            <div className="text-center">
+              {connectionStatus === 'waiting' || connectionStatus === 'generating' ? (
+                <>
+                  {qrCodeDataUrl ? (
+                    <div className="bg-white p-4 rounded-xl inline-block mb-4">
+                      <img 
+                        src={qrCodeDataUrl} 
+                        alt="QR Code" 
+                        className="w-48 h-48"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-56 h-56 bg-[#21262d] rounded-xl flex items-center justify-center mb-4 mx-auto">
+                      <Loader2 size={32} className="text-green-500 animate-spin" />
+                    </div>
+                  )}
+                  
+                  <p className="text-[#c9d1d9] font-medium mb-2">Scan with your phone camera</p>
+                  <p className="text-[#8b949e] text-sm mb-4">
+                    Point your phone's camera at this QR code to connect
+                  </p>
+                  
+                  <div className="flex items-center justify-center gap-2 text-yellow-400 text-xs">
+                    <Wifi size={14} className="animate-pulse" />
+                    Waiting for connection...
+                  </div>
+                </>
+              ) : connectionStatus === 'connecting' ? (
+                <div className="py-8">
+                  <Loader2 size={48} className="text-green-500 animate-spin mx-auto mb-4" />
+                  <p className="text-[#c9d1d9] font-medium">Connecting...</p>
+                </div>
+              ) : connectionStatus === 'error' ? (
+                <div className="py-8">
+                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <X size={32} className="text-red-500" />
+                  </div>
+                  <p className="text-[#c9d1d9] font-medium mb-2">Connection Failed</p>
+                  <p className="text-[#8b949e] text-sm mb-4">Please try again</p>
+                  <button
+                    onClick={startPhoneConnection}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 p-4 bg-[#0d1117] rounded-lg border border-[#30363d]">
+              <h4 className="text-sm font-medium text-[#c9d1d9] mb-2">How it works:</h4>
+              <ol className="text-xs text-[#8b949e] space-y-1.5">
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">1</span>
+                  Scan the QR code with your phone camera
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">2</span>
+                  Allow camera access when prompted
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#21262d] flex items-center justify-center shrink-0 text-[#c9d1d9] text-xs font-medium">3</span>
+                  Your phone camera will stream to this screen
+                </li>
+              </ol>
+
+              {/* Localhost helper - show editable URL */}
+              {isOnLocalhost && connectionUrl && (
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <div className="flex items-start gap-2 mb-3">
+                    <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-yellow-400 mb-1">Using Localhost</p>
+                      <p className="text-xs text-[#8b949e]">
+                        Replace <code className="text-[#c9d1d9] bg-[#21262d] px-1 rounded">localhost</code> with your computer's IP address:
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-[#161b22] rounded p-2 font-mono text-xs">
+                    <input
+                      type="text"
+                      defaultValue={connectionUrl}
+                      className="w-full bg-transparent text-green-400 outline-none border-b border-[#30363d] pb-1"
+                      onClick={(e) => e.currentTarget.select()}
+                      readOnly
+                    />
+                    <p className="text-[#8b949e] mt-2 text-[10px]">
+                      💡 Run <code className="text-green-400">ipconfig</code> and replace localhost with your IPv4 address
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

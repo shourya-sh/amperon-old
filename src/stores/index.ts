@@ -349,3 +349,129 @@ export const useProjectStore = create<ProjectState>((set) => ({
     currentProject: state.currentProject?.id === id ? null : state.currentProject,
   })),
 }));
+
+// AR Store - For augmented reality breadboard analysis
+interface DetectedComponent {
+  type: string;
+  count: number;
+  colors?: string[];
+  position?: string;
+}
+
+interface ARState {
+  // Connection state
+  connectionStatus: 'idle' | 'generating' | 'waiting' | 'connecting' | 'connected' | 'error';
+  peerId: string | null;
+  qrCodeUrl: string | null;
+  connectionError: string | null;
+  
+  // Analysis state
+  isAnalyzing: boolean;
+  analysisStatus: 'idle' | 'connecting' | 'connected' | 'analyzing' | 'stopped' | 'error';
+  detectedComponents: DetectedComponent[];
+  breadboardDetected: boolean;
+  currentIssues: string[];
+  currentSuggestions: string[];
+  lastAnalysisTimestamp: number | null;
+  
+  // Camera state
+  cameraSource: 'local' | 'phone' | null;
+  
+  // Overlay state
+  showHints: boolean;
+  showDetectedComponents: boolean;
+  showIssues: boolean;
+  
+  // Tutorial integration
+  activeTutorialId: string | null;
+  tutorialStep: number;
+  
+  // Actions
+  setConnectionStatus: (status: ARState['connectionStatus']) => void;
+  setPeerId: (id: string | null) => void;
+  setQrCodeUrl: (url: string | null) => void;
+  setConnectionError: (error: string | null) => void;
+  
+  setIsAnalyzing: (analyzing: boolean) => void;
+  setAnalysisStatus: (status: ARState['analysisStatus']) => void;
+  setDetectedComponents: (components: DetectedComponent[]) => void;
+  setBreadboardDetected: (detected: boolean) => void;
+  setCurrentIssues: (issues: string[]) => void;
+  setCurrentSuggestions: (suggestions: string[]) => void;
+  updateLastAnalysis: () => void;
+  
+  setCameraSource: (source: ARState['cameraSource']) => void;
+  
+  setShowHints: (show: boolean) => void;
+  setShowDetectedComponents: (show: boolean) => void;
+  setShowIssues: (show: boolean) => void;
+  toggleOverlayOption: (option: 'hints' | 'components' | 'issues') => void;
+  
+  setActiveTutorial: (tutorialId: string | null, step?: number) => void;
+  setTutorialStep: (step: number) => void;
+  
+  resetARState: () => void;
+}
+
+const initialARState = {
+  connectionStatus: 'idle' as const,
+  peerId: null,
+  qrCodeUrl: null,
+  connectionError: null,
+  isAnalyzing: false,
+  analysisStatus: 'idle' as const,
+  detectedComponents: [],
+  breadboardDetected: false,
+  currentIssues: [],
+  currentSuggestions: [],
+  lastAnalysisTimestamp: null,
+  cameraSource: null,
+  showHints: true,
+  showDetectedComponents: true,
+  showIssues: true,
+  activeTutorialId: null,
+  tutorialStep: 0,
+};
+
+export const useARStore = create<ARState>((set) => ({
+  ...initialARState,
+
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
+  setPeerId: (id) => set({ peerId: id }),
+  setQrCodeUrl: (url) => set({ qrCodeUrl: url }),
+  setConnectionError: (error) => set({ connectionError: error }),
+
+  setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
+  setAnalysisStatus: (status) => set({ analysisStatus: status }),
+  setDetectedComponents: (components) => set({ detectedComponents: components }),
+  setBreadboardDetected: (detected) => set({ breadboardDetected: detected }),
+  setCurrentIssues: (issues) => set({ currentIssues: issues }),
+  setCurrentSuggestions: (suggestions) => set({ currentSuggestions: suggestions }),
+  updateLastAnalysis: () => set({ lastAnalysisTimestamp: Date.now() }),
+
+  setCameraSource: (source) => set({ cameraSource: source }),
+
+  setShowHints: (show) => set({ showHints: show }),
+  setShowDetectedComponents: (show) => set({ showDetectedComponents: show }),
+  setShowIssues: (show) => set({ showIssues: show }),
+  toggleOverlayOption: (option) => set((state) => {
+    switch (option) {
+      case 'hints':
+        return { showHints: !state.showHints };
+      case 'components':
+        return { showDetectedComponents: !state.showDetectedComponents };
+      case 'issues':
+        return { showIssues: !state.showIssues };
+      default:
+        return state;
+    }
+  }),
+
+  setActiveTutorial: (tutorialId, step = 0) => set({ 
+    activeTutorialId: tutorialId, 
+    tutorialStep: step 
+  }),
+  setTutorialStep: (step) => set({ tutorialStep: step }),
+
+  resetARState: () => set(initialARState),
+}));

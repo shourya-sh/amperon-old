@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <style>
+        body {
+            background: #0d1117;
+            color: #22c55e;
+            font-family: monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        .box {
+            background: #161b22;
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        h1 { color: #22c55e; font-size: 20px; }
+        .success { color: #22c55e; }
+        .error { color: #ff5555; }
+    </style>
+</head>
+<body>
+    <h1>✅ CONNECTION TEST</h1>
+    
+    <div class="box">
+        <strong>If you can see this page, your phone can reach the laptop!</strong>
+    </div>
+
+    <div class="box">
+        <h2>Network Info:</h2>
+        <p>URL: <span id="url"></span></p>
+        <p>User Agent: <span id="ua"></span></p>
+        <p>Time: <span id="time"></span></p>
+    </div>
+
+    <div class="box">
+        <h2>Quick Links:</h2>
+        <p><a href="/ar" style="color: #22c55e;">Go to AR Lab (Laptop)</a></p>
+        <p><a href="/ar-connect?peer=test&session=test" style="color: #22c55e;">Test AR Connect Page</a></p>
+    </div>
+
+    <div class="box" id="params"></div>
+
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        document.getElementById('ua').textContent = navigator.userAgent;
+        document.getElementById('time').textContent = new Date().toLocaleString();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramsDiv = document.getElementById('params');
+        if (urlParams.toString()) {
+            paramsDiv.innerHTML = '<h2>URL Parameters:</h2>';
+            urlParams.forEach((value, key) => {
+                paramsDiv.innerHTML += `<p>${key} = ${value}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
