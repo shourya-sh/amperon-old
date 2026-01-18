@@ -11,105 +11,105 @@ export interface CircuitComponent {
   icon: string;
 }
 
-export type ComponentType = 
-  | 'resistor' 
-  | 'capacitor' 
-  | 'inductor'
-  | 'potentiometer'
-  | 'fuse'
-  | 'battery'
-  | 'transformer'
-  | 'led' 
-  | 'switch'
-  | 'pushbutton'
-  | 'wire' 
-  | 'ground'
-  | 'voltmeter'
-  | 'ammeter'
-  | 'transistor'
-  | 'diode'
-  | 'relay'
-  | 'buzzer'
-  | 'motor'
-  | 'lightbulb'
-  | 'speaker'
-  | '7segment'
+export type ComponentType =
+  | "resistor"
+  | "capacitor"
+  | "inductor"
+  | "potentiometer"
+  | "fuse"
+  | "battery"
+  | "transformer"
+  | "led"
+  | "switch"
+  | "pushbutton"
+  | "wire"
+  | "ground"
+  | "voltmeter"
+  | "ammeter"
+  | "transistor"
+  | "diode"
+  | "relay"
+  | "buzzer"
+  | "motor"
+  | "lightbulb"
+  | "speaker"
+  | "7segment"
   // Added analog + logic components
-  | 'opamp'
-  | 'and-gate'
-  | 'or-gate'
-  | 'not-gate'
-  | 'nand-gate'
-  | 'nor-gate'
-  | 'xor-gate'
+  | "opamp"
+  | "and-gate"
+  | "or-gate"
+  | "not-gate"
+  | "nand-gate"
+  | "nor-gate"
+  | "xor-gate"
   // Power & Energy
-  | 'dc-power-supply'
-  | 'ac-dc-converter'
-  | 'buck-converter'
-  | 'boost-converter'
-  | 'buck-boost-converter'
-  | 'ldo'
-  | 'battery-charger'
-  | 'battery-protection'
-  | 'power-path-controller'
+  | "dc-power-supply"
+  | "ac-dc-converter"
+  | "buck-converter"
+  | "boost-converter"
+  | "buck-boost-converter"
+  | "ldo"
+  | "battery-charger"
+  | "battery-protection"
+  | "power-path-controller"
   // Control & Compute
-  | 'microcontroller'
-  | 'microprocessor'
-  | 'fpga'
-  | 'clock-oscillator'
-  | 'reset-supervisor'
-  | 'gpio-expander'
+  | "microcontroller"
+  | "microprocessor"
+  | "fpga"
+  | "clock-oscillator"
+  | "reset-supervisor"
+  | "gpio-expander"
   // Actuation & Drivers
-  | 'h-bridge'
-  | 'half-bridge'
-  | 'low-side-switch'
-  | 'high-side-switch'
-  | 'solid-state-relay'
-  | 'solenoid-driver'
-  | 'stepper-driver'
+  | "h-bridge"
+  | "half-bridge"
+  | "low-side-switch"
+  | "high-side-switch"
+  | "solid-state-relay"
+  | "solenoid-driver"
+  | "stepper-driver"
   // Motors & Loads
-  | 'stepper-motor'
-  | 'servo-motor'
-  | 'resistive-load'
-  | 'inductive-load'
+  | "stepper-motor"
+  | "servo-motor"
+  | "resistive-load"
+  | "inductive-load"
   // Analog & Signal
-  | 'instrumentation-amplifier'
-  | 'comparator'
-  | 'analog-mux'
-  | 'rc-lpf'
-  | 'lc-filter'
+  | "instrumentation-amplifier"
+  | "comparator"
+  | "analog-mux"
+  | "rc-lpf"
+  | "lc-filter"
   // Sensors
-  | 'analog-sensor'
-  | 'digital-sensor'
-  | 'temperature-sensor'
-  | 'pressure-sensor'
-  | 'current-sensor'
-  | 'voltage-sensor'
+  | "analog-sensor"
+  | "digital-sensor"
+  | "temperature-sensor"
+  | "pressure-sensor"
+  | "current-sensor"
+  | "voltage-sensor"
   // Communication
-  | 'uart'
-  | 'rs485'
-  | 'can'
-  | 'spi'
-  | 'i2c'
-  | 'ethernet'
+  | "uart"
+  | "rs485"
+  | "can"
+  | "spi"
+  | "i2c"
+  | "ethernet"
   // Protection & Safety
-  | 'flyback-diode'
-  | 'tvs-diode'
-  | 'polyfuse'
-  | 'reverse-polarity'
-  | 'e-stop'
+  | "flyback-diode"
+  | "tvs-diode"
+  | "polyfuse"
+  | "reverse-polarity"
+  | "e-stop"
   // User Interfaces
-  | 'connector'
-  | 'terminal-block'
-  | 'led-indicator';
+  | "connector"
+  | "terminal-block"
+  | "led-indicator";
 
-export type ComponentCategory = 
-  | 'passive' 
-  | 'active' 
-  | 'source' 
-  | 'measurement' 
-  | 'output'
-  | 'connection';
+export type ComponentCategory =
+  | "passive"
+  | "active"
+  | "source"
+  | "measurement"
+  | "output"
+  | "connection";
 
 export interface ComponentProperty {
   name: string;
@@ -184,14 +184,19 @@ export interface Project {
 // Chat types
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
   actions?: ChatAction[];
 }
 
 export interface ChatAction {
-  type: 'add_component' | 'remove_component' | 'connect' | 'explain' | 'simulate';
+  type:
+    | "add_component"
+    | "remove_component"
+    | "connect"
+    | "explain"
+    | "simulate";
   payload: Record<string, unknown>;
   label: string;
 }
@@ -210,7 +215,7 @@ export interface Tutorial {
   id: string;
   title: string;
   description: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: "beginner" | "intermediate" | "advanced";
   duration: string;
   steps: TutorialStep[];
   category: string;
@@ -224,7 +229,7 @@ export interface TutorialStep {
   id: string;
   title: string;
   content: string;
-  type: 'text' | 'video' | 'interactive' | 'quiz' | 'diagram';
+  type: "text" | "video" | "interactive" | "quiz" | "diagram";
   circuit?: CircuitDiagram | Partial<CircuitDiagram>;
   visualizeComponents?: string[]; // Component IDs to show in visualizer
   validationCriteria?: {
@@ -285,7 +290,7 @@ export interface ARDetectedComponent {
 
 export interface ARBreadboardState {
   detected: boolean;
-  type?: 'mini' | 'half' | 'full';
+  type?: "mini" | "half" | "full";
   rows?: number;
 }
 
@@ -305,24 +310,24 @@ export interface ARAnalysisResult {
   latency?: number;
 }
 
-export type ARConnectionStatus = 
-  | 'idle' 
-  | 'generating' 
-  | 'waiting' 
-  | 'connecting' 
-  | 'connected' 
-  | 'error';
+export type ARConnectionStatus =
+  | "idle"
+  | "generating"
+  | "waiting"
+  | "connecting"
+  | "connected"
+  | "error";
 
-export type ARAnalysisStatus = 
-  | 'idle' 
-  | 'connecting' 
-  | 'connected' 
-  | 'analyzing' 
-  | 'stopped' 
-  | 'error';
+export type ARAnalysisStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "analyzing"
+  | "stopped"
+  | "error";
 
 export interface ARCameraSource {
-  type: 'local' | 'phone';
+  type: "local" | "phone";
   stream?: MediaStream;
   peerId?: string;
 }
@@ -333,4 +338,54 @@ export interface ARTutorialStep {
   completed: boolean;
   expectedComponents?: string[];
   feedback?: string;
+}
+
+// Shop/Pricing types
+export type VendorName =
+  | "texas_instruments"
+  | "octopart"
+  | "findchips"
+  | "amazon";
+
+export interface VendorPrice {
+  vendor: VendorName;
+  vendorDisplayName: string;
+  price: number;
+  currency: string;
+  url: string;
+  inStock: boolean;
+  stockQuantity?: number;
+  minOrderQty?: number;
+  leadTime?: string;
+  partNumber?: string;
+}
+
+export interface ComponentPricing {
+  componentId: string;
+  componentName: string;
+  componentType: string;
+  quantity: number;
+  prices: VendorPrice[];
+  bestPrice: VendorPrice | null;
+  lastUpdated: Date;
+  status: "loading" | "success" | "error" | "no_results";
+  errorMessage?: string;
+}
+
+export interface ShopCartItem {
+  componentId: string;
+  componentName: string;
+  componentType: string;
+  quantity: number;
+  selectedVendor: VendorPrice | null;
+  properties?: ComponentProperty[];
+}
+
+export interface ShopState {
+  isOpen: boolean;
+  items: ShopCartItem[];
+  pricing: Record<string, ComponentPricing>;
+  isLoadingPrices: boolean;
+  totalPrice: number;
+  currency: string;
 }
